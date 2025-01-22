@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>netstandard2.0;netstandard2.1;net47;net8.0</TargetFrameworks>
+        <Nullable>enable</Nullable>
+        <LangVersion>default</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <NoWarn>1591;1573</NoWarn>
+        <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+        <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+        <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+    </PropertyGroup>
+
+  <PropertyGroup Label="Package info">
+    <Authors>You're name</Authors>
+    <PackageDescription>
+      A nice description of your package as you want to see it on NuGet.
+    </PackageDescription>
+    <PackageProjectUrl>https://url-to-your-landing-page</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/your-user-name/my-package</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>some;tags;you;like</PackageTags>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageIcon>PackageIcon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>https://github.com/your-user-name/my-package/releases</PackageReleaseNotes>
+    <Copyright>Copyright 2025-$([System.DateTime]::Now.ToString(yyyy)) Your Name</Copyright>
+  </PropertyGroup>
+
+  <ItemGroup Label="Package files">
+    <None Include="..\PackageIcon.png" Pack="true" Visible="false" PackagePath="" />
+    <None Include="..\LICENSE" Pack="true" PackagePath=""/>
+    <None Include="..\README.md" Pack="true" PackagePath=""/>
+  </ItemGroup>
+
+  <ItemGroup Label="Internals visible to">
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>PackageGuard.Specs</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <DocumentationFile>bin\Debug\PackageGuard.xml</DocumentationFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <DocumentationFile>bin\Release\PackageGuard.xml</DocumentationFile>
+    </PropertyGroup>
+
+</Project>

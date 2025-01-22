@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net6.0;net472</TargetFrameworks>
+        <LangVersion>default</LangVersion>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+      <PackageReference Include="xunit.runner.visualstudio" Version="3.0.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+      </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
+      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.6.3" />
+      <PackageReference Include="xunit.runner.visualstudio" Version="3.0.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+      </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="xunit" Version="2.5.0" />
+      <PackageReference Include="FluentAssertions" Version="7.1.0" />
+      <PackageReference Include="JetBrains.Annotations" Version="2024.3.0" />
+      <PackageReference Include="coverlet.collector" Version="6.0.3" PrivateAssets="all">
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\PackageGuard\PackageGuard.csproj" />
+    </ItemGroup>
+
+
+</Project>
