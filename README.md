@@ -1,10 +1,10 @@
 <h1 align="center">
   <br>
-  PackageGuard
+  PackageGuard (Work In Progress)
   <br>
 </h1>
 
-<h4 align="center">Nice tagline about your package</h4>
+<h4 align="center">Get a grip on your open-source packages</h4>
 
 <div align="center">
 
@@ -20,7 +20,7 @@
 [![open issues](https://img.shields.io/github/issues/your-github-username/packageguard)](https://github.com/your-github-username/packageguard/issues)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
 ![](https://img.shields.io/badge/release%20strategy-githubflow-orange.svg)
-![Static Badge](https://img.shields.io/badge/4.7%2C_6.0%2C_netstandard2.0%2C_netstandard2.1-dummy?label=dotnet&color=%235027d5)
+![Static Badge](https://img.shields.io/badge/4.7%2C_8.0-dummy?label=dotnet&color=%235027d5)
 
 
 
@@ -50,8 +50,10 @@ Add stuff like:
 * What problem does it solve?
 
 ### Who created this?
-* Something about you, your company, your team, etc.
-* How to contact you like LinkedIn, Twitter, Bluesky, Mastodon, email, etc.
+My name is Dennis Doomen and I'm a Microsoft MVP and Principal Consultant at [Aviva Solutions](https://avivasolutions.nl/) with 28 years of experience under my belt. As a software architect and/or lead developer, I specialize in designing full-stack enterprise solutions based on .NET as well as providing coaching on all aspects of designing, building, deploying and maintaining software systems. I'm the author of several open-source projects such as [Fluent Assertions](https://www.fluentassertions.com), [Reflectify](https://github.com/dennisdoomen/reflectify), [Liquid Projections](https://www.liquidprojections.net), and I've been maintaining [coding guidelines for C#](https://www.csharpcodingguidelines.com) since 2001.
+
+Contact me through [Email](mailto:dennis.doomen@avivasolutions.nl), [Bluesky](https://bsky.app/profile/dennisdoomen.com), [Twitter/X](https://twitter.com/ddoomen) or [Mastadon](https://mastodon.social/@ddoomen)
+
 
 ## How do I use it?
 * Code examples
@@ -114,16 +116,18 @@ This library wouldn't have been possible without the following tools, packages a
 * [Verify](https://github.com/VerifyTests/Verify) - Snapshot testing by [Simon Cropp](https://github.com/SimonCropp)
 
 ## Support the project
-* [Github Sponsors](https://github.com/sponsors/your-github-username)
-* [Tip Me](https://paypal.me/your-paypal-username)
-* [Buy me a Coffee](https://ko-fi.com/your-github-username)
-* [Patreon](https://patreon.com/your-patreon-username)
+* [Github Sponsors](https://github.com/sponsors/dennisdoomen)
+* [Tip Me](https://paypal.me/fluentassertions)
+* [Buy me a Coffee](https://ko-fi.com/dennisdoomen)
+* [Sponsor Me](https://www.patreon.com/bePatron?u=9250052&redirect_uri=http%3A%2F%2Ffluentassertions.com%2F&utm_medium=widget)
 
 ## You may also like
 
-* Your blog
-* Your other projects
-* Related projects you think are cool or interesting for the consumers of this project
+* [My Blog](https://www.dennisdoomen.com)
+* [Reflectify](https://github.com/dennisdoomen/reflectify) - Reflection extensions without causing dependency pains
+* [.NET Library Package Templates](https://github.com/dennisdoomen/dotnet-package-templates) - "dotnet new" templates for building NuGet-published multi-targeting libraries with all the bells and whistles
+* [FluentAssertions](https://github.com/fluentassertions/fluentassertions) - Extension methods to fluently assert the outcome of .NET tests
+* [C# Coding Guidelines](https://csharpcodingguidelines.com/) - Forkable coding guidelines for all C# versions
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
