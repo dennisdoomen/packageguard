@@ -16,6 +16,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PackageGuard.Specs", "Packa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PackageGuard.ApiVerificationTests", "PackageGuard.ApiVerificationTests\PackageGuard.ApiVerificationTests.csproj", "{2556E20E-7408-4E55-BFD1-344535F8D940}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PackageGuard.Console", "PackageGuard.Console\PackageGuard.Console.csproj", "{B14DA0B4-9078-491B-8672-A341BF0E18DD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,5 +41,9 @@ Global
 		{2556E20E-7408-4E55-BFD1-344535F8D940}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2556E20E-7408-4E55-BFD1-344535F8D940}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2556E20E-7408-4E55-BFD1-344535F8D940}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B14DA0B4-9078-491B-8672-A341BF0E18DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B14DA0B4-9078-491B-8672-A341BF0E18DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B14DA0B4-9078-491B-8672-A341BF0E18DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B14DA0B4-9078-491B-8672-A341BF0E18DD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
