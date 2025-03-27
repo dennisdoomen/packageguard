@@ -31,7 +31,6 @@
         "Default",
         "Pack",
         "Push",
-        "Restore",
         "RunTests"
       ]
     },

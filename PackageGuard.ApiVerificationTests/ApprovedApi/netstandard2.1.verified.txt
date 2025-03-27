@@ -1,9 +1,0 @@
-﻿[assembly: System.Reflection.AssemblyMetadata("RepositoryUrl", "https://github.com/your-user-name/my-package")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("PackageGuard.Specs")]
-namespace PackageGuard
-{
-    public class PackageGuard
-    {
-        public PackageGuard() { }
-    }
-}

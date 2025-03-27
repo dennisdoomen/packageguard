@@ -1,6 +1,0 @@
-<Project>
-  <ItemGroup>
-    <Compile Update="@(Compile)">
-    </Compile>
-  </ItemGroup>
-</Project>
