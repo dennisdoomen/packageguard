@@ -8,15 +8,16 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Files", "Files", "{4D180A10-CB16-4781-BEB7-EAE2038A0993}"
 	ProjectSection(SolutionItems) = preProject
 		README.md = README.md
+		Samples\config.json = Samples\config.json
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PackageGuard", "PackageGuard\PackageGuard.csproj", "{5477FF7B-BE6D-48EF-9164-E89F658027E0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PackageGuard.Core", "Src\PackageGuard.Core\PackageGuard.Core.csproj", "{5477FF7B-BE6D-48EF-9164-E89F658027E0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PackageGuard.Specs", "PackageGuard.Specs\PackageGuard.Specs.csproj", "{775114E1-DC36-44A9-9150-79738A95DA00}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PackageGuard.Specs", "Src\PackageGuard.Specs\PackageGuard.Specs.csproj", "{775114E1-DC36-44A9-9150-79738A95DA00}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PackageGuard.ApiVerificationTests", "PackageGuard.ApiVerificationTests\PackageGuard.ApiVerificationTests.csproj", "{2556E20E-7408-4E55-BFD1-344535F8D940}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PackageGuard.ApiVerificationTests", "Src\PackageGuard.ApiVerificationTests\PackageGuard.ApiVerificationTests.csproj", "{2556E20E-7408-4E55-BFD1-344535F8D940}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PackageGuard.Console", "PackageGuard.Console\PackageGuard.Console.csproj", "{B14DA0B4-9078-491B-8672-A341BF0E18DD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PackageGuard", "Src\PackageGuard\PackageGuard.csproj", "{B14DA0B4-9078-491B-8672-A341BF0E18DD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

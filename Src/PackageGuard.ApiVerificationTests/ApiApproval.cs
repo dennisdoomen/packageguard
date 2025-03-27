@@ -17,12 +17,11 @@ public class ApiApproval
 {
     static ApiApproval() => VerifyDiffPlex.Initialize(OutputType.Minimal);
 
-    [Theory]
-    [ClassData(typeof(TargetFrameworksTheoryData))]
-    public Task ApproveApi(string framework)
+    [Fact]
+    public Task ApproveApi()
     {
         var configuration = typeof(ApiApproval).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
-        var assemblyFile = CombinedPaths("PackageGuard", "bin", configuration, framework, "PackageGuard.dll");
+        var assemblyFile = CombinedPaths("PackageGuard.Core", "bin", configuration, "net8.0", "PackageGuard.Core.dll");
         var assembly = Assembly.LoadFile(assemblyFile);
         var publicApi = assembly.GeneratePublicApi(options: null);
 
@@ -30,19 +29,8 @@ public class ApiApproval
             .Verify(publicApi)
             .ScrubLinesContaining("FrameworkDisplayName")
             .UseDirectory("ApprovedApi")
-            .UseFileName(framework)
+            .UseFileName("net8.0")
             .DisableDiff();
-    }
-
-    private class TargetFrameworksTheoryData : TheoryData<string>
-    {
-        public TargetFrameworksTheoryData()
-        {
-            var csproj = CombinedPaths("PackageGuard", "PackageGuard.csproj");
-            var project = XDocument.Load(csproj);
-            var targetFrameworks = project.XPathSelectElement("/Project/PropertyGroup/TargetFrameworks");
-            AddRange(targetFrameworks!.Value.Split(';'));
-        }
     }
 
     private static string CombinedPaths(params string[] paths) =>

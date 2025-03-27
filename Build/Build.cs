@@ -67,17 +67,8 @@ class Build : NukeBuild
             Information("SemVer = {semver}", SemVer);
         });
 
-    Target Restore => _ => _
-        .Executes(() =>
-        {
-            DotNetRestore(s => s
-                .SetProjectFile(Solution)
-                .EnableNoCache());
-        });
-
     Target Compile => _ => _
         .DependsOn(CalculateNugetVersion)
-        .DependsOn(Restore)
         .Executes(() =>
         {
             ReportSummary(s => s
@@ -87,8 +78,6 @@ class Build : NukeBuild
             DotNetBuild(s => s
                 .SetProjectFile(Solution)
                 .SetConfiguration(Configuration)
-                .EnableNoLogo()
-                .EnableNoRestore()
                 .SetAssemblyVersion(GitVersion.AssemblySemVer)
                 .SetFileVersion(GitVersion.AssemblySemFileVer)
                 .SetInformationalVersion(GitVersion.InformationalVersion));
@@ -104,15 +93,13 @@ class Build : NukeBuild
             DotNetTest(s => s
                 // We run tests in debug mode so that Fluent Assertions can show the names of variables
                 .SetConfiguration(Configuration.Debug)
-                // To prevent the machine language to affect tests sensitive to the current thread's culture
-                .SetProcessEnvironmentVariable("DOTNET_CLI_UI_LANGUAGE", "en-US")
                 .SetDataCollector("XPlat Code Coverage")
                 .SetResultsDirectory(TestResultsDirectory)
                 .SetProjectFile(project)
                 .CombineWith(project.GetTargetFrameworks(),
                     (ss, framework) => ss
                         .SetFramework(framework)
-                        .AddLoggers($"trx;LogFileName={framework}.trx")
+                        .AddLoggers($"trx;LogFileName={project!.Name}_{framework}.trx")
                 ));
         });
 

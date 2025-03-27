@@ -159,9 +159,15 @@
 	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ESettingsUpgrade_002EMigrateBlankLinesAroundFieldToBlankLinesAroundProperty/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ESettingsUpgrade_002EMigrateThisQualifierSettings/@EntryIndexedValue">True</s:Boolean>
 	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EPsi_002ECSharp_002ECodeStyle_002ESettingsUpgrade_002EPredefinedNamingRulesToUserRulesUpgrade/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/Environment/SettingsMigration/IsMigratorApplied/=JetBrains_002EReSharper_002EUnitTestFramework_002EMigrations_002EEnableDisabledProvidersMigration/@EntryIndexedValue">True</s:Boolean>
+	<s:Boolean x:Key="/Default/Environment/UnitTesting/DisabledProviders/=Testing_0020Platform/@EntryIndexedValue">True</s:Boolean>
+	
+	
 	<s:String x:Key="/Default/Environment/UnitTesting/MsTestProvider/RunConfigurationFilename/@EntryValue">D:\Workspaces\FluentAssertions\Default.testsettings</s:String>
 	<s:Int64 x:Key="/Default/Environment/UnitTesting/ParallelProcessesCount/@EntryValue">4</s:Int64>
 	<s:Boolean x:Key="/Default/Environment/UnitTesting/ShadowCopy/@EntryValue">False</s:Boolean>
+	<s:Boolean x:Key="/Default/Environment/UnitTesting/VsTestProvider/TestProjectMasks/=_002ASpecs_002Ecs/@EntryIndexedValue">False</s:Boolean>
+	<s:Boolean x:Key="/Default/Environment/UnitTesting/VsTestProvider/TestProjectMasks/=_002ASpecs_002Ecs/@EntryIndexRemoved">True</s:Boolean>
 	<s:Boolean x:Key="/Default/PatternsAndTemplates/LiveTemplates/Template/=012E3B0572DEF2448B0B5D9AA88E6210/@KeyIndexDefined">True</s:Boolean>
 	<s:Boolean x:Key="/Default/PatternsAndTemplates/LiveTemplates/Template/=012E3B0572DEF2448B0B5D9AA88E6210/Field/=behavior/@KeyIndexDefined">False</s:Boolean>
 	<s:Boolean x:Key="/Default/PatternsAndTemplates/LiveTemplates/Template/=012E3B0572DEF2448B0B5D9AA88E6210/Field/=Fact/@KeyIndexDefined">True</s:Boolean>
@@ -169,7 +175,7 @@
 	<s:Boolean x:Key="/Default/PatternsAndTemplates/LiveTemplates/Template/=012E3B0572DEF2448B0B5D9AA88E6210/Field/=scenario/@KeyIndexDefined">False</s:Boolean>
 	<s:String x:Key="/Default/PatternsAndTemplates/LiveTemplates/Template/=012E3B0572DEF2448B0B5D9AA88E6210/Shortcut/@EntryValue">aaa</s:String>
 	<s:String x:Key="/Default/PatternsAndTemplates/LiveTemplates/Template/=012E3B0572DEF2448B0B5D9AA88E6210/Description/@EntryValue">Arrange-Act-Assert</s:String>
-	<s:String x:Key="/Default/PatternsAndTemplates/LiveTemplates/Template/=012E3B0572DEF2448B0B5D9AA88E6210/Text/@EntryValue">[Fact]
+	<s:String x:Key="/Default/PatternsAndTemplates/LiveTemplates/Template/=012E3B0572DEF2448B0B5D9AA88E6210/Text/@EntryValue">[Test]
 public void $Fact$()
 {
     // Arrange

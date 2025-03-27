@@ -1,0 +1,75 @@
+﻿[assembly: System.Reflection.AssemblyMetadata("RepositoryUrl", "https://github.com/your-user-name/my-package")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("PackageGuard.Specs")]
+namespace PackageGuard.Core
+{
+    public class BlackList : PackageGuard.Core.PackagePolicy
+    {
+        public BlackList() { }
+    }
+    public class NuGetPackageAnalyzer
+    {
+        public NuGetPackageAnalyzer(Microsoft.Extensions.Logging.ILogger logger) { }
+        public System.Threading.Tasks.Task CollectPackageMetadata(string projectPath, string packageName, NuGet.Versioning.NuGetVersion packageVersion, PackageGuard.Core.PackageInfoCollection packages) { }
+    }
+    public class NuGetProjectAnalyzer
+    {
+        public NuGetProjectAnalyzer(PackageGuard.Core.ProjectScanner scanner, PackageGuard.Core.NuGetPackageAnalyzer analyzer) { }
+        public PackageGuard.Core.BlackList BlackList { get; set; }
+        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
+        public string ProjectPath { get; set; }
+        public PackageGuard.Core.WhiteList WhiteList { get; set; }
+        public System.Threading.Tasks.Task<PackageGuard.Core.PolicyViolation[]> ExecuteAnalysis() { }
+    }
+    public class PackageInfo
+    {
+        public PackageInfo() { }
+        public string Id { get; set; }
+        public string? License { get; set; }
+        public string? LicenseUrl { get; set; }
+        public System.Collections.Generic.List<string> Projects { get; set; }
+        public string? RepositoryUrl { get; set; }
+        public string? Source { get; set; }
+        public string Version { get; set; }
+        public void Add(string projectPath) { }
+        public bool SatisfiesRange(string name, string? versionRange = null) { }
+        public override string ToString() { }
+    }
+    public class PackageInfoCollection : System.Collections.Generic.IEnumerable<PackageGuard.Core.PackageInfo>, System.Collections.IEnumerable
+    {
+        public PackageInfoCollection() { }
+        public void Add(PackageGuard.Core.PackageInfo package) { }
+        public PackageGuard.Core.PackageInfo? Find(string libraryName, string libraryVersion) { }
+        public System.Collections.Generic.IEnumerator<PackageGuard.Core.PackageInfo> GetEnumerator() { }
+    }
+    public abstract class PackagePolicy
+    {
+        protected PackagePolicy() { }
+        public System.Collections.Generic.List<string> Licenses { get; set; }
+        public System.Collections.Generic.List<PackageGuard.Core.PackageSelector> Packages { get; set; }
+    }
+    public class PackageSelector
+    {
+        public PackageSelector(string id) { }
+        public PackageSelector(string id, string versionRange) { }
+        public string Id { get; set; }
+        public string? VersionRange { get; set; }
+    }
+    public class PolicyViolation : System.IEquatable<PackageGuard.Core.PolicyViolation>
+    {
+        public PolicyViolation(string PackageId, string Version, string License, string[] Projects) { }
+        public string License { get; init; }
+        public string PackageId { get; init; }
+        public string[] Projects { get; init; }
+        public string Version { get; init; }
+    }
+    public class ProjectScanner
+    {
+        public ProjectScanner(Microsoft.Extensions.Logging.ILogger logger) { }
+        public System.Func<string[], string>? SelectSolution { get; set; }
+        public System.Collections.Generic.List<string> FindProjects(string path) { }
+    }
+    public class WhiteList : PackageGuard.Core.PackagePolicy
+    {
+        public WhiteList() { }
+    }
+}

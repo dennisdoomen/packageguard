@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net8.0;net472</TargetFrameworks>
         <Nullable>enable</Nullable>
         <LangVersion>default</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
@@ -9,7 +8,9 @@
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
         <EmbedUntrackedSources>true</EmbedUntrackedSources>
-        <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+        <TargetFramework>net8.0</TargetFramework>
+        <AssemblyName>PackageGuard.Core</AssemblyName>
+        <RootNamespace>PackageGuard.Core</RootNamespace>
     </PropertyGroup>
 
   <PropertyGroup Label="Package info">
@@ -30,14 +31,22 @@
 
   <ItemGroup Label="Package files">
     <None Include="..\PackageIcon.png" Pack="true" Visible="false" PackagePath="" />
-    <None Include="..\LICENSE" Pack="true" PackagePath=""/>
-    <None Include="..\README.md" Pack="true" PackagePath=""/>
+    <None Include="..\..\LICENSE" Pack="true" PackagePath=""/>
+    <None Include="..\..\README.md" Pack="true" PackagePath=""/>
   </ItemGroup>
 
   <ItemGroup Label="Internals visible to">
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>PackageGuard.Specs</_Parameter1>
     </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CliWrap" Version="3.8.2" />
+    <PackageReference Include="Microsoft.Build" Version="17.11.4" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />
+    <PackageReference Include="NuGet.ProjectModel" Version="6.13.2" />
+    <PackageReference Include="NuGet.Versioning" Version="6.13.2" />
   </ItemGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
