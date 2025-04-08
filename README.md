@@ -1,7 +1,6 @@
-<div style="text-align:center">
+<div align="center">
   <img src="./PackageGuard.png" style="width:300px" alt="PackageGuard"/>
 </div>
-
 <h1 align="center">Get a grip on your open-source packages</h4>
 
 <div align="center">
