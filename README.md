@@ -1,5 +1,5 @@
 <div style="text-align:center">
-  <img src="./PackageGuard.png" style="width:300px" alt="PackageGuard/>
+  <img src="./PackageGuard.png" style="width:300px" alt="PackageGuard"/>
 </div>
 
 <h1 align="center">Get a grip on your open-source packages</h4>
@@ -78,7 +78,7 @@ First, you need to create a JSON configuration file listing the packages and/or 
 }
 ```
 
-In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, and teh use of `moq` is prohibited. Both the `whitelist` and `blacklist` sections support both the `licenses` and `packages` properties. License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions.
+In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, and the use of `moq` is prohibited. Both the `whitelist` and `blacklist` sections support both the `licenses` and `packages` properties. License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions.
 
 With this configuration in place, simply invoke PackageGuard like this
 
@@ -89,6 +89,8 @@ If you pass a directory, PackageGuard will try to find the `.sln` files there. B
 If everything was configured correctly, you'll get something like:
 
 ![](Docs/Screenshot.png)
+
+The exit code indicates either 0 for success or 1 for failure. 
 
 ## Roadmap
 
@@ -117,7 +119,7 @@ Display the reason why a package was marked as a violation
 
 To build this repository locally, you need the following:
 * The [.NET SDK](https://dotnet.microsoft.com/en-us/download/visual-studio-sdks) for .NET 8.0.
-* Visual Studio, JetBrains Rider or Visual Studio Code with the C# DevKit
+* Visual Studio, [JetBrains Rider](https://www.jetbrains.com/rider/) or [Visual Studio Code](https://code.visualstudio.com/) with the [C# DevKit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
 
 You can also build, run the unit tests and package the code using the following command-line:
 
@@ -147,10 +149,10 @@ This library uses [Semantic Versioning](https://semver.org/) to give meaning to 
 ## Credits
 This library wouldn't have been possible without the following tools, packages and companies:
 
+* [Spectre.Console](https://spectreconsole.net/) - a .NET library that makes it easier to create beautiful console applications.
 * [Nuke](https://nuke.build/) - Smart automation for DevOps teams and CI/CD pipelines by [Matthias Koch](https://github.com/matkoch)
-* [xUnit](https://xunit.net/) - Community-focused unit testing tool for .NET by [Brad Wilson](https://github.com/bradwilson)
+* [CliWrap](https://github.com/Tyrrrz/CliWrap) - Library for running command-line processes by [Oleksii Holub](https://github.com/Tyrrrz)
 * [Coverlet](https://github.com/coverlet-coverage/coverlet) - Cross platform code coverage for .NET by [Toni Solarin-Sodara](https://github.com/tonerdo)
-* [Polysharp](https://github.com/Sergio0694/PolySharp) - Generated, source-only polyfills for C# language features by [Sergio Pedri](https://github.com/Sergio0694)
 * [GitVersion](https://gitversion.net/) - From git log to SemVer in no time
 * [ReportGenerator](https://reportgenerator.io/) - Converts coverage reports by [Daniel Palme](https://github.com/danielpalme)
 * [StyleCopyAnalyzer](https://github.com/DotNetAnalyzers/StyleCopAnalyzers) - StyleCop rules for .NET
@@ -160,10 +162,9 @@ This library wouldn't have been possible without the following tools, packages a
 * [Verify](https://github.com/VerifyTests/Verify) - Snapshot testing by [Simon Cropp](https://github.com/SimonCropp)
 
 ## Support the project
-* [Github Sponsors](https://github.com/sponsors/dennisdoomen)
+* [Sponsor me](https://github.com/sponsors/dennisdoomen)
 * [Tip Me](https://paypal.me/fluentassertions)
 * [Buy me a Coffee](https://ko-fi.com/dennisdoomen)
-* [Sponsor Me](https://www.patreon.com/bePatron?u=9250052&redirect_uri=http%3A%2F%2Ffluentassertions.com%2F&utm_medium=widget)
 
 ## You may also like
 
