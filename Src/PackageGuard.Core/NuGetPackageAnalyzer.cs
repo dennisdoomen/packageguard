@@ -50,7 +50,10 @@ public class NuGetPackageAnalyzer(ILogger logger)
         {
             logger.LogInformation("Finding NuGet sources");
 
-            var settings = NuGet.Configuration.Settings.LoadDefaultSettings(projectDirectory);
+            var settings = Settings.LoadDefaultSettings(projectDirectory,
+                configFileName: null,
+                machineWideSettings: new XPlatMachineWideSetting());
+
             var sourceProvider = new PackageSourceProvider(settings);
             var packageSources = sourceProvider.LoadPackageSources()
                 .Where(s => s.IsEnabled)
