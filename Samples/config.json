@@ -1,12 +1,12 @@
 {
     "settings": {
-        "allowlist": {
+        "allow": {
             "licenses": [
                 "Apache-2.0",
                 "MIT"
             ]
         },
-        "denylistlist": {
+        "deny": {
             "licenses": [],
             "packages": [
                 "moq"

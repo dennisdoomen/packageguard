@@ -61,13 +61,13 @@ First, you need to create a JSON configuration file listing the packages and/or 
 ```json
 {
     "settings": {
-        "allowlist": {
+        "allow": {
             "licenses": [
                 "Apache-2.0", // Uses SPDX naming
                 "MIT",
             ]
         },
-        "denylist": {
+        "deny": {
           "licenses": [],
           "packages": [
             "moq"
@@ -77,7 +77,7 @@ First, you need to create a JSON configuration file listing the packages and/or 
 }
 ```
 
-In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, and the use of `moq` is prohibited. Both the `allowlist` and `denylist` sections support both the `licenses` and `packages` properties. License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions.
+In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, and the use of `moq` is prohibited. Both the `allow` and `deny` sections support both the `licenses` and `packages` properties. License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions.
 
 With this configuration in place, simply invoke PackageGuard like this
 

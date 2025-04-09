@@ -75,22 +75,22 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
 
     private void Configure(NuGetProjectAnalyzer analyzer, GlobalSettings globalSettings)
     {
-        foreach (string package in globalSettings.AllowList.Packages)
+        foreach (string package in globalSettings.Allow.Packages)
         {
             string[] segments = package.Split("/");
 
             analyzer.AllowList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? ""));
         }
 
-        analyzer.AllowList.Licenses.AddRange(globalSettings.AllowList.Licenses);
+        analyzer.AllowList.Licenses.AddRange(globalSettings.Allow.Licenses);
 
-        foreach (string package in globalSettings.DenyList.Packages)
+        foreach (string package in globalSettings.Deny.Packages)
         {
             string[] segments = package.Split("/");
 
             analyzer.DenyList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? ""));
         }
 
-        analyzer.DenyList.Licenses.AddRange(globalSettings.DenyList.Licenses);
+        analyzer.DenyList.Licenses.AddRange(globalSettings.Deny.Licenses);
     }
 }
