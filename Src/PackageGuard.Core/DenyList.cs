@@ -1,6 +1,6 @@
 ﻿namespace PackageGuard.Core;
 
-public class BlackList : PackagePolicy
+public class DenyList : PackagePolicy
 {
     internal override bool Complies(PackageInfo package)
     {

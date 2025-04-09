@@ -2,9 +2,13 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("PackageGuard.Specs")]
 namespace PackageGuard.Core
 {
-    public class BlackList : PackageGuard.Core.PackagePolicy
+    public class AllowList : PackageGuard.Core.PackagePolicy
     {
-        public BlackList() { }
+        public AllowList() { }
+    }
+    public class DenyList : PackageGuard.Core.PackagePolicy
+    {
+        public DenyList() { }
     }
     public class NuGetPackageAnalyzer
     {
@@ -14,10 +18,10 @@ namespace PackageGuard.Core
     public class NuGetProjectAnalyzer
     {
         public NuGetProjectAnalyzer(PackageGuard.Core.ProjectScanner scanner, PackageGuard.Core.NuGetPackageAnalyzer analyzer) { }
-        public PackageGuard.Core.BlackList BlackList { get; set; }
+        public PackageGuard.Core.AllowList AllowList { get; set; }
+        public PackageGuard.Core.DenyList DenyList { get; set; }
         public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
         public string ProjectPath { get; set; }
-        public PackageGuard.Core.WhiteList WhiteList { get; set; }
         public System.Threading.Tasks.Task<PackageGuard.Core.PolicyViolation[]> ExecuteAnalysis() { }
     }
     public class PackageInfo
@@ -67,9 +71,5 @@ namespace PackageGuard.Core
         public ProjectScanner(Microsoft.Extensions.Logging.ILogger logger) { }
         public System.Func<string[], string>? SelectSolution { get; set; }
         public System.Collections.Generic.List<string> FindProjects(string path) { }
-    }
-    public class WhiteList : PackageGuard.Core.PackagePolicy
-    {
-        public WhiteList() { }
     }
 }

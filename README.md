@@ -35,7 +35,7 @@
 
 ### What's this?
 
-PackageGuard is a fully open-source tool to scan the NuGet dependencies of your .NET solutions against a black- or whitelist to control the open-source licenses that you want to allow or certain versions of certain packages you want to enforce or avoid. 
+PackageGuard is a fully open-source tool to scan the NuGet dependencies of your .NET solutions against a deny- or allowlist to control the open-source licenses that you want to allow or certain versions of certain packages you want to enforce or avoid. 
 
 ### What's so special about that?
 
@@ -56,18 +56,18 @@ Then use `packageguard -h` to see a list of options.
 
 ## How do I use it?
 
-First, you need to create a JSON configuration file listing the packages and/or licenses you want to black/white list. By default, this file is called `config.json` and loaded from the working directory, but you can override that using the `--configPath` CLI parameter. The config file needs to have the following format:
+First, you need to create a JSON configuration file listing the packages and/or licenses you want to allow/deny list. By default, this file is called `config.json` and loaded from the working directory, but you can override that using the `--configPath` CLI parameter. The config file needs to have the following format:
 
 ```json
 {
     "settings": {
-        "whitelist": {
+        "allow": {
             "licenses": [
                 "Apache-2.0", // Uses SPDX naming
                 "MIT",
             ]
         },
-        "blacklist": {
+        "deny": {
           "licenses": [],
           "packages": [
             "moq"
@@ -77,7 +77,7 @@ First, you need to create a JSON configuration file listing the packages and/or 
 }
 ```
 
-In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, and the use of `moq` is prohibited. Both the `whitelist` and `blacklist` sections support both the `licenses` and `packages` properties. License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions.
+In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, and the use of `moq` is prohibited. Both the `allow` and `deny` sections support both the `licenses` and `packages` properties. License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions.
 
 With this configuration in place, simply invoke PackageGuard like this
 

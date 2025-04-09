@@ -1,6 +1,6 @@
 ﻿namespace PackageGuard.Core;
 
-public class WhiteList : PackagePolicy
+public class AllowList : PackagePolicy
 {
     internal override bool Complies(PackageInfo package)
     {
@@ -19,7 +19,7 @@ public class WhiteList : PackagePolicy
                 }
                 else
                 {
-                    // If the package (and version) is whitelisted, we don't care about the license violation
+                    // If the package (and version) is allowlisted, we don't care about the license violation
                     licenseComplies = true;
                 }
                 break;
