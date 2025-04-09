@@ -11,7 +11,7 @@
         <PackageOutputPath>../../Artifacts/</PackageOutputPath>
         <Authors>Dennis Doomen</Authors>
         <PackageDescription>
-          PackageGuard is a fully open-source tool to scan the NuGet dependencies of your .NET solutions against a black- or whitelist to control the open-source licenses that you want to allow or certain versions of certain packages you want to enforce or avoid.
+          PackageGuard is a fully open-source tool to scan the NuGet dependencies of your .NET solutions against a deny- or allowlist to control the open-source licenses that you want to allow or certain versions of certain packages you want to enforce or avoid.
         </PackageDescription>
         <PackageProjectUrl>https://github.com/dennisdoomen/packageguard</PackageProjectUrl>
         <RepositoryUrl>https://github.com/dennisdoomen/packageguard</RepositoryUrl>

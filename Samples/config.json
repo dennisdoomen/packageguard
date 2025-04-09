@@ -1,12 +1,12 @@
 {
     "settings": {
-        "whitelist": {
+        "allowlist": {
             "licenses": [
                 "Apache-2.0",
-                "MIT",
+                "MIT"
             ]
         },
-        "blacklist": {
+        "denylistlist": {
             "licenses": [],
             "packages": [
                 "moq"

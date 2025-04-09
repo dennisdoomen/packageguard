@@ -5,10 +5,10 @@ namespace PackageGuard;
 public class GlobalSettings
 {
     [UsedImplicitly]
-    public PolicyItem WhiteList { get; set; } = new();
+    public PolicyItem AllowList { get; set; } = new();
 
     [UsedImplicitly]
-    public PolicyItem BlackList { get; set; } = new();
+    public PolicyItem DenyList { get; set; } = new();
 
     public class PolicyItem
     {

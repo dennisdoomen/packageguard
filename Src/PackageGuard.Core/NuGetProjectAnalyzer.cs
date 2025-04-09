@@ -19,20 +19,20 @@ public class NuGetProjectAnalyzer(ProjectScanner scanner, NuGetPackageAnalyzer a
     /// If specified, a list of packages, versions and licenses that are allowed. Everything else is forbidden.
     /// </summary>
     /// <remarks>
-    /// Can be overridden by <see cref="BlackList"/>
+    /// Can be overridden by <see cref="DenyList"/>
     /// </remarks>
-    public WhiteList WhiteList { get; set; } = new();
+    public AllowList AllowList { get; set; } = new();
 
     /// <summary>
-    /// If specified, a list of packages, versions and licenses that are forbidden, even if it was listed in <see cref="WhiteList"/>.
+    /// If specified, a list of packages, versions and licenses that are forbidden, even if it was listed in <see cref="AllowList"/>.
     /// </summary>
-    public BlackList BlackList { get; set; } = new();
+    public DenyList DenyList { get; set; } = new();
 
     public async Task<PolicyViolation[]> ExecuteAnalysis()
     {
-        if (!WhiteList.HasPolicies && !BlackList.HasPolicies)
+        if (!AllowList.HasPolicies && !DenyList.HasPolicies)
         {
-            throw new ArgumentException("Either a whitelist or a blacklist must be specified");
+            throw new ArgumentException("Either a allowlist or a denylist must be specified");
         }
 
         List<string> projectPaths = scanner.FindProjects(ProjectPath);
@@ -95,7 +95,7 @@ public class NuGetProjectAnalyzer(ProjectScanner scanner, NuGetPackageAnalyzer a
 
         foreach (PackageInfo package in packages)
         {
-            if (!WhiteList.Complies(package) || !BlackList.Complies(package))
+            if (!AllowList.Complies(package) || !DenyList.Complies(package))
             {
                 violations.Add(new PolicyViolation(package.Id, package.Version, package.License!, package.Projects.ToArray()));
             }
