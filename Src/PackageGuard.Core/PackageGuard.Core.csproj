@@ -44,7 +44,7 @@
   <ItemGroup>
     <PackageReference Include="CliWrap" Version="3.8.2" />
     <PackageReference Include="Microsoft.Build" Version="17.11.4" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.4" />
     <PackageReference Include="NuGet.ProjectModel" Version="6.13.2" />
     <PackageReference Include="NuGet.Versioning" Version="6.13.2" />
   </ItemGroup>
