@@ -10,9 +10,14 @@ namespace PackageGuard.Core
     {
         public DenyList() { }
     }
+    public sealed class LicenseFetcher
+    {
+        public LicenseFetcher(Microsoft.Extensions.Logging.ILogger logger) { }
+        public System.Threading.Tasks.Task AmendWithMissingLicenseInformation(PackageGuard.Core.PackageInfo package) { }
+    }
     public class NuGetPackageAnalyzer
     {
-        public NuGetPackageAnalyzer(Microsoft.Extensions.Logging.ILogger logger) { }
+        public NuGetPackageAnalyzer(Microsoft.Extensions.Logging.ILogger logger, PackageGuard.Core.LicenseFetcher licenseFetcher) { }
         public System.Threading.Tasks.Task CollectPackageMetadata(string projectPath, string packageName, NuGet.Versioning.NuGetVersion packageVersion, PackageGuard.Core.PackageInfoCollection packages) { }
     }
     public class NuGetProjectAnalyzer
@@ -34,9 +39,9 @@ namespace PackageGuard.Core
         public string? RepositoryUrl { get; set; }
         public string? Source { get; set; }
         public string Version { get; set; }
-        public void Add(string projectPath) { }
         public bool SatisfiesRange(string name, string? versionRange = null) { }
         public override string ToString() { }
+        public void TrackAsUsedInProject(string projectPath) { }
     }
     public class PackageInfoCollection : System.Collections.Generic.IEnumerable<PackageGuard.Core.PackageInfo>, System.Collections.IEnumerable
     {

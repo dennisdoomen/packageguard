@@ -13,16 +13,20 @@ namespace PackageGuard.Specs;
 [TestClass]
 public class NuGetProjectAnalyzerSpecs
 {
-    public TestContext TestContext { get; set; }
+    private readonly ProjectScanner projectScanner = new(NullLogger.Instance);
 
-    private string ProjectPath => Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "..\\..\\..\\PackageGuard.Specs.csproj");
+    private readonly NuGetPackageAnalyzer
+        nuGetPackageAnalyzer = new(NullLogger.Instance, new LicenseFetcher(NullLogger.Instance));
+
+    private string ProjectPath => Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+        "..\\..\\..\\PackageGuard.Specs.csproj");
 
     [TestMethod]
     public async Task Either_a_denylist_or_a_allowlist_is_required()
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(new ProjectScanner(NullLogger.Instance), new NuGetPackageAnalyzer(NullLogger.Instance))
+            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
             };
@@ -34,16 +38,15 @@ public class NuGetProjectAnalyzerSpecs
         await act.Should().ThrowAsync<ArgumentException>().WithMessage("*Either*allowlist*denylist*");
     }
 
-
     [TestMethod]
-    public async Task Can_denylist_an_entire_package()
+    public async Task Can_deny_an_entire_package()
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(new ProjectScanner(NullLogger.Instance), new NuGetPackageAnalyzer(NullLogger.Instance))
+            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                DenyList = new()
+                DenyList = new DenyList
                 {
                     Packages =
                     [
@@ -56,18 +59,23 @@ public class NuGetProjectAnalyzerSpecs
         var violations = await analyzer.ExecuteAnalysis();
 
         // Assert
-        violations.Should().ContainEquivalentOf(new { PackageId = "FluentAssertions", Version = "8.2.0", License = "Unknown" });
+        violations.Should().ContainEquivalentOf(new
+        {
+            PackageId = "FluentAssertions",
+            Version = "8.2.0",
+            License = "Unknown"
+        });
     }
 
     [TestMethod]
-    public async Task Can_denylist_a_specific_version()
+    public async Task Can_deny_a_specific_version()
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(new ProjectScanner(NullLogger.Instance), new NuGetPackageAnalyzer(NullLogger.Instance))
+            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                DenyList = new()
+                DenyList = new DenyList
                 {
                     Packages =
                     [
@@ -80,18 +88,23 @@ public class NuGetProjectAnalyzerSpecs
         var violations = await analyzer.ExecuteAnalysis();
 
         // Assert
-        violations.Should().ContainEquivalentOf(new { PackageId = "FluentAssertions", Version = "8.2.0", License = "Unknown" });
+        violations.Should().ContainEquivalentOf(new
+        {
+            PackageId = "FluentAssertions",
+            Version = "8.2.0",
+            License = "Unknown"
+        });
     }
 
     [TestMethod]
-    public async Task Does_not_denylist_a_version_if_the_range_does_not_match()
+    public async Task Does_not_deny_a_version_if_the_range_does_not_match()
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(new ProjectScanner(NullLogger.Instance), new NuGetPackageAnalyzer(NullLogger.Instance))
+            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                DenyList = new()
+                DenyList = new DenyList
                 {
                     Packages =
                     [
@@ -108,14 +121,14 @@ public class NuGetProjectAnalyzerSpecs
     }
 
     [TestMethod]
-    public async Task Can_denylist_a_version_based_on_a_range()
+    public async Task Can_deny_a_version_based_on_a_range()
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(new ProjectScanner(NullLogger.Instance), new NuGetPackageAnalyzer(NullLogger.Instance))
+            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                DenyList = new()
+                DenyList = new DenyList
                 {
                     Packages =
                     [
@@ -128,7 +141,12 @@ public class NuGetProjectAnalyzerSpecs
         var violations = await analyzer.ExecuteAnalysis();
 
         // Assert
-        violations.Should().ContainEquivalentOf(new { PackageId = "FluentAssertions", Version = "8.2.0", License = "Unknown" });
+        violations.Should().ContainEquivalentOf(new
+        {
+            PackageId = "FluentAssertions",
+            Version = "8.2.0",
+            License = "Unknown"
+        });
     }
 
     [TestMethod]
@@ -136,10 +154,10 @@ public class NuGetProjectAnalyzerSpecs
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(new ProjectScanner(NullLogger.Instance), new NuGetPackageAnalyzer(NullLogger.Instance))
+            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                DenyList = new()
+                DenyList = new DenyList
                 {
                     Licenses = ["mit"]
                 }
@@ -157,14 +175,14 @@ public class NuGetProjectAnalyzerSpecs
     }
 
     [TestMethod]
-    public async Task Can_allowlist_a_license()
+    public async Task Can_allow_a_license()
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(new ProjectScanner(NullLogger.Instance), new NuGetPackageAnalyzer(NullLogger.Instance))
+            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                AllowList = new()
+                AllowList = new AllowList
                 {
                     Licenses = ["mit"]
                 }
@@ -181,14 +199,14 @@ public class NuGetProjectAnalyzerSpecs
     }
 
     [TestMethod]
-    public async Task Can_allowlist_an_unknown_license()
+    public async Task Can_allow_an_unknown_license()
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(new ProjectScanner(NullLogger.Instance), new NuGetPackageAnalyzer(NullLogger.Instance))
+            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                AllowList = new()
+                AllowList = new AllowList
                 {
                     Licenses = ["mit", "apache-2.0", "unknown"]
                 }
@@ -202,18 +220,18 @@ public class NuGetProjectAnalyzerSpecs
     }
 
     [TestMethod]
-    public async Task Denylisting_a_license_overrides_a_allowlisted_license()
+    public async Task Denying_a_license_overrides_an_allowed_license()
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(new ProjectScanner(NullLogger.Instance), new NuGetPackageAnalyzer(NullLogger.Instance))
+            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
                 AllowList =
                 {
                     Licenses = ["mit"]
                 },
-                DenyList = new()
+                DenyList = new DenyList
                 {
                     Licenses = ["mit"]
                 }
@@ -227,16 +245,16 @@ public class NuGetProjectAnalyzerSpecs
     }
 
     [TestMethod]
-    public async Task A_package_version_outside_the_allowlisted_range_is_a_violation()
+    public async Task A_package_version_outside_the_allowed_range_is_a_violation()
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(new ProjectScanner(NullLogger.Instance), new NuGetPackageAnalyzer(NullLogger.Instance))
+            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                AllowList = new()
+                AllowList = new AllowList
                 {
-                    Packages =
+                     Packages =
                     [
                         new PackageSelector("FluentAssertions", "[7.0.0,8.0.0)"),
                     ]
@@ -247,18 +265,23 @@ public class NuGetProjectAnalyzerSpecs
         var violations = await analyzer.ExecuteAnalysis();
 
         // Assert
-        violations.Should().ContainEquivalentOf(new { PackageId = "FluentAssertions", Version = "8.2.0", License = "Unknown" });
+        violations.Should().ContainEquivalentOf(new
+        {
+            PackageId = "FluentAssertions",
+            Version = "8.2.0",
+            License = "Unknown"
+        });
     }
 
     [TestMethod]
-    public async Task A_package_version_inside_the_allowlisted_range_is_okay()
+    public async Task A_package_version_inside_the_allowed_range_is_okay()
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(new ProjectScanner(NullLogger.Instance), new NuGetPackageAnalyzer(NullLogger.Instance))
+            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                AllowList = new()
+                AllowList = new AllowList
                 {
                     Packages =
                     [
@@ -275,14 +298,14 @@ public class NuGetProjectAnalyzerSpecs
     }
 
     [TestMethod]
-    public async Task Can_allowlist_a_package_that_violates_the_allowlisted_licenses()
+    public async Task Can_allow_a_package_that_violates_the_allowed_licenses()
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(new ProjectScanner(NullLogger.Instance), new NuGetPackageAnalyzer(NullLogger.Instance))
+            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                AllowList = new()
+                AllowList = new AllowList
                 {
                     Licenses = ["mit", "apache-2.0"],
                     Packages = [new PackageSelector("FluentAssertions")]
@@ -295,5 +318,4 @@ public class NuGetProjectAnalyzerSpecs
         // Assert
         violations.Should().BeEmpty();
     }
-
 }

@@ -31,7 +31,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             }
         };
 
-        var analyzer = new NuGetProjectAnalyzer(projectScanner, new NuGetPackageAnalyzer(logger))
+        var analyzer = new NuGetProjectAnalyzer(projectScanner, new NuGetPackageAnalyzer(logger, new LicenseFetcher(logger)))
         {
             ProjectPath = settings.ProjectPath, Logger = logger,
         };

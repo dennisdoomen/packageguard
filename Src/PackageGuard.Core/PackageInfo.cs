@@ -34,7 +34,7 @@ public class PackageInfo
         return range.Satisfies(NuGetVersion.Parse(Version));
     }
 
-    public void Add(string projectPath)
+    public void TrackAsUsedInProject(string projectPath)
     {
         Projects.Add(projectPath);
     }

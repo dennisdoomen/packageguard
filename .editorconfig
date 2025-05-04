@@ -132,6 +132,9 @@ resharper_blank_lines_after_multiline_statements = 1
 # Purpose: Don't put elements of an array on new lines, unless the length exceeds the maximum line length.
 resharper_wrap_array_initializer_style = chop_always
 
+# Start each element in a object or collection initializer on a new line
+resharper_wrap_object_and_collection_initializer_style = chop_always
+
 # Purpose: An item within a C# enumeration is missing an Xml documentation header
 # Reason: Some enums are self-explanatory
 dotnet_diagnostic.ca1062.severity = suggestion
