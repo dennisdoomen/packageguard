@@ -34,19 +34,17 @@
     <None Include="..\..\LICENSE" Pack="true" PackagePath=""/>
     <None Include="..\..\README.md" Pack="true" PackagePath=""/>
   </ItemGroup>
-
-  <ItemGroup Label="Internals visible to">
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>PackageGuard.Specs</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
-
+  
   <ItemGroup>
     <PackageReference Include="CliWrap" Version="3.8.2" />
     <PackageReference Include="Microsoft.Build" Version="17.11.4" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.4" />
     <PackageReference Include="NuGet.ProjectModel" Version="6.13.2" />
     <PackageReference Include="NuGet.Versioning" Version="6.13.2" />
+    <PackageReference Include="Pathy" Version="1.2.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

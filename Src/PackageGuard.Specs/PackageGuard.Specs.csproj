@@ -16,6 +16,10 @@
       </PackageReference>
       <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
       <PackageReference Include="MSTest" Version="3.8.3" />
+      <PackageReference Include="Pathy" Version="1.2.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
       <PackageReference Include="xunit.extensibility.core" Version="2.9.3" />
       </ItemGroup>
 
