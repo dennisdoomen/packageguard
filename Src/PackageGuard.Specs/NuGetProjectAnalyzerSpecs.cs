@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -7,6 +6,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
+using Pathy;
 
 namespace PackageGuard.Specs;
 
@@ -18,8 +18,8 @@ public class NuGetProjectAnalyzerSpecs
     private readonly NuGetPackageAnalyzer
         nuGetPackageAnalyzer = new(NullLogger.Instance, new LicenseFetcher(NullLogger.Instance));
 
-    private string ProjectPath => Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
-        "..\\..\\..\\PackageGuard.Specs.csproj");
+    private ChainablePath ProjectPath =>
+        Assembly.GetExecutingAssembly().Location.ToPath().Directory / ".." / ".." / ".." / "PackageGuard.Specs.csproj";
 
     [TestMethod]
     public async Task Either_a_denylist_or_a_allowlist_is_required()

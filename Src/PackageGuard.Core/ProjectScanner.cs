@@ -1,5 +1,6 @@
 ﻿using Microsoft.Build.Construction;
 using Microsoft.Extensions.Logging;
+using Pathy;
 
 namespace PackageGuard.Core;
 
@@ -12,14 +13,16 @@ public class ProjectScanner(ILogger logger)
 
     public List<string> FindProjects(string path)
     {
+        ChainablePath pathy = path;
+
         logger.LogHeader($"Finding projects in {path}");
 
-        List<string> projectFiles = new();
+        List<ChainablePath> projectFiles = new();
 
-        // If it points to a valid csproj, use that one
-        if (path.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+        // If it points to an existing C# project, use that one
+        if (pathy.Extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase))
         {
-            if (File.Exists(path))
+            if (pathy.IsFile)
             {
                 logger.LogDebug("Including project {Path}", path);
                 projectFiles.Add(path);
@@ -31,11 +34,12 @@ public class ProjectScanner(ILogger logger)
             }
         }
 
-        string? solution = null;
+        ChainablePath? solution = null;
 
-        if (path.EndsWith(".sln", StringComparison.OrdinalIgnoreCase))
+        // If it points an actual solution file, continue with that one
+        if (pathy.Extension.Equals(".sln", StringComparison.OrdinalIgnoreCase))
         {
-            if (Path.Exists(path))
+            if (pathy.IsFile)
             {
                 solution = path;
             }
@@ -48,12 +52,12 @@ public class ProjectScanner(ILogger logger)
 
         if (solution is null && projectFiles.Count == 0)
         {
-            if (path.Length == 0)
+            if (pathy == ChainablePath.Empty)
             {
-                path = Directory.GetCurrentDirectory();
+                pathy = ChainablePath.Current;
             }
 
-            string[] solutions = Directory.GetFiles(path, "*.sln", SearchOption.TopDirectoryOnly);
+            string[] solutions = Directory.GetFiles(pathy, "*.sln", SearchOption.TopDirectoryOnly);
             if (solutions.Length == 0)
             {
                 logger.LogInformation("No solution found in {Path}", path);
@@ -93,6 +97,6 @@ public class ProjectScanner(ILogger logger)
             }
         }
 
-        return projectFiles;
+        return projectFiles.Select(x => x.ToString()).ToList();
     }
 }

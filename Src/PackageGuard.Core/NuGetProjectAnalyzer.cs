@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NuGet.ProjectModel;
+using Pathy;
 
 namespace PackageGuard.Core;
 
@@ -38,7 +39,7 @@ public class NuGetProjectAnalyzer(ProjectScanner scanner, NuGetPackageAnalyzer a
         List<string> projectPaths = scanner.FindProjects(ProjectPath);
 
         PackageInfoCollection packages = new();
-        foreach (var projectPath in projectPaths)
+        foreach (ChainablePath projectPath in projectPaths)
         {
             Logger.LogHeader($"Getting metadata for packages in {projectPath}");
 
@@ -55,14 +56,13 @@ public class NuGetProjectAnalyzer(ProjectScanner scanner, NuGetPackageAnalyzer a
         return VerifyAgainstPolicy(packages);
     }
 
-    private LockFile? GetPackageLockFile(string projectPath)
+    private LockFile? GetPackageLockFile(ChainablePath projectPath)
     {
         Logger.LogInformation("Loading lock file for {ProjectPath}", projectPath);
 
         var lastProjectModification = File.GetLastWriteTimeUtc(projectPath);
 
-        string projectDirectory = Path.GetDirectoryName(projectPath)!;
-        FileInfo assetsJson = new(Path.Combine(projectDirectory!, "obj", "project.assets.json"));
+        FileInfo assetsJson = new( projectPath.Directory / "obj" / "project.assets.json");
 
         if (!assetsJson.Exists || assetsJson.LastWriteTimeUtc < lastProjectModification)
         {
