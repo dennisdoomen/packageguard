@@ -6,7 +6,7 @@ using Pathy;
 
 namespace PackageGuard.Core;
 
-public class NuGetProjectAnalyzer(ProjectScanner scanner, NuGetPackageAnalyzer analyzer)
+public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAnalyzer analyzer)
 {
     public ILogger Logger { get; set; } = NullLogger.Instance;
 
@@ -29,6 +29,20 @@ public class NuGetProjectAnalyzer(ProjectScanner scanner, NuGetPackageAnalyzer a
     /// </summary>
     public DenyList DenyList { get; set; } = new();
 
+    /// <summary>
+    /// Specifies whether interactive mode should be enabled for the .NET restore process.
+    /// When enabled, the restore operation may prompt for user input, such as authentication information.
+    /// </summary>
+    /// <value>
+    /// Defaults to <c>true</c>.
+    /// </value>
+    public bool InteractiveRestore { get; set; } = true;
+
+    /// <summary>
+    /// Force restoring the NuGet dependencies, even if the lockfile is up-to-date
+    /// </summary>
+    public bool ForceRestore { get; set; } = false;
+
     public async Task<PolicyViolation[]> ExecuteAnalysis()
     {
         if (!AllowList.HasPolicies && !DenyList.HasPolicies)
@@ -43,7 +57,14 @@ public class NuGetProjectAnalyzer(ProjectScanner scanner, NuGetPackageAnalyzer a
         {
             Logger.LogHeader($"Getting metadata for packages in {projectPath}");
 
-            LockFile? lockFile = GetPackageLockFile(projectPath);
+            var lockFileLoader = new DotNetLockFileLoader
+            {
+                Logger = Logger,
+                InteractiveRestore = InteractiveRestore,
+                ForceRestore = ForceRestore
+            };
+
+            LockFile? lockFile = lockFileLoader.GetPackageLockFile(projectPath);
             if (lockFile is not null)
             {
                 foreach (LockFileLibrary? library in lockFile.Libraries.Where(library => library.Type == "package"))
@@ -54,39 +75,6 @@ public class NuGetProjectAnalyzer(ProjectScanner scanner, NuGetPackageAnalyzer a
         }
 
         return VerifyAgainstPolicy(packages);
-    }
-
-    private LockFile? GetPackageLockFile(ChainablePath projectPath)
-    {
-        Logger.LogInformation("Loading lock file for {ProjectPath}", projectPath);
-
-        var lastProjectModification = File.GetLastWriteTimeUtc(projectPath);
-
-        FileInfo assetsJson = new( projectPath.Directory / "obj" / "project.assets.json");
-
-        if (!assetsJson.Exists || assetsJson.LastWriteTimeUtc < lastProjectModification)
-        {
-            Logger.LogInformation("Project.assets.json not found or out-of-date. Running restore on {Path} ", projectPath);
-
-            var result = Cli.Wrap("dotnet")
-                .WithArguments($"restore {projectPath} --interactive")
-                .WithStandardOutputPipe(PipeTarget.ToStream(Console.OpenStandardOutput()))
-                .WithStandardErrorPipe(PipeTarget.ToStream(Console.OpenStandardError()))
-                .ExecuteAsync().GetAwaiter().GetResult();
-
-            if (!result.IsSuccess)
-            {
-                throw new ApplicationException($"Failed to restore the dependencies for {projectPath} with {result.ExitCode}");
-            }
-        }
-
-        LockFile lockFile = LockFileUtilities.GetLockFile(assetsJson.FullName, new NuGet.Common.NullLogger());
-        if (lockFile == null)
-        {
-            Logger.LogWarning("Failed to load the lock file for {ProjectPath} so skipping it", projectPath);
-        }
-
-        return lockFile;
     }
 
     private PolicyViolation[] VerifyAgainstPolicy(PackageInfoCollection packages)

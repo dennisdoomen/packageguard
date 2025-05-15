@@ -15,4 +15,12 @@ internal class AnalyzeCommandSettings : CommandSettings
     [Description("The path to the configuration file. Defaults to the config.json in the current working directory.")]
     [CommandOption("--configPath")]
     public string ConfigPath { get;  set; } = "config.json";
+
+    [Description("Allow enabling or disabling an interactive mode of \"dotnet restore\". Defaults to true")]
+    [CommandOption("--restore-interactive")]
+    public bool Interactive {get; set;} = true;
+
+    [Description("Force restoring the NuGet dependencies, even if the lockfile is up-to-date")]
+    [CommandOption("--force-restore")]
+    public bool ForceRestore { get; set; } = false;
 }
