@@ -280,7 +280,7 @@ public class CSharpProjectAnalyzerSpecs
                 ProjectPath = ProjectPath,
                 AllowList = new AllowList
                 {
-                    Packages =
+                     Packages =
                     [
                         new PackageSelector("FluentAssertions", "[7.0.0,8.0.0)"),
                     ]
@@ -365,5 +365,83 @@ public class CSharpProjectAnalyzerSpecs
         // Assert
         await act.Should().ThrowAsync<FileNotFoundException>()
             .WithMessage("*file*NonExisting.csproj*does not exist*");
+    }
+
+    [TestMethod]
+    public async Task Allowing_a_feed_by_name_even_allows_a_package_which_license_is_not_allowed()
+    {
+        // Arrange
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ForceRestore = true,
+                ProjectPath = ChainablePath.Current / "TestCases" / "UnknownLicense" / "ConsoleApp.csproj",
+                AllowList = new AllowList
+                {
+                    Licenses = ["mit"],
+                    Feeds = ["nuget.org"]
+                }
+            };
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis();
+
+        // Assert
+        violations.Should().BeEmpty("Since we excluded the feed");
+    }
+
+    [TestMethod]
+    public async Task Allowing_a_feed_by_url_even_allows_a_package_which_license_is_not_allowed()
+    {
+        // Arrange
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ForceRestore = true,
+                ProjectPath = ChainablePath.Current / "TestCases" / "UnknownLicense" / "ConsoleApp.csproj",
+                AllowList = new AllowList
+                {
+                    Licenses = ["mit"],
+                    Feeds = ["*v3/index.json*"]
+                }
+            };
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis();
+
+        // Assert
+        violations.Should().BeEmpty("Since we excluded the feed");
+    }
+
+    [TestMethod]
+    public async Task Can_still_deny_a_package_from_an_allowed_feed()
+    {
+        // Arrange
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ForceRestore = true,
+                ProjectPath = ChainablePath.Current / "TestCases" / "UnknownLicense" / "ConsoleApp.csproj",
+                AllowList = new AllowList
+                {
+                    Licenses = ["mit"],
+                    Feeds = ["nuget.org"]
+                },
+                DenyList = new DenyList
+                {
+                    Packages = [new PackageSelector("FluentAssertions")]
+                }
+            };
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis();
+
+        // Assert
+        violations.Should().ContainEquivalentOf(new
+        {
+            PackageId = "FluentAssertions",
+            Version = "8.3.0",
+            License = "Unknown"
+        });
     }
 }

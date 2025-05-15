@@ -54,6 +54,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             {
                 logger.LogInformation("{Id} {Version}", violation.PackageId, violation.Version);
                 logger.LogInformation("- License: {License}", violation.License);
+                logger.LogInformation("- Feed: {Source} ({Url})", violation.FeedName, violation.FeedUrl);
 
                 if (violation.Projects.Any())
                 {
@@ -86,6 +87,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         }
 
         analyzer.AllowList.Licenses.AddRange(globalSettings.Allow.Licenses);
+        analyzer.AllowList.Feeds.AddRange(globalSettings.Allow.Feeds);
 
         foreach (string package in globalSettings.Deny.Packages)
         {

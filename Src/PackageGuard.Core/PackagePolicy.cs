@@ -13,6 +13,4 @@ public abstract class PackagePolicy
     /// Checks if there are any policies defined either in Packages or Licenses.
     /// </summary>
     internal bool HasPolicies => Packages.Any() || Licenses.Any();
-
-    internal abstract bool Complies(PackageInfo package);
 }

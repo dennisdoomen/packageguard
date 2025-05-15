@@ -83,9 +83,9 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
 
         foreach (PackageInfo package in packages)
         {
-            if (!AllowList.Complies(package) || !DenyList.Complies(package))
+            if (!AllowList.Allows(package) || DenyList.Denies(package))
             {
-                violations.Add(new PolicyViolation(package.Id, package.Version, package.License!, package.Projects.ToArray()));
+                violations.Add(new PolicyViolation(package.Id, package.Version, package.License!, package.Projects.ToArray(), package.Source, package.SourceUrl));
             }
         }
 

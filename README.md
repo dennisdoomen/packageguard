@@ -52,11 +52,11 @@ The tool is available as [a NuGet Tool package](https://www.nuget.org/packages/p
 
   `dotnet tool install PackageGuard --global`
 
-Then use `packageguard -h` to see a list of options.
+Then use `packageguard --help` to see a list of options.
 
-## How do I use it?
+## How do I configure it?
 
-First, you need to create a JSON configuration file listing the packages and/or licenses you want to allow/deny list. By default, this file is called `config.json` and loaded from the working directory, but you can override that using the `--configPath` CLI parameter. The config file needs to have the following format:
+First, you need to create a JSON configuration file listing the packages and/or licenses you want to allow/deny list. By default, this file is called `config.json` and loaded from the working directory, but you can override that using the `--configpath` CLI parameter. The config file needs to have the following format:
 
 ```json
 {
@@ -67,24 +67,55 @@ First, you need to create a JSON configuration file listing the packages and/or 
               "MIT",
           ],
           "packages": [
-              "FluentAssertions/[7.0.0,8.0.0)"
+              "MyPackage/[7.0.0,8.0.0)"
           ]            
         },
         "deny": {
           "licenses": [],
           "packages": [
-            "moq"
+            "ProhibitedPackage"
           ]
         }
     }
 }
 ```
 
-In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, the use of `moq` is prohibited, and `FluentAssertions` should stick to version 7 only. Both the `allow` and `deny` sections support both the `licenses` and `packages` properties. License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions.Package names can include just the NuGet ID but may also include a [NuGet-compatible version (range)](https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort) separated by `/`.
+In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, the use of the package `ProhibitedPackage` is prohibited, and `MyPackage` should stick to version 7 only. Both the `allow` and `deny` sections support both the `licenses` and `packages` properties. 
+
+License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions. Package names can include just the NuGet ID but may also include a [NuGet-compatible version (range)](https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort) separated by `/`. Here's a summary of the possible notations:
+
+
+| Notation        | Valid versions     |
+|-----------------|--------------------|
+| "Package/1.0"   | 1.0            |
+| "Package/[1.0,)"| v ≥ 1.0            |
+| "Package/(1.0,)"          | v > 1.0            |
+| "Package/[1.0]"           | v == 1.0           |
+| "Package/(,1.0]"          | v ≤ 1.0            |
+| "Package/(,1.0)"          | v < 1.0            |
+| "Package/[1.0,2.0]"       | 1.0 ≤ v ≤ 2.0      |
+| "Package/(1.0,2.0)"       | 1.0 < v < 2.0      |
+| "Package/[1.0,2.0)"       | 1.0 ≤ v < 2.0      |
+
+You can also tell PackageGuard to allow all packages from a particular feed, even if a package on that feed doesn't meet the licenses or packages listed under `allow`. Just add the element `feeds` under the `allow` element and specify a wildcard pattern that matches the name or URL of the feed.
+
+```json
+{
+    "settings": {
+        "allow": {
+            "feeds": ["*dev.azure.com*"]
+        }
+    }
+}
+```
+
+TODO
+
+## How do I use it?
 
 With this configuration in place, simply invoke PackageGuard like this
 
-`packageguard --configPath <path-to-config-file> <path-to-solution-file-or-project>`
+`packageguard --configpath <path-to-config-file> <path-to-solution-file-or-project>`
 
 If you pass a directory, PackageGuard will try to find the `.sln` files there. But you can also specify a specific `.csproj` to scan. 
 
@@ -100,8 +131,6 @@ This is a rough list of items from my personal backlog that I'll be working on t
 
 **Complete the MVP**
 - Allow specifying the location of `dotnet.exe`
-- Allow forcing the restore
-- Allow preventing restore
 - Allow ignoring certain .csproj files or folders using Globs or wildcards (e.g. build.csproj)
 - Allow marking all violations as a warning
 - Allow marking individual violations as a warning
@@ -111,7 +140,7 @@ This is a rough list of items from my personal backlog that I'll be working on t
 - Expose the internal engine through the `PackageGuard.Core` NuGet package
 - Add support for [Nuke](https://nuke.build/)
 - Allow loading settings from the directory of the scanned project and move up if not found
-Display the reason why a package was marked as a violation
+- Display the reason why a package was marked as a violation
 
 **Major features**
 - Add support for the new .slnx file
