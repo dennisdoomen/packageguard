@@ -318,4 +318,6 @@ public class CSharpProjectAnalyzerSpecs
         // Assert
         violations.Should().BeEmpty();
     }
+
+    
 }
