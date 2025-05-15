@@ -99,7 +99,8 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
                     RepositoryUrl = packageInfo.ProjectUrl?.ToString(),
                     License = packageInfo.LicenseMetadata?.License,
                     LicenseUrl = packageInfo.LicenseUrl?.ToString(),
-                    Source = repository.PackageSource.Source
+                    Source = repository.PackageSource.Name,
+                    SourceUrl = repository.PackageSource.Source
                 };
             }
         }

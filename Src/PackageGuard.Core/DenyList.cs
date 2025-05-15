@@ -2,11 +2,14 @@
 
 public class DenyList : PackagePolicy
 {
-    internal override bool Complies(PackageInfo package)
+    /// <summary>
+    /// Determines if the given package is denied by the licenses or packages defined in this deny list.
+    /// </summary>
+    internal bool Denies(PackageInfo package)
     {
         if (Licenses.Any() && Licenses.Contains(package.License!, StringComparer.OrdinalIgnoreCase))
         {
-            return false;
+            return true;
         }
 
         foreach (PackageSelector selector in Packages)
@@ -14,10 +17,10 @@ public class DenyList : PackagePolicy
             if (package.Id == selector.Id &&
                 (selector.VersionRange is null || package.SatisfiesRange(selector.Id, selector.VersionRange)))
             {
-                return false;
+                return true;
             }
         }
 
-        return true;
+        return false;
     }
 }

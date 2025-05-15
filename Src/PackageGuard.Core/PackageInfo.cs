@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using NuGet.Versioning;
 
 namespace PackageGuard.Core;
@@ -12,9 +13,14 @@ public class PackageInfo
     public List<string> Projects { get; set; } = new();
 
     /// <summary>
-    /// Gets or sets the source URL of the NuGet source that was used to fetch the metadata.
+    /// Gets or sets the name of the NuGet source that was used to fetch the metadata.
     /// </summary>
-    public string? Source { get; set; }
+    public string Source { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the Url of the NuGet source that was used to fetch the metadata.
+    /// </summary>
+    public string SourceUrl { get; set; } = "";
 
     public string? RepositoryUrl { get; set; }
 
@@ -40,4 +46,18 @@ public class PackageInfo
     }
 
     public override string ToString() => $"{Id}/{Version} ({License})";
+
+    /// <summary>
+    /// Returns <c>true</c> if the name or URL of the feed where this package was found matches the given wildcard.
+    /// </summary>
+    public bool MatchesFeed(string feedWildcard)
+    {
+        return IsWildcardMatch(Source, feedWildcard) || IsWildcardMatch(SourceUrl, feedWildcard);
+    }
+
+    private static bool IsWildcardMatch(string text, string pattern)
+    {
+        var escapedPattern = Regex.Escape(pattern).Replace("\\*", ".*");
+        return Regex.IsMatch(text, $"^{escapedPattern}$", RegexOptions.IgnoreCase);
+    }
 }
