@@ -25,7 +25,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
                 string selected = AnsiConsole.Prompt(
                     new SelectionPrompt<string>()
                         .Title("Select a solution :")
-                        .AddChoices<string>(solutions));
+                        .AddChoices(solutions));
 
                 return selected;
             }
@@ -33,7 +33,8 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
 
         var analyzer = new NuGetProjectAnalyzer(projectScanner, new NuGetPackageAnalyzer(logger, new LicenseFetcher(logger)))
         {
-            ProjectPath = settings.ProjectPath, Logger = logger,
+            ProjectPath = settings.ProjectPath,
+            Logger = logger,
         };
 
         Configure(analyzer, globalSettings);
