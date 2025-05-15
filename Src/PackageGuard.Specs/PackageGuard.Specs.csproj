@@ -27,5 +27,13 @@
       <ProjectReference Include="..\PackageGuard.Core\PackageGuard.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="TestCases\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="TestCases\SimpleApp\UnitTest1.cs" />
+      <None Include="TestCases\SimpleApp\UnitTest1.cs" />
+    </ItemGroup>
 
 </Project>
