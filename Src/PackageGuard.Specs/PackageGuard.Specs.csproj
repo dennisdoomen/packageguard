@@ -14,6 +14,9 @@
       <PackageReference Include="coverlet.collector" Version="6.0.4" PrivateAssets="all">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
+      <PackageReference Include="Meziantou.Extensions.Logging.InMemory" Version="1.2.5" />
+      <PackageReference Include="Meziantou.Extensions.Logging.Xunit" Version="1.0.12" />
+      <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="9.5.0" />
       <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
       <PackageReference Include="MSTest" Version="3.8.3" />
       <PackageReference Include="Pathy" Version="1.2.0">
@@ -27,5 +30,24 @@
       <ProjectReference Include="..\PackageGuard.Core\PackageGuard.Core.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="TestCases\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="TestCases\SimpleApp\UnitTest1.cs" />
+      <None Include="TestCases\SimpleApp\UnitTest1.cs">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Include="TestCases\SimpleApp\SimpleApp.csproj">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="TestCases\SimpleApp\SimpleApp.sln">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+    </ItemGroup>
 
 </Project>

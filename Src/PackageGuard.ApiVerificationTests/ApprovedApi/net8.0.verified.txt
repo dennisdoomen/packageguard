@@ -5,9 +5,34 @@ namespace PackageGuard.Core
     {
         public AllowList() { }
     }
+    public class CSharpProjectAnalyzer
+    {
+        public CSharpProjectAnalyzer(PackageGuard.Core.CSharpProjectScanner scanner, PackageGuard.Core.NuGetPackageAnalyzer analyzer) { }
+        public PackageGuard.Core.AllowList AllowList { get; set; }
+        public PackageGuard.Core.DenyList DenyList { get; set; }
+        public bool ForceRestore { get; set; }
+        public bool InteractiveRestore { get; set; }
+        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
+        public string ProjectPath { get; set; }
+        public System.Threading.Tasks.Task<PackageGuard.Core.PolicyViolation[]> ExecuteAnalysis() { }
+    }
+    public class CSharpProjectScanner
+    {
+        public CSharpProjectScanner(Microsoft.Extensions.Logging.ILogger logger) { }
+        public System.Func<string[], string>? SelectSolution { get; set; }
+        public System.Collections.Generic.List<string> FindProjects(string path) { }
+    }
     public class DenyList : PackageGuard.Core.PackagePolicy
     {
         public DenyList() { }
+    }
+    public class DotNetLockFileLoader
+    {
+        public DotNetLockFileLoader() { }
+        public bool ForceRestore { get; set; }
+        public bool InteractiveRestore { get; set; }
+        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
+        public NuGet.ProjectModel.LockFile? GetPackageLockFile(string path) { }
     }
     public sealed class LicenseFetcher
     {
@@ -18,15 +43,6 @@ namespace PackageGuard.Core
     {
         public NuGetPackageAnalyzer(Microsoft.Extensions.Logging.ILogger logger, PackageGuard.Core.LicenseFetcher licenseFetcher) { }
         public System.Threading.Tasks.Task CollectPackageMetadata(string projectPath, string packageName, NuGet.Versioning.NuGetVersion packageVersion, PackageGuard.Core.PackageInfoCollection packages) { }
-    }
-    public class NuGetProjectAnalyzer
-    {
-        public NuGetProjectAnalyzer(PackageGuard.Core.ProjectScanner scanner, PackageGuard.Core.NuGetPackageAnalyzer analyzer) { }
-        public PackageGuard.Core.AllowList AllowList { get; set; }
-        public PackageGuard.Core.DenyList DenyList { get; set; }
-        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
-        public string ProjectPath { get; set; }
-        public System.Threading.Tasks.Task<PackageGuard.Core.PolicyViolation[]> ExecuteAnalysis() { }
     }
     public class PackageInfo
     {
@@ -69,11 +85,5 @@ namespace PackageGuard.Core
         public string PackageId { get; init; }
         public string[] Projects { get; init; }
         public string Version { get; init; }
-    }
-    public class ProjectScanner
-    {
-        public ProjectScanner(Microsoft.Extensions.Logging.ILogger logger) { }
-        public System.Func<string[], string>? SelectSolution { get; set; }
-        public System.Collections.Generic.List<string> FindProjects(string path) { }
     }
 }

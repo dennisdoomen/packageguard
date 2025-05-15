@@ -11,9 +11,9 @@ using Pathy;
 namespace PackageGuard.Specs;
 
 [TestClass]
-public class NuGetProjectAnalyzerSpecs
+public class CSharpProjectAnalyzerSpecs
 {
-    private readonly ProjectScanner projectScanner = new(NullLogger.Instance);
+    private readonly CSharpProjectScanner cSharpProjectScanner = new(NullLogger.Instance);
 
     private readonly NuGetPackageAnalyzer
         nuGetPackageAnalyzer = new(NullLogger.Instance, new LicenseFetcher(NullLogger.Instance));
@@ -26,7 +26,7 @@ public class NuGetProjectAnalyzerSpecs
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
             };
@@ -43,7 +43,7 @@ public class NuGetProjectAnalyzerSpecs
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
                 DenyList = new DenyList
@@ -72,7 +72,7 @@ public class NuGetProjectAnalyzerSpecs
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
                 DenyList = new DenyList
@@ -101,7 +101,7 @@ public class NuGetProjectAnalyzerSpecs
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
                 DenyList = new DenyList
@@ -125,7 +125,7 @@ public class NuGetProjectAnalyzerSpecs
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
                 DenyList = new DenyList
@@ -154,7 +154,7 @@ public class NuGetProjectAnalyzerSpecs
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
                 DenyList = new DenyList
@@ -179,7 +179,7 @@ public class NuGetProjectAnalyzerSpecs
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
                 AllowList = new AllowList
@@ -203,7 +203,7 @@ public class NuGetProjectAnalyzerSpecs
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
                 AllowList = new AllowList
@@ -224,7 +224,7 @@ public class NuGetProjectAnalyzerSpecs
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
                 AllowList =
@@ -249,7 +249,7 @@ public class NuGetProjectAnalyzerSpecs
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
                 AllowList = new AllowList
@@ -278,7 +278,7 @@ public class NuGetProjectAnalyzerSpecs
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
                 AllowList = new AllowList
@@ -302,7 +302,7 @@ public class NuGetProjectAnalyzerSpecs
     {
         // Arrange
         var analyzer =
-            new NuGetProjectAnalyzer(projectScanner, nuGetPackageAnalyzer)
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
                 AllowList = new AllowList
