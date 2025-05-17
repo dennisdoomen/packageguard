@@ -18,7 +18,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
 
         var globalSettings = configuration.GetSection("Settings").Get<GlobalSettings>() ?? new GlobalSettings();
 
-        var projectScanner = new ProjectScanner(logger)
+        var projectScanner = new CSharpProjectScanner(logger)
         {
             SelectSolution = solutions =>
             {
@@ -31,9 +31,12 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             }
         };
 
-        var analyzer = new NuGetProjectAnalyzer(projectScanner, new NuGetPackageAnalyzer(logger, new LicenseFetcher(logger)))
+        var analyzer = new CSharpProjectAnalyzer(projectScanner, new NuGetPackageAnalyzer(logger, new LicenseFetcher(logger)))
         {
-            ProjectPath = settings.ProjectPath, Logger = logger,
+            ProjectPath = settings.ProjectPath,
+            InteractiveRestore = settings.Interactive,
+            ForceRestore = settings.ForceRestore,
+            Logger = logger,
         };
 
         Configure(analyzer, globalSettings);
@@ -73,7 +76,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         return 0;
     }
 
-    private void Configure(NuGetProjectAnalyzer analyzer, GlobalSettings globalSettings)
+    private void Configure(CSharpProjectAnalyzer analyzer, GlobalSettings globalSettings)
     {
         foreach (string package in globalSettings.Allow.Packages)
         {

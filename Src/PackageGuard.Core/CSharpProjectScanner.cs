@@ -4,7 +4,7 @@ using Pathy;
 
 namespace PackageGuard.Core;
 
-public class ProjectScanner(ILogger logger)
+public class CSharpProjectScanner(ILogger logger)
 {
     /// <summary>
     /// Can be used to select a single solution in case the scanner finds more than one.
