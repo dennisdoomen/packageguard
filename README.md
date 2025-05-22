@@ -62,10 +62,13 @@ First, you need to create a JSON configuration file listing the packages and/or 
 {
     "settings": {
         "allow": {
-            "licenses": [
-                "Apache-2.0", // Uses SPDX naming
-                "MIT",
-            ]
+          "licenses": [
+              "Apache-2.0", // Uses SPDX naming
+              "MIT",
+          ],
+          "packages": [
+              "FluentAssertions/[7.0.0,8.0.0)"
+          ]            
         },
         "deny": {
           "licenses": [],
@@ -77,11 +80,11 @@ First, you need to create a JSON configuration file listing the packages and/or 
 }
 ```
 
-In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, and the use of `moq` is prohibited. Both the `allow` and `deny` sections support both the `licenses` and `packages` properties. License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions.
+In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, the use of `moq` is prohibited, and `FluentAssertions` should stick to version 7 only. Both the `allow` and `deny` sections support both the `licenses` and `packages` properties. License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions.Package names can include just the NuGet ID but may also include a [NuGet-compatible version (range)](https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort) separated by `/`.
 
 With this configuration in place, simply invoke PackageGuard like this
 
-`packageguard --configFile <path-to-config-file> <path-to-solution-file-or-project>`
+`packageguard --configPath <path-to-config-file> <path-to-solution-file-or-project>`
 
 If you pass a directory, PackageGuard will try to find the `.sln` files there. But you can also specify a specific `.csproj` to scan. 
 
