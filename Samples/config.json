@@ -4,6 +4,9 @@
             "licenses": [
                 "Apache-2.0",
                 "MIT"
+            ],
+            "packages": [
+                "FluentAssertions/[7.0.0,8.0.0)"
             ]
         },
         "deny": {
