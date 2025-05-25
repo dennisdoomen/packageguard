@@ -29,8 +29,7 @@ public class CSharpProjectScanner(ILogger logger)
             }
             else
             {
-                logger.LogWarning("Project {Path} does not exist", path);
-                return new List<string>();
+                throw new FileNotFoundException($"The project file \"{pathy}\" does not exist");
             }
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -254,7 +255,7 @@ public class CSharpProjectAnalyzerSpecs
                 ProjectPath = ProjectPath,
                 AllowList = new AllowList
                 {
-                     Packages =
+                    Packages =
                     [
                         new PackageSelector("FluentAssertions", "[7.0.0,8.0.0)"),
                     ]
@@ -317,5 +318,27 @@ public class CSharpProjectAnalyzerSpecs
 
         // Assert
         violations.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public async Task Specifying_a_specific_project_file_requires_it_to_exist()
+    {
+        // Arrange
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ProjectPath = ChainablePath.Current / "NonExistingFolder" / "NonExisting.csproj",
+                AllowList = new AllowList
+                {
+                    Licenses = ["mit"]
+                }
+            };
+
+        // Act
+        var act = () => analyzer.ExecuteAnalysis();
+
+        // Assert
+        await act.Should().ThrowAsync<FileNotFoundException>()
+            .WithMessage("*file*NonExisting.csproj*does not exist*");
     }
 }
