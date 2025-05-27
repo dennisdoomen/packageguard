@@ -4,7 +4,7 @@ public class PackageSelector(string id)
 {
     public PackageSelector(string id, string versionRange) : this(id)
     {
-        VersionRange = versionRange;
+        VersionRange = versionRange.Length > 0 ? versionRange : null;
     }
 
     /// <summary>
