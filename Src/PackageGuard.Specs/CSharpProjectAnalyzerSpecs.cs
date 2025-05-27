@@ -176,6 +176,31 @@ public class CSharpProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    public async Task Can_allow_an_entire_package_using_an_empty_version()
+    {
+        // Arrange
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ProjectPath = ProjectPath,
+                AllowList = new AllowList
+                {
+                    Packages =
+                    [
+                        new PackageSelector("FluentAssertions", string.Empty)
+                    ]
+                }
+            };
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis();
+
+        // Assert
+        violations.Should().BeEmpty();
+    }
+
+
+    [TestMethod]
     public async Task Can_allow_a_license()
     {
         // Arrange
