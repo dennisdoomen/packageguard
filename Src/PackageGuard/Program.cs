@@ -30,4 +30,7 @@ services.AddSingleton<ILogger>(sp => sp
 using var registrar = new DependencyInjectionRegistrar(services);
 
 var app = new CommandApp<AnalyzeCommand>(registrar);
+app.Configure(c =>
+    c.CaseSensitivity(CaseSensitivity.None));
+
 return app.Run(args);
