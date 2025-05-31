@@ -1,7 +1,4 @@
-﻿using System.Net.Http.Headers;
-using System.Text.Json;
-using System.Text.RegularExpressions;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Protocol.Core.Types;

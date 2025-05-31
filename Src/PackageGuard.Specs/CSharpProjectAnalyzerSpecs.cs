@@ -63,7 +63,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.2.0",
+            Version = "8.3.0",
             License = "Unknown"
         });
     }
@@ -80,7 +80,7 @@ public class CSharpProjectAnalyzerSpecs
                 {
                     Packages =
                     [
-                        new PackageSelector("FluentAssertions", "8.2.0")
+                        new PackageSelector("FluentAssertions", "8.3.0")
                     ]
                 }
             };
@@ -92,9 +92,33 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.2.0",
+            Version = "8.3.0",
             License = "Unknown"
         });
+    }
+
+    [TestMethod]
+    public async Task The_version_must_a_valid_string()
+    {
+        // Arrange
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ProjectPath = ProjectPath,
+                DenyList = new DenyList
+                {
+                    Packages =
+                    [
+                        new PackageSelector("FluentAssertions", "blah")
+                    ]
+                }
+            };
+
+        // Act
+        var act = () => analyzer.ExecuteAnalysis();
+
+        // Assert
+        await act.Should().ThrowAsync<ArgumentException>().WithMessage("*not a valid version string.*");
     }
 
     [TestMethod]
@@ -145,7 +169,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.2.0",
+            Version = "8.3.0",
             License = "Unknown"
         });
     }
@@ -294,7 +318,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.2.0",
+            Version = "8.3.0",
             License = "Unknown"
         });
     }

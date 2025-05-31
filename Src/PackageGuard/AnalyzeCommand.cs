@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core;
 using Spectre.Console;
@@ -10,14 +9,6 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
 {
     public override async Task<int> ExecuteAsync(CommandContext context, AnalyzeCommandSettings settings)
     {
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile(settings.ConfigPath, optional: true)
-            .AddEnvironmentVariables()
-            .Build();
-
-        var globalSettings = configuration.GetSection("Settings").Get<GlobalSettings>() ?? new GlobalSettings();
-
         var projectScanner = new CSharpProjectScanner(logger)
         {
             SelectSolution = solutions =>
@@ -25,7 +16,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
                 string selected = AnsiConsole.Prompt(
                     new SelectionPrompt<string>()
                         .Title("Select a solution :")
-                        .AddChoices<string>(solutions));
+                        .AddChoices(solutions));
 
                 return selected;
             }
@@ -39,7 +30,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             Logger = logger,
         };
 
-        Configure(analyzer, globalSettings);
+        ConfigurationLoader.Configure(analyzer, settings.ProjectPath, settings.ConfigPath);
 
         var violations = await analyzer.ExecuteAnalysis();
 
@@ -75,27 +66,5 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         AnsiConsole.MarkupLine("[green3_1]No policy violations found.[/]");
 
         return 0;
-    }
-
-    private void Configure(CSharpProjectAnalyzer analyzer, GlobalSettings globalSettings)
-    {
-        foreach (string package in globalSettings.Allow.Packages)
-        {
-            string[] segments = package.Split("/");
-
-            analyzer.AllowList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? ""));
-        }
-
-        analyzer.AllowList.Licenses.AddRange(globalSettings.Allow.Licenses);
-        analyzer.AllowList.Feeds.AddRange(globalSettings.Allow.Feeds);
-
-        foreach (string package in globalSettings.Deny.Packages)
-        {
-            string[] segments = package.Split("/");
-
-            analyzer.DenyList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? ""));
-        }
-
-        analyzer.DenyList.Licenses.AddRange(globalSettings.Deny.Licenses);
     }
 }
