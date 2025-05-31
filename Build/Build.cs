@@ -5,6 +5,7 @@ using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Tooling;
+using Nuke.Common.Tools.Coverlet;
 using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Tools.GitVersion;
 using Nuke.Common.Tools.ReportGenerator;
@@ -94,6 +95,7 @@ class Build : NukeBuild
                 // We run tests in debug mode so that Fluent Assertions can show the names of variables
                 .SetConfiguration(Configuration.Debug)
                 .SetDataCollector("XPlat Code Coverage")
+                .EnableCollectCoverage()
                 .SetResultsDirectory(TestResultsDirectory)
                 .SetProjectFile(project)
                 .CombineWith(project.GetTargetFrameworks(),
@@ -140,7 +142,10 @@ class Build : NukeBuild
                 .SetTargetDirectory(TestResultsDirectory / "reports")
                 .AddReports(TestResultsDirectory / "**/coverage.cobertura.xml")
                 .AddReportTypes(ReportTypes.lcov, ReportTypes.Html)
-                .AddFileFilters("-*.g.cs", "**pathy**cs**"));
+                .AddFileFilters("-*.g.cs")
+                .AddFileFilters("-*.nuget*")
+                .AddFileFilters("-*pathy*")
+                .SetAssemblyFilters("+PackageGuard*"));
 
             string link = TestResultsDirectory / "reports" / "index.html";
             Information($"Code coverage report: \x1b]8;;file://{link.Replace('\\', '/')}\x1b\\{link}\x1b]8;;\x1b\\");
