@@ -36,7 +36,7 @@ class Build : NukeBuild
     [Secret]
     readonly string NuGetApiKey;
 
-    [Solution]
+    [Solution(GenerateProjects = true)]
     readonly Solution Solution;
 
     [GitVersion(Framework = "net8.0", NoFetch = true, NoCache = true)]
@@ -88,7 +88,7 @@ class Build : NukeBuild
         .Executes(() =>
         {
             TestResultsDirectory.CreateOrCleanDirectory();
-            var project = Solution.GetProject("PackageGuard.Specs");
+            var project = Solution.PackageGuard_Specs;
 
             DotNetTest(s => s
                 // We run tests in debug mode so that Fluent Assertions can show the names of variables
@@ -107,7 +107,7 @@ class Build : NukeBuild
         .DependsOn(Compile)
         .Executes(() =>
         {
-            var project = Solution.GetProject("PackageGuard.ApiVerificationTests");
+            var project = Solution.PackageGuard_ApiVerificationTests;
 
             DotNetTest(s => s
                 .SetConfiguration(Configuration == Configuration.Debug ? "Debug" : "Release")
@@ -115,6 +115,21 @@ class Build : NukeBuild
                 .SetResultsDirectory(TestResultsDirectory)
                 .SetProjectFile(project)
                 .AddLoggers($"trx;LogFileName={project!.Name}.trx"));
+        });
+
+    Target RunPackageGuard => _ => _
+        .DependsOn(Compile)
+        .Executes(() =>
+        {
+            var project = Solution.PackageGuard;
+
+            DotNetRun(s => s
+                .SetProjectFile(project)
+                .SetConfiguration(Configuration == Configuration.Debug ? "Debug" : "Release")
+                .AddApplicationArguments($"--configpath={RootDirectory / "PackageGuard.config.json"}")
+                .AddApplicationArguments($"{RootDirectory}")
+                .EnableNoBuild()
+                .EnableNoRestore());
         });
 
     Target CodeCoverage => _ => _
@@ -125,7 +140,7 @@ class Build : NukeBuild
                 .SetTargetDirectory(TestResultsDirectory / "reports")
                 .AddReports(TestResultsDirectory / "**/coverage.cobertura.xml")
                 .AddReportTypes(ReportTypes.lcov, ReportTypes.Html)
-                .AddFileFilters("-*.g.cs"));
+                .AddFileFilters("-*.g.cs", "**pathy**cs**"));
 
             string link = TestResultsDirectory / "reports" / "index.html";
             Information($"Code coverage report: \x1b]8;;file://{link.Replace('\\', '/')}\x1b\\{link}\x1b]8;;\x1b\\");
@@ -135,6 +150,7 @@ class Build : NukeBuild
         .DependsOn(CalculateNugetVersion)
         .DependsOn(ApiChecks)
         .DependsOn(CodeCoverage)
+        .DependsOn(RunPackageGuard)
         .Executes(() =>
         {
             ReportSummary(s => s
