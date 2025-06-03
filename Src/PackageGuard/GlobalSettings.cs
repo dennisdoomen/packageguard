@@ -10,6 +10,9 @@ public class GlobalSettings
     [UsedImplicitly]
     public PolicyItem Deny { get; set; } = new();
 
+    [UsedImplicitly]
+    public string[] IgnoredFeeds { get; set; } = [];
+
     public class PolicyItem
     {
         [UsedImplicitly]

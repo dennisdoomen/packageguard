@@ -1,11 +1,13 @@
-﻿using CliWrap;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NuGet.ProjectModel;
 using Pathy;
 
 namespace PackageGuard.Core;
 
+/// <summary>
+/// Analyzes C# projects for compliance with defined policies, such as allowed and denied packages, licenses, and feeds.
+/// </summary>
 public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAnalyzer analyzer)
 {
     public ILogger Logger { get; set; } = NullLogger.Instance;
@@ -30,6 +32,14 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
     public DenyList DenyList { get; set; } = new();
 
     /// <summary>
+    /// One or more NuGet feeds that should be completely ignored during the analysis.
+    /// </summary>
+    /// <value>
+    /// Each feed is wildcard string that can match the NuGet feed name or URL.
+    /// </value>
+    public string[] IgnoredFeeds { get; set; } = [];
+
+    /// <summary>
     /// Specifies whether interactive mode should be enabled for the .NET restore process.
     /// When enabled, the restore operation may prompt for user input, such as authentication information.
     /// </summary>
@@ -41,18 +51,39 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
     /// <summary>
     /// Force restoring the NuGet dependencies, even if the lockfile is up-to-date
     /// </summary>
-    public bool ForceRestore { get; set; } = false;
+    public bool ForceRestore { get; set; }
+
+    /// <summary>
+    /// Determines whether to skip the restore operation for the project analysis.
+    /// If set to true, no project or solution restore will be performed before analyzing the project dependencies.
+    /// </summary>
+    public bool SkipRestore { get; set; }
 
     public async Task<PolicyViolation[]> ExecuteAnalysis()
+    {
+        analyzer.IgnoredFeeds = IgnoredFeeds;
+
+        ValidateConfiguration();
+
+        List<string> projectPaths = scanner.FindProjects(ProjectPath);
+
+        PackageInfoCollection packages = new();
+
+        await CollectPackagesFrom(projectPaths, packages);
+
+        return VerifyAgainstPolicy(packages);
+    }
+
+    private void ValidateConfiguration()
     {
         if (!AllowList.HasPolicies && !DenyList.HasPolicies)
         {
             throw new ArgumentException("Either a allowlist or a denylist must be specified");
         }
+    }
 
-        List<string> projectPaths = scanner.FindProjects(ProjectPath);
-
-        PackageInfoCollection packages = new();
+    private async Task CollectPackagesFrom(List<string> projectPaths, PackageInfoCollection packages)
+    {
         foreach (ChainablePath projectPath in projectPaths)
         {
             Logger.LogHeader($"Getting metadata for packages in {projectPath}");
@@ -61,7 +92,8 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
             {
                 Logger = Logger,
                 InteractiveRestore = InteractiveRestore,
-                ForceRestore = ForceRestore
+                ForceRestore = ForceRestore,
+                SkipRestore = SkipRestore,
             };
 
             LockFile? lockFile = lockFileLoader.GetPackageLockFile(projectPath);
@@ -73,8 +105,6 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
                 }
             }
         }
-
-        return VerifyAgainstPolicy(packages);
     }
 
     private PolicyViolation[] VerifyAgainstPolicy(PackageInfoCollection packages)

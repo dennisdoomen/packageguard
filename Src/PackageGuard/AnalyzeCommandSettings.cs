@@ -23,4 +23,8 @@ internal class AnalyzeCommandSettings : CommandSettings
     [Description("Force restoring the NuGet dependencies, even if the lockfile is up-to-date")]
     [CommandOption("--force-restore")]
     public bool ForceRestore { get; set; } = false;
+
+    [Description("Prevent the restore operation from running, even if the lock file is missing or out-of-date")]
+    [CommandOption("--skip-restore")]
+    public bool SkipRestore { get; set; } = false;
 }

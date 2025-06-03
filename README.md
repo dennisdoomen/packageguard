@@ -54,6 +54,21 @@ The tool is available as [a NuGet Tool package](https://www.nuget.org/packages/p
 
 Then use `packageguard --help` to see a list of options.
 
+```
+USAGE:
+    PackageGuard.dll [path] [OPTIONS]
+
+ARGUMENTS:
+    [path]    The path to a directory containing a .sln file, a specific .sln file, or a specific .csproj file. Defaults to the current working directory
+
+OPTIONS:
+    -h, --help                   Prints help information
+        --configPath             The path to the configuration file. Defaults to the config.json in the current working directory
+        --restore-interactive    Allow enabling or disabling an interactive mode of "dotnet restore". Defaults to true
+        --force-restore          Force restoring the NuGet dependencies, even if the lockfile is up-to-date
+        --skip-restore           Prevent the restore operation from running, even if the lock file is missing or out-of-date
+```
+
 ## How do I configure it?
 
 First, you need to create a JSON configuration file listing the packages and/or licenses you want to allow/deny list. By default, this file is called `config.json` and loaded from the working directory, but you can override that using the `--configpath` CLI parameter. The config file needs to have the following format:
@@ -75,12 +90,15 @@ First, you need to create a JSON configuration file listing the packages and/or 
           "packages": [
             "ProhibitedPackage"
           ]
-        }
+        },
+        "ignoredFeeds": [
+          "https://pkgs.dev.azure.com/somecompany/project/_packaging/myfeed/nuget/v3/index.json"
+        ]
     }
 }
 ```
 
-In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, the use of the package `ProhibitedPackage` is prohibited, and `MyPackage` should stick to version 7 only. Both the `allow` and `deny` sections support both the `licenses` and `packages` properties. 
+In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, the use of the package `ProhibitedPackage` is prohibited, and `MyPackage` should stick to version 7 only. Both the `allow` and `deny` sections support the `licenses` and `packages` properties. But licenses and packages listed under `allow` have precedence over those under the `deny` section.
 
 License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions. Package names can include just the NuGet ID but may also include a [NuGet-compatible version (range)](https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort) separated by `/`. Here's a summary of the possible notations:
 
@@ -109,7 +127,7 @@ You can also tell PackageGuard to allow all packages from a particular feed, eve
 }
 ```
 
-TODO
+And in case you want to prevent PackageGuard from trying to access a particular feed altogether, add them to the `ignoredFeeds` element. Notice that PackageGuard may still trigger a `dotnet restore` call if the package lock file (`project.assets.json`) doesn't exist yet, unless you use the `SkipRestore` option, that will use all available NuGet feeds.
 
 ## How do I use it?
 

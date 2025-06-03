@@ -44,6 +44,10 @@
       <None Update="TestCases\UnknownLicense\NuGet.config">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <Compile Remove="TestCases\UnreachableFeed\Program.cs" />
+      <None Include="TestCases\UnreachableFeed\Program.cs">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
     <ItemGroup>
@@ -53,6 +57,12 @@
       <Content Include="TestCases\SimpleApp\SimpleApp.sln">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
+      <None Include="TestCases\UnreachableFeed\ConsoleApp.sln">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Include="TestCases\UnreachableFeed\ConsoleApp.csproj">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
       <None Include="TestCases\UnknownLicense\ConsoleApp.csproj">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>

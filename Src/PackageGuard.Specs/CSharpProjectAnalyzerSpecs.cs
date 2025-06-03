@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using CliWrap;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -458,6 +459,65 @@ public class CSharpProjectAnalyzerSpecs
             };
 
         // Act
+        var violations = await analyzer.ExecuteAnalysis();
+
+        // Assert
+        violations.Should().ContainEquivalentOf(new
+        {
+            PackageId = "FluentAssertions",
+            Version = "8.3.0",
+            License = "Unknown"
+        });
+    }
+
+    [TestMethod]
+    public async Task Can_exclude_an_entire_feed()
+    {
+        // Arrange
+        var projectPath = ChainablePath.Current / "TestCases" / "UnreachableFeed";
+
+        await File.WriteAllTextAsync(projectPath / "nuget.config",
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <configuration>
+              <packageSources>
+                <clear />
+                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+              </packageSources>
+            </configuration>
+            """);
+
+        await Cli
+            .Wrap("dotnet")
+            .WithWorkingDirectory(projectPath)
+            .WithArguments("restore --force")
+            .ExecuteAsync();
+
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                SkipRestore = true,
+                ProjectPath = projectPath / "ConsoleApp.sln",
+                AllowList = new AllowList
+                {
+                    Licenses = ["mit"],
+                },
+                IgnoredFeeds = ["unreachable"]
+            };
+
+        // Act
+        await File.WriteAllTextAsync(projectPath / "nuget.config",
+            """
+            <?xml version="1.0" encoding="utf-8"?>
+            <configuration>
+              <packageSources>
+                <clear />
+                <add key="unreachable" value="https://someunreachablefeed" />
+                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+              </packageSources>
+            </configuration>
+            """);
+
         var violations = await analyzer.ExecuteAnalysis();
 
         // Assert

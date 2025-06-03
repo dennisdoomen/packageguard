@@ -3,15 +3,30 @@ using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
+using PackageGuard.Core.Common;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace PackageGuard.Core;
 
+/// <summary>
+/// Represents an analyzer for NuGet packages within a specified project.
+/// Used to collect metadata for packages, retrieve package information from
+/// configured repositories, and augment packages with license information as needed.
+/// </summary>
 public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 {
     private readonly Dictionary<string, SourceRepository[]> nuGetSourcesByProject = new();
 
-    public async Task CollectPackageMetadata(string projectPath, string packageName, NuGetVersion packageVersion, PackageInfoCollection packages)
+    /// <summary>
+    /// One or more NuGet feeds that should be completely ignored during the analysis.
+    /// </summary>
+    /// <value>
+    /// Each feed is wildcard string that can match the NuGet feed name or URL.
+    /// </value>
+    public string[] IgnoredFeeds { get; set; } = [];
+
+    public async Task CollectPackageMetadata(string projectPath, string packageName, NuGetVersion packageVersion,
+        PackageInfoCollection packages)
     {
         SourceRepository[] repositories = GetNuGetSources(projectPath);
 
@@ -45,13 +60,20 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 
             var settings = Settings.LoadDefaultSettings(projectDirectory);
             var sourceProvider = new PackageSourceProvider(settings);
-            var packageSources = sourceProvider.LoadPackageSources()
-                .Where(s => s.IsEnabled)
-                .ToList();
 
-            foreach (PackageSource source in packageSources)
+            var packageSources = new List<PackageSource>();
+            foreach (PackageSource source in sourceProvider.LoadPackageSources().Where(s => s.IsEnabled))
             {
-                logger.LogDebug("Found NuGet source {Name} ({Source})", source.Name, source.Source);
+                if (IgnoredFeeds.Any(pattern => source.Name.MatchesWildcard(pattern) ||
+                                                source.Source.MatchesWildcard(pattern)))
+                {
+                    logger.LogDebug("Ignoring NuGet source {Name} ({Source})", source.Name, source.Source);
+                }
+                else
+                {
+                    logger.LogDebug("Found NuGet source {Name} ({Source})", source.Name, source.Source);
+                    packageSources.Add(source);
+                }
             }
 
             if (!packageSources.Any())
@@ -68,7 +90,8 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         return nuGetSourcesByProject[projectDirectory];
     }
 
-    private async Task<PackageInfo?> RetrievePackageMetadata(SourceRepository[] repositories, string packageName, NuGetVersion packageVersion)
+    private async Task<PackageInfo?> RetrievePackageMetadata(SourceRepository[] repositories, string packageName,
+        NuGetVersion packageVersion)
     {
         logger.LogInformation("Retrieving metadata for {Name} {Version}", packageName, packageVersion);
 
@@ -104,5 +127,4 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 
         return null;
     }
-
 }
