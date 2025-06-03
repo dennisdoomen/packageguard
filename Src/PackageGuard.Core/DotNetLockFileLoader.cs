@@ -24,44 +24,25 @@ public class DotNetLockFileLoader
     /// </summary>
     public bool ForceRestore { get; set; } = false;
 
+    /// <summary>
+    /// Determines whether to skip the restore operation for the project analysis.
+    /// If set to true, no project or solution restore will be performed before analyzing the project dependencies.
+    /// </summary>
+    public bool SkipRestore { get; set; }
+
     public LockFile? GetPackageLockFile(string path)
     {
         ChainablePath projectPath = path;
 
         Logger.LogInformation("Loading lock file for {ProjectPath}", projectPath);
 
-        var lastProjectModification = File.GetLastWriteTimeUtc(projectPath);
+        DateTime lastProjectModification = File.GetLastWriteTimeUtc(projectPath);
 
         FileInfo assetsJson = new(projectPath.Directory / "obj" / "project.assets.json");
 
-        if (ForceRestore || !assetsJson.Exists || assetsJson.LastWriteTimeUtc < lastProjectModification)
+        if (!SkipRestore && (ForceRestore || !assetsJson.Exists || assetsJson.LastWriteTimeUtc < lastProjectModification))
         {
-            Logger.LogInformation("Project.assets.json not found or out-of-date. Running restore on {Path} ", projectPath);
-
-            var arguments = new List<string>
-            {
-                "restore",
-                projectPath
-            };
-
-            if (InteractiveRestore)
-            {
-                arguments.Add("--interactive");
-            }
-
-            Command cli = Cli.Wrap("dotnet")
-                .WithArguments(arguments)
-                .WithStandardOutputPipe(PipeTarget.ToStream(Console.OpenStandardOutput()))
-                .WithStandardErrorPipe(PipeTarget.ToStream(Console.OpenStandardError()));
-
-            Logger.LogInformation("Executing: {Cli}", cli);
-
-            CommandResult result = cli.ExecuteAsync().GetAwaiter().GetResult();
-
-            if (!result.IsSuccess)
-            {
-                throw new ApplicationException($"Failed to restore the dependencies for {projectPath} with {result.ExitCode}");
-            }
+            RestoreProjectPackages(projectPath);
         }
 
         LockFile lockFile = LockFileUtilities.GetLockFile(assetsJson.FullName, new NuGet.Common.NullLogger());
@@ -71,5 +52,35 @@ public class DotNetLockFileLoader
         }
 
         return lockFile;
+    }
+
+    private void RestoreProjectPackages(ChainablePath projectPath)
+    {
+        Logger.LogInformation("Project.assets.json not found or out-of-date. Running restore on {Path} ", projectPath);
+
+        var arguments = new List<string>
+        {
+            "restore",
+            projectPath
+        };
+
+        if (InteractiveRestore)
+        {
+            arguments.Add("--interactive");
+        }
+
+        Command cli = Cli.Wrap("dotnet")
+            .WithArguments(arguments)
+            .WithStandardOutputPipe(PipeTarget.ToStream(Console.OpenStandardOutput()))
+            .WithStandardErrorPipe(PipeTarget.ToStream(Console.OpenStandardError()));
+
+        Logger.LogInformation("Executing: {Cli}", cli);
+
+        CommandResult result = cli.ExecuteAsync().GetAwaiter().GetResult();
+
+        if (!result.IsSuccess)
+        {
+            throw new ApplicationException($"Failed to restore the dependencies for {projectPath} with {result.ExitCode}");
+        }
     }
 }

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using System.Xml.XPath;
+using Pathy;
 using PublicApiGenerator;
 using VerifyTests;
 using VerifyTests.DiffPlex;
@@ -15,13 +16,18 @@ namespace PackageGuard.ApiVerificationTests;
 
 public class ApiApproval
 {
-    static ApiApproval() => VerifyDiffPlex.Initialize(OutputType.Minimal);
+    private static readonly ChainablePath SourcePath = ChainablePath.Current / ".." / ".." / ".." / "..";
+
+    static ApiApproval()
+    {
+        VerifyDiffPlex.Initialize(OutputType.Minimal);
+    }
 
     [Fact]
     public Task ApproveApi()
     {
         var configuration = typeof(ApiApproval).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
-        var assemblyFile = CombinedPaths("PackageGuard.Core", "bin", configuration, "net8.0", "PackageGuard.Core.dll");
+        var assemblyFile = SourcePath / "PackageGuard.Core" / "bin" / configuration / "net8.0" / "PackageGuard.Core.dll";
         var assembly = Assembly.LoadFile(assemblyFile);
         var publicApi = assembly.GeneratePublicApi(options: null);
 
@@ -32,10 +38,4 @@ public class ApiApproval
             .UseFileName("net8.0")
             .DisableDiff();
     }
-
-    private static string CombinedPaths(params string[] paths) =>
-        Path.GetFullPath(Path.Combine(paths.Prepend(GetSolutionDirectory()).ToArray()));
-
-    private static string GetSolutionDirectory([CallerFilePath] string path = "") =>
-        Path.Combine(Path.GetDirectoryName(path)!, "..");
 }

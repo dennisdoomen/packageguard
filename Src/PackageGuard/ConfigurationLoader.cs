@@ -33,5 +33,7 @@ public static class ConfigurationLoader
         }
 
         analyzer.DenyList.Licenses.AddRange(globalSettings.Deny.Licenses);
+
+        analyzer.IgnoredFeeds = globalSettings.IgnoredFeeds;
     }
 }

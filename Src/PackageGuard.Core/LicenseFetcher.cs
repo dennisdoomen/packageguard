@@ -5,6 +5,9 @@ using Microsoft.Extensions.Logging;
 
 namespace PackageGuard.Core;
 
+/// <summary>
+/// Responsible for fetching and amending missing license information for a package.
+/// </summary>
 public sealed class LicenseFetcher(ILogger logger)
 {
     private static readonly HttpClient HttpClient = new();

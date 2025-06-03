@@ -23,26 +23,29 @@ public class ConfigurationLoaderSpecs
         File.WriteAllText(ChainablePath.Current / "test.json",
             """
             {
-                "Settings": {
-                    "Allow": {
-                        "Packages": [
+                "settings": {
+                    "allow": {
+                        "packages": [
                             "PackageGuard/1.2.3"
                         ],
-                        "Licenses": [
+                        "licenses": [
                             "MIT"
                         ],
-                        "Feeds": [
+                        "feeds": [
                             "https://api.nuget.org/v3/index.json"
                         ]
                     },
-                    "Deny": {
-                        "Packages": [
+                    "deny": {
+                        "packages": [
                             "Bogus/Package"
                         ],
-                        "Licenses": [
+                        "licenses": [
                             "Proprietary"
                         ]
-                    }
+                    },
+                    "ignoredFeeds": [
+                        "https://api.nuget.org/v3/index.json"
+                    ]
                 }
             }
             """);
@@ -69,6 +72,10 @@ public class ConfigurationLoaderSpecs
                     new PackageSelector("Bogus", "Package")
                 },
                 Licenses = new[] { "Proprietary" }
+            },
+            IgnoredFeeds = new[]
+            {
+                "https://api.nuget.org/v3/index.json"
             }
         });
     }

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using NuGet.Versioning;
+using PackageGuard.Core.Common;
 
 namespace PackageGuard.Core;
 
@@ -52,12 +53,6 @@ public class PackageInfo
     /// </summary>
     public bool MatchesFeed(string feedWildcard)
     {
-        return IsWildcardMatch(Source, feedWildcard) || IsWildcardMatch(SourceUrl, feedWildcard);
-    }
-
-    private static bool IsWildcardMatch(string text, string pattern)
-    {
-        var escapedPattern = Regex.Escape(pattern).Replace("\\*", ".*");
-        return Regex.IsMatch(text, $"^{escapedPattern}$", RegexOptions.IgnoreCase);
+        return Source.MatchesWildcard(feedWildcard) || SourceUrl.MatchesWildcard(feedWildcard);
     }
 }
