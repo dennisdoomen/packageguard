@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <LangVersion>default</LangVersion>
@@ -18,7 +18,7 @@
       <PackageReference Include="Meziantou.Extensions.Logging.InMemory" Version="1.2.5" />
       <PackageReference Include="Meziantou.Extensions.Logging.Xunit" Version="1.0.12" />
       <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="9.5.0" />
-      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
+      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
       <PackageReference Include="MSTest" Version="3.9.1" />
       <PackageReference Include="Pathy" Version="1.2.1">
         <PrivateAssets>all</PrivateAssets>
