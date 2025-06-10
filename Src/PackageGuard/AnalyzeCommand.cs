@@ -31,7 +31,8 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             Logger = logger,
         };
 
-        ConfigurationLoader.Configure(analyzer, settings.ProjectPath, settings.ConfigPath);
+
+        ConfigurationLoader.Configure(analyzer, settings.ConfigPath);
 
         var violations = await analyzer.ExecuteAnalysis();
 

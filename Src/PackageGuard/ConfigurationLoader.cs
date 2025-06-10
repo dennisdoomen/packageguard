@@ -5,10 +5,10 @@ namespace PackageGuard;
 
 public static class ConfigurationLoader
 {
-    public static void Configure(CSharpProjectAnalyzer analyzer, string baseDirectory, string configurationPath)
+    public static void Configure(CSharpProjectAnalyzer analyzer, string configurationPath)
     {
         var configuration = new ConfigurationBuilder()
-            .SetBasePath(baseDirectory)
+            .SetBasePath(Directory.GetCurrentDirectory())
             .AddJsonFile(configurationPath, optional: true)
             .AddEnvironmentVariables()
             .Build();
