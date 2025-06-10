@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using FakeItEasy;
 using FluentAssertions;
@@ -51,7 +50,7 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Act
-        ConfigurationLoader.Configure(analyzer, Environment.CurrentDirectory, "test.json");
+        ConfigurationLoader.Configure(analyzer, "test.json");
 
         // Assert
         analyzer.Should().BeEquivalentTo(new
