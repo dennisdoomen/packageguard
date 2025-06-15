@@ -21,13 +21,14 @@
 
 
 <a href="#about">About</a> •
-<a href="#how-to-use-it">How To Use</a> •
 <a href="#download">Download</a> •
-<a href="#contributors">Contributors</a> •
+<a href="#how-do-i-configure-it">How To Configure</a> •
+<a href="#how-do-i-use-it">How To Use</a> •
+<a href="#roadmap">Roadmap</a> •
+<a href="#building">Building</a> •
+<a href="#contributing">Contributing</a> •
 <a href="#versioning">Versioning</a> •
 <a href="#credits">Credits</a> •
-<a href="#related">Related</a> •
-<a href="#license">License</a>
 
 </div>
 
@@ -156,7 +157,7 @@ This is a rough list of items from my personal backlog that I'll be working on t
 - Add caching of licenses 
 - Allow specifying a GitHub token to prevent rate limiting
 - Expose the internal engine through the `PackageGuard.Core` NuGet package
-- Add support for [Nuke](https://nuke.build/)
+- Add direct support for [Nuke](https://nuke.build/)
 - Allow loading settings from the directory of the scanned project and move up if not found
 - Display the reason why a package was marked as a violation
 
@@ -219,7 +220,8 @@ This library wouldn't have been possible without the following tools, packages a
 
 * [My Blog](https://www.dennisdoomen.com)
 * [Reflectify](https://github.com/dennisdoomen/reflectify) - Reflection extensions without causing dependency pains
-* [.NET Library Package Templates](https://github.com/dennisdoomen/dotnet-package-templates) - "dotnet new" templates for building NuGet-published multi-targeting libraries with all the bells and whistles
+* [Pathy](https://github.com/dennisdoomen/pathy?tab=readme-ov-file#readme) - Fluently building and using file and directory paths without binary dependencies
+* [.NET Library Starter Kit](https://github.com/dennisdoomen/dotnet-package-templates) - A battle-tested starter kit for building open-source and internal NuGet libraries using "dotnet new", born from half a billion downloads
 * [FluentAssertions](https://github.com/fluentassertions/fluentassertions) - Extension methods to fluently assert the outcome of .NET tests
 * [C# Coding Guidelines](https://csharpcodingguidelines.com/) - Forkable coding guidelines for all C# versions
 

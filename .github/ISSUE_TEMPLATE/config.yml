@@ -1,14 +1,17 @@
 blank_issues_enabled: true
 contact_links:
   - name: 📚 Documentation
-    url: https://your-documentation-url.com
+    url: https://github.com/dennisdoomen/packageguard?tab=readme-ov-file#how-do-i-configure-it
     about: Read our comprehensive documentation.
-  - name: ⭐ Sponsor MyPackage
-    url: https://github.com/sponsors/MyPackage
+  - name: ⭐ Sponsor PackageGuard
+    url: https://github.com/sponsors/dennisdoomen
     about: Help the continued development.
   - name: 💬 Ask on Stack Overflow
-    url: https://stackoverflow.com/questions/tagged/MyPackage
+    url: https://stackoverflow.com/questions/tagged/PackageGuard
     about: The best place for asking general purpose questions.
-  - name: 💬 Ask on YourSocialMediaChannel
-    url: https://url-of-your-social-media-channel.com
-    about: Get in touch with the whole community.
+  - name: 💬 Ask on BlueSky
+    url: https://bsky.app/profile/dennisdoomen.com
+    about: Get in touch with the author on Bluesky
+  - name: 💬 Ask on Twitter/X
+    url: https://x.com/ddoomen
+    about: Get in touch with the author on Twitter/X

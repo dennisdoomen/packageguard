@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        We welcome API proposals! We have a process to evaluate the value and shape of new API (see contribution guidelines). This template will help us gather the information we need to start the review process.
+        We welcome API proposals! We have a process to evaluate the value and shape of new API (see [contribution guidelines](https://github.com/dennisdoomen/packageguard/blob/main/CONTRIBUTING.md)). This template will help us gather the information we need to start the review process.
   - type: textarea
     id: background
     attributes:
