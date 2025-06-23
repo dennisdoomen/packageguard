@@ -19,7 +19,7 @@
       <PackageReference Include="Meziantou.Extensions.Logging.Xunit" Version="1.0.13" />
       <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="9.6.0" />
       <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-      <PackageReference Include="MSTest" Version="3.9.2" />
+      <PackageReference Include="MSTest" Version="3.9.3" />
       <PackageReference Include="Pathy" Version="1.2.1">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
