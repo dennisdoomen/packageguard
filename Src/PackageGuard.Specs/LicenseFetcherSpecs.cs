@@ -66,4 +66,4 @@ public class LicenseFetcherSpecs
         // Assert
         package.License.Should().Be("Unknown");
     }
-}
+ }

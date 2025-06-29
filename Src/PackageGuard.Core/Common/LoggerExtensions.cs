@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace PackageGuard.Core;
+namespace PackageGuard.Core.Common;
 
 internal static class LoggerExtensions
 {
