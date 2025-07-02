@@ -63,7 +63,7 @@ ARGUMENTS:
     [path]    The path to a directory containing a .sln file, a specific .sln file, or a specific .csproj file. Defaults to the current working directory
 
 OPTIONS:
-    -h, --help                   Prints help information
+    -?, --help                   Prints help information
         --configPath             The path to the configuration file. Defaults to the config.json in the current working directory
         --restore-interactive    Allow enabling or disabling an interactive mode of "dotnet restore". Defaults to true
         --force-restore          Force restoring the NuGet dependencies, even if the lockfile is up-to-date
