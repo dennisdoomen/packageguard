@@ -29,6 +29,8 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             InteractiveRestore = settings.Interactive,
             ForceRestore = settings.ForceRestore,
             SkipRestore = settings.SkipRestore,
+            UseCaching = settings.UseCaching,
+            CacheFilePath = settings.CacheFilePath,
             Logger = logger,
         };
 

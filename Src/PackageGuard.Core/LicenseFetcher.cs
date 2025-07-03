@@ -16,26 +16,26 @@ public sealed class LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
 
     public async Task AmendWithMissingLicenseInformation(PackageInfo package)
     {
-        if (package.License is not null)
+        if (package.License is null)
         {
-            logger.LogInformation("Package {Name} already has a license: {License}", package.Id, package.License);
-            return;
-        }
-
-        foreach (IFetchLicense fetcher in fetchers)
-        {
-            await fetcher.FetchLicenseAsync(package);
-
-            if (package.License is not null)
+            foreach (IFetchLicense fetcher in fetchers)
             {
-                logger.LogInformation("License found for {Name}: {License}", package.Id, package.License);
-                break;
+                await fetcher.FetchLicenseAsync(package);
+
+                if (package.License is not null)
+                {
+                    break;
+                }
             }
         }
 
         if (package.License is null)
         {
-            logger.LogWarning("Unable to determine license for package {Name} {Version}", package.Id, package.Version);
+            logger.LogWarning("Unable to determine license for package {Name} {Version}", package.Name, package.Version);
+        }
+        else
+        {
+            logger.LogInformation("License found for {Name}: {License}", package.Name, package.License);
         }
     }
 }

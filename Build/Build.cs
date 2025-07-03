@@ -37,6 +37,10 @@ class Build : NukeBuild
     [Secret]
     readonly string NuGetApiKey;
 
+    [Parameter("The key to use for scanning packages on GitHub")]
+    [Secret]
+    readonly string GitHubApiKey;
+
     [Solution(GenerateProjects = true)]
     readonly Solution Solution;
 
@@ -128,7 +132,11 @@ class Build : NukeBuild
             DotNetRun(s => s
                 .SetProjectFile(project)
                 .SetConfiguration(Configuration == Configuration.Debug ? "Debug" : "Release")
-                .AddApplicationArguments($"--configpath={RootDirectory / "PackageGuard.config.json"}")
+                .AddApplicationArguments($"--configpath={RootDirectory / ".packageguard" / "config.json"}")
+                .WhenNotNull(GitHubApiKey, (ss, key) => ss
+                    .AddApplicationArguments($"--github-api-key={key}")
+                    .AddProcessRedactedSecrets(key))
+                .AddApplicationArguments("--use-caching")
                 .AddApplicationArguments($"{RootDirectory}")
                 .EnableNoBuild()
                 .EnableNoRestore());

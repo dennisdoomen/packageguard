@@ -23,7 +23,7 @@ public class NuGetPackageAnalyzerSpecs
     {
         // Arrange
         var analyzer = new NuGetPackageAnalyzer(nullLogger, new LicenseFetcher(nullLogger));
-        var packages = new PackageInfoCollection();
+        var packages = new PackageInfoCollection(nullLogger);
 
         // Act
         await analyzer.CollectPackageMetadata(ChainablePath.Current.Parent.Parent, name, NuGetVersion.Parse(version), packages);

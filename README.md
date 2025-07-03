@@ -57,18 +57,20 @@ Then use `packageguard --help` to see a list of options.
 
 ```
 USAGE:
-    PackageGuard.dll [path] [OPTIONS]
+    PackageGuard.dll [path] [OPTIONS]                                                                                                                                                                                                                                                                                             
 
 ARGUMENTS:
     [path]    The path to a directory containing a .sln file, a specific .sln file, or a specific .csproj file. Defaults to the current working directory
 
 OPTIONS:
-    -h, --help                   Prints help information                                                                                              
-        --configPath             The path to the configuration file. Defaults to the config.json in the current working directory                     
-        --restore-interactive    Allow enabling or disabling an interactive mode of "dotnet restore". Defaults to true                                
-        --force-restore          Force restoring the NuGet dependencies, even if the lockfile is up-to-date                                           
-        --skip-restore           Prevent the restore operation from running, even if the lock file is missing or out-of-date                          
-        --github-api-key         GitHub API key to use for fetching package licenses. If not specified, you may run into GitHub's rate limiting issues
+    -h, --help                   Prints help information
+    -c, --config-path            The path to the configuration file. Defaults to the config.json in the current working directory
+    -i, --restore-interactive    Allow enabling or disabling an interactive mode of "dotnet restore". Defaults to true
+    -f, --force-restore          Force restoring the NuGet dependencies, even if the lockfile is up-to-date
+    -s, --skip-restore           Prevent the restore operation from running, even if the lock file is missing or out-of-date
+    -a, --github-api-key         GitHub API key to use for fetching package licenses. If not specified, you may run into GitHub's rate limiting issues
+        --use-caching            Maintains a cache of the package information to speed up future analysis
+        --cache-file-path        Overrides the file path where analysis data is cached. Defaults to the "<workingdirectory>/.packageguard/cache.bin"
 ```
 
 ## How do I configure it?
@@ -149,6 +151,14 @@ The exit code indicates either 0 for success or 1 for failure.
 
 ## Additional notes
 
+### Speeding up the analysis using caching
+
+One of the most expensive operations that PackageGuard needs to do is to download find the license information from GitHub or other sources. You can significantly speed-up the analysis process by using the `--use-caching` flag. 
+
+By default, this will cause PackageGuard to persist the license information it retrieved to a binary file under `.packageguard\cache.bin`. You can commit this file to source control so successive runs can reuse the license information it collected during a previous run. 
+
+If PackageGuard finds new packages in your project or solution that did not exist during the previous run, then it will update the cache after the analysis is completed.  
+
 ### Github rate limiting issues
 
 If you're running into errors from GitHub like 
@@ -163,20 +173,19 @@ After having generated such a token, pass it to PackageGuard through its `github
 
 This is a rough list of items from my personal backlog that I'll be working on the coming weeks.
 
-**Complete the MVP**
+**Major features**
+- Add support for the new .slnx file
+- Add NPM support
+
+**Minor features**
 - Allow specifying the location of `dotnet.exe`
 - Allow ignoring certain .csproj files or folders using Globs or wildcards (e.g. build.csproj)
 - Allow marking all violations as a warning
 - Allow marking individual violations as a warning
-- Add caching of licenses 
 - Expose the internal engine through the `PackageGuard.Core` NuGet package
 - Add direct support for [Nuke](https://nuke.build/)
 - Allow loading settings from the directory of the scanned project and move up if not found
 - Display the reason why a package was marked as a violation
-
-**Major features**
-- Add support for the new .slnx file
-- Add NPM support
 
 ## Building
 
@@ -220,9 +229,13 @@ This library wouldn't have been possible without the following tools, packages a
 * [ReportGenerator](https://reportgenerator.io/) - Converts coverage reports by [Daniel Palme](https://github.com/danielpalme)
 * [StyleCopyAnalyzer](https://github.com/DotNetAnalyzers/StyleCopAnalyzers) - StyleCop rules for .NET
 * [Roslynator](https://github.com/dotnet/roslynator) - A set of code analysis tools for C# by [Josef Pihrt](https://github.com/josefpihrt)
+* [Serilog](https://serilog.net/) - Flexible, structured events — log file convenience
 * [CSharpCodingGuidelines](https://github.com/bkoelman/CSharpGuidelinesAnalyzer) - Roslyn analyzers by [Bart Koelman](https://github.com/bkoelman) to go with the [C# Coding Guidelines](https://csharpcodingguidelines.com/)
 * [Meziantou](https://github.com/meziantou/Meziantou.Framework) - Another set of awesome Roslyn analyzers by [Gérald Barré](https://github.com/meziantou)
+* [FluentAssertions](https://github.com/fluentassertions/fluentassertions) - Extension methods to fluently assert the outcome of .NET tests
 * [Verify](https://github.com/VerifyTests/Verify) - Snapshot testing by [Simon Cropp](https://github.com/SimonCropp)
+* [Pathy](https://github.com/dennisdoomen/pathy?tab=readme-ov-file#readme) - Fluently building and using file and directory paths without binary dependencies
+* [MemoryPack](https://github.com/Cysharp/MemoryPack) - Zero encoding extreme performance binary serializer for C# and Unity by [Yoshifumi Kawai](https://github.com/neuecc)
 
 ## Support the project
 * [Sponsor me](https://github.com/sponsors/dennisdoomen)
@@ -233,9 +246,7 @@ This library wouldn't have been possible without the following tools, packages a
 
 * [My Blog](https://www.dennisdoomen.com)
 * [Reflectify](https://github.com/dennisdoomen/reflectify) - Reflection extensions without causing dependency pains
-* [Pathy](https://github.com/dennisdoomen/pathy?tab=readme-ov-file#readme) - Fluently building and using file and directory paths without binary dependencies
 * [.NET Library Starter Kit](https://github.com/dennisdoomen/dotnet-package-templates) - A battle-tested starter kit for building open-source and internal NuGet libraries using "dotnet new", born from half a billion downloads
-* [FluentAssertions](https://github.com/fluentassertions/fluentassertions) - Extension methods to fluently assert the outcome of .NET tests
 * [C# Coding Guidelines](https://csharpcodingguidelines.com/) - Forkable coding guidelines for all C# versions
 
 ## License

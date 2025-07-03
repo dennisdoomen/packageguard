@@ -10,6 +10,7 @@ namespace PackageGuard.Core
     {
         public CSharpProjectAnalyzer(PackageGuard.Core.CSharpProjectScanner scanner, PackageGuard.Core.NuGetPackageAnalyzer analyzer) { }
         public PackageGuard.Core.AllowList AllowList { get; set; }
+        public string CacheFilePath { get; set; }
         public PackageGuard.Core.DenyList DenyList { get; set; }
         public bool ForceRestore { get; set; }
         public string[] IgnoredFeeds { get; set; }
@@ -17,6 +18,7 @@ namespace PackageGuard.Core
         public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
         public string ProjectPath { get; set; }
         public bool SkipRestore { get; set; }
+        public bool UseCaching { get; set; }
         public System.Threading.Tasks.Task<PackageGuard.Core.PolicyViolation[]> ExecuteAnalysis() { }
     }
     public class CSharpProjectScanner
@@ -53,13 +55,14 @@ namespace PackageGuard.Core
         public string[] IgnoredFeeds { get; set; }
         public System.Threading.Tasks.Task CollectPackageMetadata(string projectPath, string packageName, NuGet.Versioning.NuGetVersion packageVersion, PackageGuard.Core.PackageInfoCollection packages) { }
     }
-    public class PackageInfo
+    [MemoryPack.MemoryPackable(MemoryPack.GenerateType.Object)]
+    public class PackageInfo : MemoryPack.IMemoryPackFormatterRegister, MemoryPack.IMemoryPackable<PackageGuard.Core.PackageInfo>
     {
         public PackageInfo() { }
-        public string Id { get; set; }
         public string? License { get; set; }
         public string? LicenseUrl { get; set; }
-        public System.Collections.Generic.List<string> Projects { get; set; }
+        public string Name { get; set; }
+        public string[] Projects { get; set; }
         public string? RepositoryUrl { get; set; }
         public string Source { get; set; }
         public string SourceUrl { get; set; }
@@ -71,10 +74,12 @@ namespace PackageGuard.Core
     }
     public class PackageInfoCollection : System.Collections.Generic.IEnumerable<PackageGuard.Core.PackageInfo>, System.Collections.IEnumerable
     {
-        public PackageInfoCollection() { }
+        public PackageInfoCollection(Microsoft.Extensions.Logging.ILogger logger) { }
         public void Add(PackageGuard.Core.PackageInfo package) { }
-        public PackageGuard.Core.PackageInfo? Find(string libraryName, string libraryVersion) { }
+        public PackageGuard.Core.PackageInfo? Find(string name, string version, NuGet.Protocol.Core.Types.SourceRepository[] projectNuGetSources) { }
         public System.Collections.Generic.IEnumerator<PackageGuard.Core.PackageInfo> GetEnumerator() { }
+        public System.Threading.Tasks.Task TryInitializeFromCache(string cacheFilePath) { }
+        public System.Threading.Tasks.Task WriteToCache(string cacheFilePath) { }
     }
     public abstract class PackagePolicy
     {

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using System.Xml.XPath;
+using PackageGuard.Core;
 using Pathy;
 using PublicApiGenerator;
 using VerifyTests;
@@ -26,9 +27,7 @@ public class ApiApproval
     [Fact]
     public Task ApproveApi()
     {
-        var configuration = typeof(ApiApproval).Assembly.GetCustomAttribute<AssemblyConfigurationAttribute>()!.Configuration;
-        var assemblyFile = SourcePath / "PackageGuard.Core" / "bin" / configuration / "net8.0" / "PackageGuard.Core.dll";
-        var assembly = Assembly.LoadFile(assemblyFile);
+        var assembly = typeof(LicenseFetcher).Assembly;
         var publicApi = assembly.GeneratePublicApi(options: null);
 
         return Verifier

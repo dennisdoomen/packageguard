@@ -114,6 +114,11 @@
             "Release"
           ]
         },
+        "GitHubApiKey": {
+          "type": "string",
+          "description": "The key to use for scanning packages on GitHub",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
         "NuGetApiKey": {
           "type": "string",
           "description": "The key to push to Nuget",

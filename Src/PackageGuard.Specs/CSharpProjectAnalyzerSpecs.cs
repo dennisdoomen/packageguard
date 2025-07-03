@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using CliWrap;
 using FluentAssertions;
+using Meziantou.Extensions.Logging.InMemory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
@@ -66,7 +67,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.4.0",
+            Version = "8.5.0",
             License = "Unknown"
         });
     }
@@ -83,7 +84,7 @@ public class CSharpProjectAnalyzerSpecs
                 {
                     Packages =
                     [
-                        new PackageSelector("FluentAssertions", "8.4.0")
+                        new PackageSelector("FluentAssertions", "8.5.0")
                     ]
                 }
             };
@@ -95,7 +96,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.4.0",
+            Version = "8.5.0",
             License = "Unknown"
         });
     }
@@ -172,7 +173,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.4.0",
+            Version = "8.5.0",
             License = "Unknown"
         });
     }
@@ -297,7 +298,7 @@ public class CSharpProjectAnalyzerSpecs
     }
 
     [TestMethod]
-    public async Task A_package_version_outside_the_allowed_range_is_a_violation()
+    public async Task A_version_outside_the_allowed_range_is_a_violation()
     {
         // Arrange
         var analyzer =
@@ -320,13 +321,13 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.4.0",
+            Version = "8.5.0",
             License = "Unknown"
         });
     }
 
     [TestMethod]
-    public async Task A_package_version_inside_the_allowed_range_is_okay()
+    public async Task A_version_inside_the_allowed_range_is_okay()
     {
         // Arrange
         var analyzer =
@@ -350,7 +351,7 @@ public class CSharpProjectAnalyzerSpecs
     }
 
     [TestMethod]
-    public async Task Can_allow_a_package_that_violates_the_allowed_licenses()
+    public async Task Can_still_allow_a_package_that_violates_the_allowed_licenses()
     {
         // Arrange
         var analyzer =
@@ -372,7 +373,7 @@ public class CSharpProjectAnalyzerSpecs
     }
 
     [TestMethod]
-    public async Task Specifying_a_specific_project_file_requires_it_to_exist()
+    public async Task A_specified_project_must_exist()
     {
         // Arrange
         var analyzer =
@@ -528,5 +529,141 @@ public class CSharpProjectAnalyzerSpecs
             Version = "8.3.0",
             License = "Unknown"
         });
+    }
+
+    [TestMethod]
+    public async Task Creates_a_cache_if_asked_for()
+    {
+        // Arrange
+        var current = ChainablePath.Current;
+        (current / ".packageguard").DeleteFileOrDirectory();
+
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
+                AllowList = new AllowList
+                {
+                    Licenses = ["mit", "Apache-2.0"],
+                },
+                UseCaching = true
+            };
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis();
+
+        // Assert
+        (current / ".packageguard" / "cache.bin").FileExists.Should().BeTrue();
+
+        violations.Should().BeEquivalentTo(
+        [
+            new
+           {
+                License = "Microsoft .NET Library License",
+                PackageId = "Microsoft.AspNet.WebApi.Client",
+                Version = "6.0.0"
+            }
+        ]);
+    }
+
+    [TestMethod]
+    public async Task Creates_a_cache_at_a_specific_path_if_asked_for()
+    {
+        // Arrange
+        var current = ChainablePath.Current;
+        (current / ".mycustomfolder").DeleteFileOrDirectory();
+
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
+                AllowList = new AllowList
+                {
+                    Licenses = ["mit", "Apache-2.0"],
+                },
+                UseCaching = true,
+                CacheFilePath = current / ".mycustomfolder" / "packageguard.cache"
+            };
+
+        // Act
+        await analyzer.ExecuteAnalysis();
+
+        // Assert
+        (current / ".mycustomfolder" / "packageguard.cache").FileExists.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public async Task Can_reuse_a_cache_from_an_earlier_run()
+    {
+        // Arrange
+        var current = ChainablePath.Current;
+        (current / ".packageguard").DeleteFileOrDirectory();
+
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
+                AllowList = new AllowList
+                {
+                    Licenses = ["mit", "Apache-2.0"],
+                },
+                UseCaching = true,
+            };
+
+        // Do the first run to create the cache
+        await analyzer.ExecuteAnalysis();
+
+        // Act
+        var loggingProvider = new InMemoryLoggerProvider();
+
+        analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
+                AllowList = new AllowList
+                {
+                    Licenses = ["mit", "Apache-2.0"],
+                },
+                UseCaching = true,
+                Logger = loggingProvider.CreateLogger("")
+            };
+
+        await analyzer.ExecuteAnalysis();
+
+        // Assert
+        loggingProvider.Logs.Select(x => x.Message).Should().ContainMatch("*Successfully loaded the cache from*");
+    }
+
+    [TestMethod]
+    public async Task Will_ignore_a_corrupt_cache()
+    {
+        // Arrange
+        var current = ChainablePath.Current;
+        var cacheFile = current / ".packageguard" / "cache.bin";
+
+        cacheFile.DeleteFileOrDirectory();
+        cacheFile.Directory.CreateDirectoryRecursively();
+
+        await File.WriteAllTextAsync(cacheFile, "Some invalid content that is not a valid cache");
+
+        var loggingProvider = new InMemoryLoggerProvider();
+        // Act
+
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
+                AllowList = new AllowList
+                {
+                    Licenses = ["mit", "Apache-2.0"],
+                },
+                UseCaching = true,
+                Logger = loggingProvider.CreateLogger("")
+            };
+
+        await analyzer.ExecuteAnalysis();
+
+        // Assert
+        loggingProvider.Logs.Warnings.Select(x => x.Message).Should().ContainMatch("*Could not load package cache from*");
     }
 }
