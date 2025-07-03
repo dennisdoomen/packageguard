@@ -17,7 +17,7 @@ public class LicenseFetcherSpecs
 
         var package = new PackageInfo
         {
-            Id = "Bogus",
+            Name = "Bogus",
             Version = "1.0.0",
             License = "MIT"
         };
@@ -34,7 +34,7 @@ public class LicenseFetcherSpecs
 
         var package = new PackageInfo
         {
-            Id = "Bogus",
+            Name = "Bogus",
             Version = "1.0.0",
             License = null,
             LicenseUrl = null
@@ -55,7 +55,7 @@ public class LicenseFetcherSpecs
 
         var package = new PackageInfo
         {
-            Id = "xunit.abstractions",
+            Name = "xunit.abstractions",
             Version = "2.0.3",
             RepositoryUrl = "https://github.com/xunit/xunit"
         };
