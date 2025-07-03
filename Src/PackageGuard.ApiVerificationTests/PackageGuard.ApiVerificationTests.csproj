@@ -20,4 +20,8 @@
     <PackageReference Include="Verify.Xunit" Version="30.4.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PackageGuard.Core\PackageGuard.Core.csproj" />
+  </ItemGroup>
+
 </Project>

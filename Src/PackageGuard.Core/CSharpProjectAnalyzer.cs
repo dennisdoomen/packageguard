@@ -60,6 +60,17 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
     /// </summary>
     public bool SkipRestore { get; set; }
 
+    /// <summary>
+    /// Indicates whether analysis results should be cached to improve subsequent execution performance.
+    /// When set to true, caching is enabled, and if a cache file is specified and exists, it will be used.
+    /// </summary>
+    public bool UseCaching { get; set; }
+
+    /// <summary>
+    /// Specifies the file path where analysis cache data is stored if <see cref="UseCaching"/> is to <c>true</c>.
+    /// </summary>
+    public string CacheFilePath { get; set; } = ChainablePath.Current / ".packageguard" / "cache.bin";
+
     public async Task<PolicyViolation[]> ExecuteAnalysis()
     {
         analyzer.IgnoredFeeds = IgnoredFeeds;
@@ -68,9 +79,20 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
 
         List<string> projectPaths = scanner.FindProjects(ProjectPath);
 
-        PackageInfoCollection packages = new();
+        PackageInfoCollection packages = new(Logger);
+
+        if (UseCaching && CacheFilePath.Length > 0)
+        {
+            Logger.LogInformation("Try loading package cache from {CacheFilePath}", CacheFilePath);
+            await packages.TryInitializeFromCache(CacheFilePath);
+        }
 
         await CollectPackagesFrom(projectPaths, packages);
+
+        if (UseCaching)
+        {
+            await packages.WriteToCache(CacheFilePath);
+        }
 
         return VerifyAgainstPolicy(packages);
     }
@@ -116,7 +138,7 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
         {
             if (!AllowList.Allows(package) || DenyList.Denies(package))
             {
-                violations.Add(new PolicyViolation(package.Id, package.Version, package.License!, package.Projects.ToArray(), package.Source, package.SourceUrl));
+                violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(), package.Source, package.SourceUrl));
             }
         }
 

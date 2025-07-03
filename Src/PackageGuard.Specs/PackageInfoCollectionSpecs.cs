@@ -13,7 +13,7 @@ namespace PackageGuard.Specs
             // Arrange
             var package = new PackageInfo
             {
-                Id = "Bogus",
+                Name = "Bogus",
                 Version = "1.0.0",
             };
 
@@ -30,7 +30,7 @@ namespace PackageGuard.Specs
             // Arrange
             var package = new PackageInfo
             {
-                Id = "Bogus",
+                Name = "Bogus",
                 Version = "1.0.0",
             };
 
@@ -47,7 +47,7 @@ namespace PackageGuard.Specs
             // Arrange
             var package = new PackageInfo
             {
-                Id = "Bogus",
+                Name = "Bogus",
                 Version = "2.0.0",
             };
 
@@ -64,7 +64,7 @@ namespace PackageGuard.Specs
             // Arrange
             var package = new PackageInfo
             {
-                Id = "Bogus",
+                Name = "Bogus",
                 Version = "2.0.1",
             };
 
@@ -81,7 +81,7 @@ namespace PackageGuard.Specs
             // Arrange
             var package = new PackageInfo
             {
-                Id = "Bogus",
+                Name = "Bogus",
                 Version = "2.0.0",
             };
 
@@ -98,7 +98,7 @@ namespace PackageGuard.Specs
             // Arrange
             var package = new PackageInfo
             {
-                Id = "Bogus",
+                Name = "Bogus",
                 Version = "2.0.0",
             };
 

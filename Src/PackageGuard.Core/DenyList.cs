@@ -14,7 +14,7 @@ public class DenyList : PackagePolicy
 
         foreach (PackageSelector selector in Packages)
         {
-            if (package.Id == selector.Id &&
+            if (package.Name == selector.Id &&
                 (selector.VersionRange is null || package.SatisfiesRange(selector.Id, selector.VersionRange)))
             {
                 return true;

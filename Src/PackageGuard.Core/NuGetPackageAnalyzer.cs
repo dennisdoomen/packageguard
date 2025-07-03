@@ -28,20 +28,23 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
     public async Task CollectPackageMetadata(string projectPath, string packageName, NuGetVersion packageVersion,
         PackageInfoCollection packages)
     {
-        SourceRepository[] repositories = GetNuGetSources(projectPath);
+        SourceRepository[] projectNuGetSources = GetNuGetSources(projectPath);
 
-        PackageInfo? package = packages.Find(packageName, packageVersion.ToNormalizedString());
+        PackageInfo? package = packages.Find(packageName, packageVersion.ToNormalizedString(), projectNuGetSources);
         if (package is not null)
         {
             logger.LogDebug("Already scanned {Name} {Version}", packageName, packageVersion);
         }
         else
         {
-            package = await RetrievePackageMetadata(repositories, packageName, packageVersion);
+            package = await RetrievePackageMetadata(projectNuGetSources, packageName, packageVersion);
             if (package is not null)
             {
                 packages.Add(package);
-                await licenseFetcher.AmendWithMissingLicenseInformation(package);
+                if (package.License is null)
+                {
+                    await licenseFetcher.AmendWithMissingLicenseInformation(package);
+                }
             }
             else
             {
@@ -90,14 +93,14 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         return nuGetSourcesByProject[projectDirectory];
     }
 
-    private async Task<PackageInfo?> RetrievePackageMetadata(SourceRepository[] repositories, string packageName,
+    private async Task<PackageInfo?> RetrievePackageMetadata(SourceRepository[] projectNuGetSources, string packageName,
         NuGetVersion packageVersion)
     {
         logger.LogInformation("Retrieving metadata for {Name} {Version}", packageName, packageVersion);
 
-        foreach (SourceRepository repository in repositories)
+        foreach (SourceRepository nuGetSource in projectNuGetSources)
         {
-            var metadataResource = await repository.GetResourceAsync<PackageMetadataResource>();
+            var metadataResource = await nuGetSource.GetResourceAsync<PackageMetadataResource>();
 
             var packageMetadata = await metadataResource.GetMetadataAsync(
                 packageName,
@@ -114,13 +117,13 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
             {
                 return new PackageInfo
                 {
-                    Id = packageInfo.Identity.Id,
+                    Name = packageInfo.Identity.Id,
                     Version = packageInfo.Identity.Version.ToNormalizedString(),
                     RepositoryUrl = packageInfo.ProjectUrl?.ToString(),
                     License = packageInfo.LicenseMetadata?.License,
                     LicenseUrl = packageInfo.LicenseUrl?.ToString(),
-                    Source = repository.PackageSource.Name,
-                    SourceUrl = repository.PackageSource.Source
+                    Source = nuGetSource.PackageSource.Name,
+                    SourceUrl = nuGetSource.PackageSource.Source
                 };
             }
         }
