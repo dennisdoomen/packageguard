@@ -1,12 +1,14 @@
 using System.Text.RegularExpressions;
+using MemoryPack;
 using NuGet.Versioning;
 using PackageGuard.Core.Common;
 
 namespace PackageGuard.Core;
 
-public class PackageInfo
+[MemoryPackable]
+public partial class PackageInfo
 {
-    public string Id { get; set; } = "";
+    public string Name { get; set; } = "";
     public string Version { get; set; } = "";
     public string? License { get; set; }
     public string? LicenseUrl { get; set; }
@@ -27,7 +29,7 @@ public class PackageInfo
 
     public bool SatisfiesRange(string name, string? versionRange = null)
     {
-        if (!name.Equals(Id, StringComparison.OrdinalIgnoreCase))
+        if (!name.Equals(Name, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
@@ -46,7 +48,7 @@ public class PackageInfo
         Projects.Add(projectPath);
     }
 
-    public override string ToString() => $"{Id}/{Version} ({License})";
+    public override string ToString() => $"{Name}/{Version} ({License})";
 
     /// <summary>
     /// Returns <c>true</c> if the name or URL of the feed where this package was found matches the given wildcard.

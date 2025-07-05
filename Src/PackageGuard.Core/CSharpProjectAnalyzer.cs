@@ -60,6 +60,17 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
     /// </summary>
     public bool SkipRestore { get; set; }
 
+    /// <summary>
+    /// Tells the analyzer to skip the cache and always fetch the latest package metadata from the NuGet feeds.
+    /// </summary>
+    public bool SkipCache { get; set; }
+
+    /// <summary>
+    /// Specifies the file path where analysis cache data is stored. This file can be used to persist
+    /// intermediate results or other data required for subsequent analyses.
+    /// </summary>
+    public string CacheFilePath { get; set; } = ChainablePath.Current / ".packageguard" / "packageguard.cache.json";
+
     public async Task<PolicyViolation[]> ExecuteAnalysis()
     {
         analyzer.IgnoredFeeds = IgnoredFeeds;
@@ -68,9 +79,20 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
 
         List<string> projectPaths = scanner.FindProjects(ProjectPath);
 
-        PackageInfoCollection packages = new();
+        PackageInfoCollection packages = new(Logger);
+
+        if (!SkipCache && File.Exists(CacheFilePath))
+        {
+            Logger.LogInformation("Loading package cache from {CacheFilePath}", CacheFilePath);
+            await packages.TryInitializeFromCache(CacheFilePath);
+        }
 
         await CollectPackagesFrom(projectPaths, packages);
+
+        if (!SkipCache)
+        {
+            await packages.WriteToCache(CacheFilePath);
+        }
 
         return VerifyAgainstPolicy(packages);
     }
@@ -116,7 +138,7 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
         {
             if (!AllowList.Allows(package) || DenyList.Denies(package))
             {
-                violations.Add(new PolicyViolation(package.Id, package.Version, package.License!, package.Projects.ToArray(), package.Source, package.SourceUrl));
+                violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(), package.Source, package.SourceUrl));
             }
         }
 

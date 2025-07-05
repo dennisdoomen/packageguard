@@ -26,7 +26,7 @@ public class AllowList : PackagePolicy
 
         foreach (PackageSelector selector in Packages)
         {
-            if (package.Id == selector.Id)
+            if (package.Name == selector.Id)
             {
                 if (selector.VersionRange is not null &&
                     !package.SatisfiesRange(selector.Id, selector.VersionRange))
