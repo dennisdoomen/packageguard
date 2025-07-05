@@ -1,18 +1,19 @@
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace PackageGuard.Core.FetchingStrategies;
 
 /// <summary>
-/// Fetches licenses using GitHub metadata.
+/// Fetches licenses using GitHub metadata and an optional GitHub API key to prevent rate limiting.
 /// </summary>
-public class GitHubLicenseFetcher : IFetchLicense
+public class GitHubLicenseFetcher(string? gitHubApiKey) : IFetchLicense
 {
     private static readonly HttpClient HttpClient = new();
 
     static GitHubLicenseFetcher()
     {
-        HttpClient.DefaultRequestHeaders.UserAgent.Add(new System.Net.Http.Headers.ProductInfoHeaderValue("PackageGuard", "v1"));
+        HttpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("PackageGuard", "v1"));
     }
 
     public async Task FetchLicenseAsync(PackageInfo package)
@@ -23,9 +24,16 @@ public class GitHubLicenseFetcher : IFetchLicense
 
             if (url is not null)
             {
-                string licenseJson = await HttpClient.GetStringAsync(url);
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                if (gitHubApiKey is not null)
+                {
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", gitHubApiKey);
+                }
 
-                using JsonDocument doc = JsonDocument.Parse(licenseJson);
+                using HttpResponseMessage response = await HttpClient.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+
+                using JsonDocument doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
                 package.License = doc.RootElement.GetProperty("license").GetProperty("spdx_id").GetString();
 
                 if (package.License?.Equals("noassertion", StringComparison.OrdinalIgnoreCase) == true)
