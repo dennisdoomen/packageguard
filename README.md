@@ -63,11 +63,12 @@ ARGUMENTS:
     [path]    The path to a directory containing a .sln file, a specific .sln file, or a specific .csproj file. Defaults to the current working directory
 
 OPTIONS:
-    -h, --help                   Prints help information
-        --configPath             The path to the configuration file. Defaults to the config.json in the current working directory
-        --restore-interactive    Allow enabling or disabling an interactive mode of "dotnet restore". Defaults to true
-        --force-restore          Force restoring the NuGet dependencies, even if the lockfile is up-to-date
-        --skip-restore           Prevent the restore operation from running, even if the lock file is missing or out-of-date
+    -h, --help                   Prints help information                                                                                              
+        --configPath             The path to the configuration file. Defaults to the config.json in the current working directory                     
+        --restore-interactive    Allow enabling or disabling an interactive mode of "dotnet restore". Defaults to true                                
+        --force-restore          Force restoring the NuGet dependencies, even if the lockfile is up-to-date                                           
+        --skip-restore           Prevent the restore operation from running, even if the lock file is missing or out-of-date                          
+        --github-api-key         GitHub API key to use for fetching package licenses. If not specified, you may run into GitHub's rate limiting issues
 ```
 
 ## How do I configure it?
@@ -146,6 +147,18 @@ If everything was configured correctly, you'll get something like:
 
 The exit code indicates either 0 for success or 1 for failure. 
 
+## Additional notes
+
+### Github rate limiting issues
+
+If you're running into errors from GitHub like 
+
+  `Response status code does not indicate success: 403 (rate limit exceeded).`
+
+it means PackageGuard has ran into the [rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api?apiVersion=2022-11-28) of `api.github.com` while trying to fetch license information from certain repositories. You can solve that by either waiting an hour or creating a GitHub Personal Access Token with the `public_repo` scope. You can find more information about those tokens [here](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps).
+
+After having generated such a token, pass it to PackageGuard through its `github-api-key` option or set-up an environment variable named `GITHUB_API_KEY`.
+
 ## Roadmap
 
 This is a rough list of items from my personal backlog that I'll be working on the coming weeks.
@@ -155,9 +168,7 @@ This is a rough list of items from my personal backlog that I'll be working on t
 - Allow ignoring certain .csproj files or folders using Globs or wildcards (e.g. build.csproj)
 - Allow marking all violations as a warning
 - Allow marking individual violations as a warning
-- Make sure passing settings through environment variables work
 - Add caching of licenses 
-- Allow specifying a GitHub token to prevent rate limiting
 - Expose the internal engine through the `PackageGuard.Core` NuGet package
 - Add direct support for [Nuke](https://nuke.build/)
 - Allow loading settings from the directory of the scanned project and move up if not found

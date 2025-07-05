@@ -6,11 +6,11 @@ namespace PackageGuard.Core;
 /// <summary>
 /// Responsible for fetching and amending missing license information for a package.
 /// </summary>
-public sealed class LicenseFetcher(ILogger logger)
+public sealed class LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
 {
     private readonly IEnumerable<IFetchLicense> fetchers =
     [
-        new GitHubLicenseFetcher(),
+        new GitHubLicenseFetcher(gitHubApiKey),
         new UrlLicenseFetcher(logger)
     ];
 

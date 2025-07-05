@@ -44,7 +44,7 @@ namespace PackageGuard.Core
     }
     public sealed class LicenseFetcher
     {
-        public LicenseFetcher(Microsoft.Extensions.Logging.ILogger logger) { }
+        public LicenseFetcher(Microsoft.Extensions.Logging.ILogger logger, string? gitHubApiKey = null) { }
         public System.Threading.Tasks.Task AmendWithMissingLicenseInformation(PackageGuard.Core.PackageInfo package) { }
     }
     public class NuGetPackageAnalyzer
@@ -104,7 +104,7 @@ namespace PackageGuard.Core.FetchingStrategies
 {
     public class GitHubLicenseFetcher : PackageGuard.Core.IFetchLicense
     {
-        public GitHubLicenseFetcher() { }
+        public GitHubLicenseFetcher(string? gitHubApiKey) { }
         public System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.PackageInfo package) { }
     }
     public class UrlLicenseFetcher : PackageGuard.Core.IFetchLicense

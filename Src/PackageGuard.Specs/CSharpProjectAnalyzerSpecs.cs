@@ -18,7 +18,9 @@ public class CSharpProjectAnalyzerSpecs
     private readonly CSharpProjectScanner cSharpProjectScanner = new(NullLogger.Instance);
 
     private readonly NuGetPackageAnalyzer
-        nuGetPackageAnalyzer = new(NullLogger.Instance, new LicenseFetcher(NullLogger.Instance));
+        nuGetPackageAnalyzer = new(
+            NullLogger.Instance,
+            new LicenseFetcher(NullLogger.Instance, Environment.GetEnvironmentVariable("GITHUB_API_KEY")));
 
     private ChainablePath ProjectPath =>
         Assembly.GetExecutingAssembly().Location.ToPath().Directory / ".." / ".." / ".." / "PackageGuard.Specs.csproj";
@@ -64,7 +66,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.3.0",
+            Version = "8.4.0",
             License = "Unknown"
         });
     }
@@ -81,7 +83,7 @@ public class CSharpProjectAnalyzerSpecs
                 {
                     Packages =
                     [
-                        new PackageSelector("FluentAssertions", "8.3.0")
+                        new PackageSelector("FluentAssertions", "8.4.0")
                     ]
                 }
             };
@@ -93,7 +95,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.3.0",
+            Version = "8.4.0",
             License = "Unknown"
         });
     }
@@ -170,7 +172,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.3.0",
+            Version = "8.4.0",
             License = "Unknown"
         });
     }
@@ -223,7 +225,6 @@ public class CSharpProjectAnalyzerSpecs
         // Assert
         violations.Should().BeEmpty();
     }
-
 
     [TestMethod]
     public async Task Can_allow_a_license()
@@ -305,7 +306,7 @@ public class CSharpProjectAnalyzerSpecs
                 ProjectPath = ProjectPath,
                 AllowList = new AllowList
                 {
-                     Packages =
+                    Packages =
                     [
                         new PackageSelector("FluentAssertions", "[7.0.0,8.0.0)"),
                     ]
@@ -319,7 +320,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.3.0",
+            Version = "8.4.0",
             License = "Unknown"
         });
     }

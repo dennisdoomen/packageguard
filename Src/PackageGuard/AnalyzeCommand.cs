@@ -22,7 +22,8 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             }
         };
 
-        var analyzer = new CSharpProjectAnalyzer(projectScanner, new NuGetPackageAnalyzer(logger, new LicenseFetcher(logger)))
+        var licenseFetcher = new LicenseFetcher(logger, settings.GitHubApiKey);
+        var analyzer = new CSharpProjectAnalyzer(projectScanner, new NuGetPackageAnalyzer(logger, licenseFetcher))
         {
             ProjectPath = settings.ProjectPath,
             InteractiveRestore = settings.Interactive,

@@ -27,4 +27,8 @@ internal class AnalyzeCommandSettings : CommandSettings
     [Description("Prevent the restore operation from running, even if the lock file is missing or out-of-date")]
     [CommandOption("--skip-restore")]
     public bool SkipRestore { get; set; } = false;
+
+    [Description("GitHub API key to use for fetching package licenses. If not specified, you may run into GitHub's rate limiting issues.")]
+    [CommandOption("--github-api-key")]
+    public string? GitHubApiKey { get; set; } = Environment.GetEnvironmentVariable("GITHUB_API_KEY");
 }
