@@ -30,6 +30,7 @@
         "Compile",
         "Default",
         "Pack",
+        "PreparePackageReadme",
         "Push",
         "RunPackageGuard",
         "RunTests"

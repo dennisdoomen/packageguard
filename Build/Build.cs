@@ -83,6 +83,7 @@ class Build : NukeBuild
             DotNetBuild(s => s
                 .SetProjectFile(Solution)
                 .SetConfiguration(Configuration)
+                .SetVersion(SemVer)
                 .SetAssemblyVersion(GitVersion.AssemblySemVer)
                 .SetFileVersion(GitVersion.AssemblySemFileVer)
                 .SetInformationalVersion(GitVersion.InformationalVersion));
@@ -116,7 +117,7 @@ class Build : NukeBuild
             var project = Solution.PackageGuard_ApiVerificationTests;
 
             DotNetTest(s => s
-                .SetConfiguration(Configuration == Configuration.Debug ? "Debug" : "Release")
+                .SetConfiguration(Configuration)
                 .SetProcessEnvironmentVariable("DOTNET_CLI_UI_LANGUAGE", "en-US")
                 .SetResultsDirectory(TestResultsDirectory)
                 .SetProjectFile(project)
@@ -131,7 +132,7 @@ class Build : NukeBuild
 
             DotNetRun(s => s
                 .SetProjectFile(project)
-                .SetConfiguration(Configuration == Configuration.Debug ? "Debug" : "Release")
+                .SetConfiguration(Configuration)
                 .AddApplicationArguments($"--configpath={RootDirectory / ".packageguard" / "config.json"}")
                 .WhenNotNull(GitHubApiKey, (ss, key) => ss
                     .AddApplicationArguments($"--github-api-key={key}")
@@ -159,11 +160,34 @@ class Build : NukeBuild
             Information($"Code coverage report: \x1b]8;;file://{link.Replace('\\', '/')}\x1b\\{link}\x1b]8;;\x1b\\");
         });
 
+    Target PreparePackageReadme => _ => _
+        .Executes(() =>
+        {
+            var content = (RootDirectory / "README.md").ReadAllText();
+            var sections = content.Split(["\n## "], StringSplitOptions.RemoveEmptyEntries);
+
+            string[] headersToInclude =
+            [
+                "About",
+                "How do I configure it",
+                "How do I use it?",
+                "Additional notes",
+                "Versioning",
+                "Credits"
+            ];
+
+            var readmeContent = "## " + string.Join("\n## ", sections
+                .Where(section => headersToInclude.Any(header => section.StartsWith(header, StringComparison.OrdinalIgnoreCase))));
+
+            (ArtifactsDirectory / "Readme.md").WriteAllText(readmeContent);
+        });
+
     Target Pack => _ => _
         .DependsOn(CalculateNugetVersion)
         .DependsOn(ApiChecks)
         .DependsOn(CodeCoverage)
         .DependsOn(RunPackageGuard)
+        .DependsOn(PreparePackageReadme)
         .Executes(() =>
         {
             ReportSummary(s => s
@@ -171,10 +195,9 @@ class Build : NukeBuild
                     .AddPair("Packed version", semVer)));
 
             DotNetPack(s => s
-                .SetProject(Solution.GetProject("PackageGuard"))
+                .SetProject(Solution.PackageGuard)
                 .SetOutputDirectory(ArtifactsDirectory)
-                .SetConfiguration(Configuration == Configuration.Debug ? "Debug" : "Release")
-                .EnableNoBuild()
+                .SetConfiguration(Configuration)
                 .EnableNoLogo()
                 .EnableNoRestore()
                 .EnableContinuousIntegrationBuild() // Necessary for deterministic builds

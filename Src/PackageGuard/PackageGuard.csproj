@@ -18,8 +18,10 @@
         <RepositoryType>git</RepositoryType>
         <PackageTags>nuget;tooling;licenses;versioning</PackageTags>
         <PackageIcon>PackageIcon.png</PackageIcon>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>Readme.md</PackageReadmeFile>
         <PackageReleaseNotes>https://github.com/dennisdoomen/packageguard/releases</PackageReleaseNotes>
-        <Copyright>Copyright 2025-$([System.DateTime]::Now.ToString(yyyy)) Dennis Doomen</Copyright>
+        <Copyright>Copyright 2025 Dennis Doomen</Copyright>
     </PropertyGroup>
 
     <ItemGroup>
@@ -46,6 +48,7 @@
 
   <ItemGroup Label="Package files">
     <None Include="..\PackageIcon.png" Pack="true" Visible="false" PackagePath="" />
+    <None Include="..\..\Artifacts\Readme.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>
