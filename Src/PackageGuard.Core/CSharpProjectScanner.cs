@@ -1,4 +1,5 @@
-﻿using Microsoft.Build.Construction;
+﻿using System.Xml.Linq;
+using Microsoft.Build.Construction;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core.Common;
 using Pathy;
@@ -10,7 +11,7 @@ public class CSharpProjectScanner(ILogger logger)
     /// <summary>
     /// Can be used to select a single solution in case the scanner finds more than one.
     /// </summary>
-    public Func<string[], string>? SelectSolution { get; set;}
+    public Func<string[], string>? SelectSolution { get; set; }
 
     public List<string> FindProjects(string path)
     {
@@ -37,7 +38,8 @@ public class CSharpProjectScanner(ILogger logger)
         ChainablePath? solution = null;
 
         // If it points an actual solution file, continue with that one
-        if (pathy.Extension.Equals(".sln", StringComparison.OrdinalIgnoreCase))
+        if (pathy.Extension.Equals(".sln", StringComparison.OrdinalIgnoreCase) ||
+            pathy.Extension.Equals(".slnx", StringComparison.OrdinalIgnoreCase))
         {
             if (pathy.IsFile)
             {
@@ -57,7 +59,10 @@ public class CSharpProjectScanner(ILogger logger)
                 pathy = ChainablePath.Current;
             }
 
-            string[] solutions = Directory.GetFiles(pathy, "*.sln", SearchOption.TopDirectoryOnly);
+            string[] solutions = Directory.GetFiles(pathy, "*.sln", SearchOption.TopDirectoryOnly)
+                .Concat(Directory.GetFiles(pathy, "*.slnx", SearchOption.TopDirectoryOnly))
+                .ToArray();
+
             if (solutions.Length == 0)
             {
                 logger.LogInformation("No solution found in {Path}", path);
@@ -82,7 +87,9 @@ public class CSharpProjectScanner(ILogger logger)
         {
             logger.LogInformation("Using solution {Solution}", solution);
 
-            var solutionFile = SolutionFile.Parse(Path.GetFullPath(solution!, Environment.CurrentDirectory));
+            var solutionPath = solution.Value;
+            // Parse .sln file using Microsoft.Build
+            var solutionFile = SolutionFile.Parse(Path.GetFullPath(solutionPath, Environment.CurrentDirectory));
             foreach (ProjectInSolution? project in solutionFile.ProjectsInOrder)
             {
                 if (project.ProjectType == SolutionProjectType.KnownToBeMSBuildFormat)
@@ -92,11 +99,46 @@ public class CSharpProjectScanner(ILogger logger)
                 }
                 else
                 {
-                    logger.LogInformation("Skipping project {Path} of type {ProjectType}", project.AbsolutePath, project.ProjectType);
+                    logger.LogInformation("Skipping project {Path} of type {ProjectType}", project.AbsolutePath,
+                        project.ProjectType);
                 }
             }
         }
 
         return projectFiles.Select(x => x.ToString()).ToList();
+    }
+
+    private List<string> ParseSlnxFile(ChainablePath slnxPath)
+    {
+        var projectPaths = new List<string>();
+        var slnxDirectory = slnxPath.Directory;
+
+        try
+        {
+            var xmlDoc = XDocument.Load(slnxPath);
+            var projectElements = xmlDoc.Descendants("Project");
+
+            foreach (var projectElement in projectElements)
+            {
+                var pathAttribute = projectElement.Attribute("Path");
+                if (pathAttribute != null)
+                {
+                    var relativePath = pathAttribute.Value;
+                    var absolutePath = Path.GetFullPath(Path.Combine(slnxDirectory, relativePath));
+
+                    // Only include C# projects
+                    if (absolutePath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+                    {
+                        projectPaths.Add(absolutePath);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to parse .slnx file: {SlnxPath}", slnxPath);
+        }
+
+        return projectPaths;
     }
 }
