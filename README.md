@@ -92,7 +92,9 @@ First, you need to create a JSON configuration file listing the packages and/or 
         "deny": {
           "licenses": [],
           "packages": [
-            "ProhibitedPackage"
+            "ProhibitedPackage",
+            "MyPackage/(,1.0.0)",      // Deny all versions below 1.0.0 (including pre-release versions)
+            "AnotherPackage/2.0.0-alpha.1" // Deny specific pre-release version
           ]
         },
         "ignoredFeeds": [
@@ -102,7 +104,7 @@ First, you need to create a JSON configuration file listing the packages and/or 
 }
 ```
 
-In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, the use of the package `ProhibitedPackage` is prohibited, and `MyPackage` should stick to version 7 only. Both the `allow` and `deny` sections support the `licenses` and `packages` properties. But licenses and packages listed under `allow` have precedence over those under the `deny` section.
+In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, the use of the package `ProhibitedPackage` is prohibited, `MyPackage` should stick to version 7 only, and all versions of `MyPackage` below 1.0.0 (including pre-release versions) are denied along with a specific pre-release version of `AnotherPackage`. Both the `allow` and `deny` sections support the `licenses` and `packages` properties. But licenses and packages listed under `allow` have precedence over those under the `deny` section.
 
 License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions, but we have special support for certain proprietary Microsoft licenses such as used by the `Microsoft.AspNet.WebApi*` packages. For those, we support using the license name `Microsoft .NET Library License`.
 
@@ -120,6 +122,29 @@ Package names can include just the NuGet ID but may also include a [NuGet-compat
 | "Package/[1.0,2.0]"       | 1.0 ≤ v ≤ 2.0      |
 | "Package/(1.0,2.0)"       | 1.0 < v < 2.0      |
 | "Package/[1.0,2.0)"       | 1.0 ≤ v < 2.0      |
+
+### Denying Pre-release Versions
+
+A common use case is to prevent the use of pre-release packages in production code. Pre-release versions are those that contain labels like `-alpha`, `-beta`, `-rc`, etc., or versions below 1.0.0. Here are some common patterns:
+
+```json
+{
+    "settings": {
+        "deny": {
+            "packages": [
+                "MyPackage/(,1.0.0)",        // Deny all versions below 1.0.0 (catches 0.x.x and pre-release versions)
+                "AnotherPackage/*-alpha*",    // Note: This exact syntax is not supported, use specific ranges instead
+                "SpecificPackage/2.0.0-alpha.1" // Deny a specific pre-release version
+            ]
+        }
+    }
+}
+```
+
+**Common pre-release denial patterns:**
+- `"Package/(,1.0.0)"` - Denies all versions below 1.0.0, including pre-release versions like 0.9.0-alpha.1
+- `"Package/1.0.0-alpha.1"` - Denies a specific pre-release version
+- `"Package/[1.0.0-alpha,1.0.0)"` - Denies pre-release versions of 1.0.0 (like 1.0.0-alpha.1, 1.0.0-beta.2)
 
 You can also tell PackageGuard to allow all packages from a particular feed, even if a package on that feed doesn't meet the licenses or packages listed under `allow`. Just add the element `feeds` under the `allow` element and specify a wildcard pattern that matches the name or URL of the feed.
 

@@ -36,7 +36,9 @@ public class ConfigurationLoaderSpecs
                     },
                     "deny": {
                         "packages": [
-                            "Bogus/Package"
+                            "Bogus/Package",
+                            "MyPackage/(,1.0.0)",
+                            "TestPackage/2.0.0-alpha.1"
                         ],
                         "licenses": [
                             "Proprietary"
@@ -68,7 +70,9 @@ public class ConfigurationLoaderSpecs
             {
                 Packages = new[]
                 {
-                    new PackageSelector("Bogus", "Package")
+                    new PackageSelector("Bogus", "Package"),
+                    new PackageSelector("MyPackage", "(,1.0.0)"),
+                    new PackageSelector("TestPackage", "2.0.0-alpha.1")
                 },
                 Licenses = new[] { "Proprietary" }
             },
