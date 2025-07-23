@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core;
 using Spectre.Console;
@@ -9,6 +10,10 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
 {
     public override async Task<int> ExecuteAsync(CommandContext context, AnalyzeCommandSettings settings)
     {
+        // Display PackageGuard version
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown";
+        logger.LogHeader($"PackageGuard v{version}");
+
         var projectScanner = new CSharpProjectScanner(logger)
         {
             SelectSolution = solutions =>
