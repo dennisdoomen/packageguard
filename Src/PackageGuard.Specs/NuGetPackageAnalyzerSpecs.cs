@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -30,5 +32,21 @@ public class NuGetPackageAnalyzerSpecs
 
         // Assert
         packages.Should().ContainSingle(x => x.License == "Microsoft .NET Library License");
+    }
+
+    [TestMethod]
+    public async Task Can_detect_nunit_mit_license()
+    {
+        // Arrange
+        var analyzer = new NuGetPackageAnalyzer(nullLogger, new LicenseFetcher(nullLogger));
+        var packages = new PackageInfoCollection(nullLogger);
+
+        // Act
+        await analyzer.CollectPackageMetadata(ChainablePath.Current.Parent.Parent, "NUnit", NuGetVersion.Parse("3.14.0"), packages);
+
+        // Assert
+        packages.Should().ContainSingle();
+        var package = packages.First();
+        package.License.Should().Be("MIT");
     }
 }

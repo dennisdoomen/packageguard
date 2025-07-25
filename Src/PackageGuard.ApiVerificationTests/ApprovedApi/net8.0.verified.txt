@@ -39,10 +39,6 @@
         public bool SkipRestore { get; set; }
         public NuGet.ProjectModel.LockFile? GetPackageLockFile(string path) { }
     }
-    public interface IFetchLicense
-    {
-        System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.PackageInfo package);
-    }
     public sealed class LicenseFetcher
     {
         public LicenseFetcher(Microsoft.Extensions.Logging.ILogger logger, string? gitHubApiKey = null) { }
@@ -106,12 +102,16 @@
 }
 namespace PackageGuard.Core.FetchingStrategies
 {
-    public class GitHubLicenseFetcher : PackageGuard.Core.IFetchLicense
+    public class GitHubLicenseFetcher : PackageGuard.Core.FetchingStrategies.IFetchLicense
     {
         public GitHubLicenseFetcher(string? gitHubApiKey) { }
         public System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.PackageInfo package) { }
     }
-    public class UrlLicenseFetcher : PackageGuard.Core.IFetchLicense
+    public interface IFetchLicense
+    {
+        System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.PackageInfo package);
+    }
+    public class UrlLicenseFetcher : PackageGuard.Core.FetchingStrategies.IFetchLicense
     {
         public UrlLicenseFetcher(Microsoft.Extensions.Logging.ILogger logger) { }
         public System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.PackageInfo package) { }

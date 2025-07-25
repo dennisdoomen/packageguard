@@ -3,7 +3,8 @@ using Microsoft.Extensions.Logging;
 namespace PackageGuard.Core.FetchingStrategies;
 
 /// <summary>
-/// Fetches licenses using a license URL.
+/// Tries to determine the license by downloading the license file from the URL provided in the package metadata
+/// and scanning it for certain words.
 /// </summary>
 public class UrlLicenseFetcher(ILogger logger) : IFetchLicense
 {
@@ -11,8 +12,6 @@ public class UrlLicenseFetcher(ILogger logger) : IFetchLicense
 
     public async Task FetchLicenseAsync(PackageInfo package)
     {
-        package.License = "Unknown";
-
         if (package.LicenseUrl is { Length: > 0 })
         {
             try
