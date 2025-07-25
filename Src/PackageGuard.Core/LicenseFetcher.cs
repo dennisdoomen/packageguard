@@ -10,6 +10,7 @@ public sealed class LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
 {
     private readonly IEnumerable<IFetchLicense> fetchers =
     [
+        new CorrectLicenseUrlsForMisbehavingPackagesFetcher(),
         new GitHubLicenseFetcher(gitHubApiKey),
         new UrlLicenseFetcher(logger)
     ];
@@ -32,6 +33,7 @@ public sealed class LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
         if (package.License is null)
         {
             logger.LogWarning("Unable to determine license for package {Name} {Version}", package.Name, package.Version);
+            package.License = "Unknown";
         }
         else
         {
