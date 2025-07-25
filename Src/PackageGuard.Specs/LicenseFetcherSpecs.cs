@@ -69,4 +69,26 @@ public class LicenseFetcherSpecs
         // Assert
         package.License.Should().Be("Unknown");
     }
+
+    [TestMethod]
+    public async Task NETStandard_Library_should_have_MIT_license()
+    {
+        // Arrange
+        var fetcher = new LicenseFetcher(NullLogger.Instance, gitHubApiKey);
+
+        var package = new PackageInfo
+        {
+            Name = "NETStandard.Library",
+            Version = "2.0.3",
+            License = null,
+            LicenseUrl = null,
+            RepositoryUrl = null
+        };
+
+        // Act
+        await fetcher.AmendWithMissingLicenseInformation(package);
+
+        // Assert
+        package.License.Should().Be("MIT");
+    }
  }

@@ -10,7 +10,7 @@ public sealed class LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
 {
     private readonly IEnumerable<IFetchLicense> fetchers =
     [
-        new CorrectLicenseUrlsForMisbehavingPackagesFetcher(),
+        new CorrectMisbehavingPackagesFetcher(),
         new GitHubLicenseFetcher(gitHubApiKey),
         new UrlLicenseFetcher(logger)
     ];
