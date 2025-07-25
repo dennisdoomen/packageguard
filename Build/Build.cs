@@ -103,6 +103,9 @@ class Build : NukeBuild
                 .EnableCollectCoverage()
                 .SetResultsDirectory(TestResultsDirectory)
                 .SetProjectFile(project)
+                .WhenNotNull(GitHubApiKey, (ss, key) => ss
+                    .SetProcessEnvironmentVariable("GITHUB_API_KEY", key)
+                )
                 .CombineWith(project.GetTargetFrameworks(),
                     (ss, framework) => ss
                         .SetFramework(framework)
