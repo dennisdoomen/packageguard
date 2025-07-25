@@ -9,7 +9,7 @@ namespace PackageGuard;
 internal class AnalyzeCommandSettings : CommandSettings
 {
     [Description(
-        "The path to a directory containing a .sln file, a specific .sln file, or a specific .csproj file. Defaults to the current working directory")]
+        "The path to a directory containing a .sln/.slnx file, a specific .sln/.slnx file, or a specific .csproj file. Defaults to the current working directory")]
     [CommandArgument(0, "[path]")]
     public string ProjectPath { get; set; } = string.Empty;
 

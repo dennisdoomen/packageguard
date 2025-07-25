@@ -1,0 +1,9 @@
+{
+    "Settings": {
+        "Deny": {
+            "Packages": [
+                "Microsoft.Extensions.Logging"
+            ]
+        }
+    }
+}

@@ -57,10 +57,11 @@ Then use `packageguard --help` to see a list of options.
 
 ```
 USAGE:
-    PackageGuard.dll [path] [OPTIONS]                                                                                                                                                                                                                                                                                             
+    PackageGuard.dll [path] [OPTIONS]
 
 ARGUMENTS:
-    [path]    The path to a directory containing a .sln file, a specific .sln file, or a specific .csproj file. Defaults to the current working directory
+    [path]    The path to a directory containing a .sln/.slnx file, a specific .sln/.slnx file, or a specific .csproj file. Defaults to the current working
+              directory
 
 OPTIONS:
     -h, --help                   Prints help information
@@ -70,8 +71,7 @@ OPTIONS:
     -s, --skip-restore           Prevent the restore operation from running, even if the lock file is missing or out-of-date
     -a, --github-api-key         GitHub API key to use for fetching package licenses. If not specified, you may run into GitHub's rate limiting issues
         --use-caching            Maintains a cache of the package information to speed up future analysis
-        --cache-file-path        Overrides the file path where analysis data is cached. Defaults to the "<workingdirectory>/.packageguard/cache.bin"
-```
+        --cache-file-path        Overrides the file path where analysis data is cached. Defaults to the "<workingdirectory>/.packageguard/cache.bin"```
 
 ## How do I configure it?
 
@@ -141,7 +141,7 @@ With this configuration in place, simply invoke PackageGuard like this
 
 `packageguard --configpath <path-to-config-file> <path-to-solution-file-or-project>`
 
-If you pass a directory, PackageGuard will try to find the `.sln` files there. But you can also specify a specific `.csproj` to scan. 
+If you pass a directory, PackageGuard will try to find the `.sln` or `.slnx` files there. But you can also specify a specific `.csproj` to scan. 
 
 If everything was configured correctly, you'll get something like:
 
@@ -174,7 +174,6 @@ After having generated such a token, pass it to PackageGuard through its `github
 This is a rough list of items from my personal backlog that I'll be working on the coming weeks.
 
 **Major features**
-- Add support for the new .slnx file
 - Add NPM support
 
 **Minor features**

@@ -666,4 +666,26 @@ public class CSharpProjectAnalyzerSpecs
         // Assert
         loggingProvider.Logs.Warnings.Select(x => x.Message).Should().ContainMatch("*Could not load package cache from*");
     }
+
+    [TestMethod]
+    public void Can_process_slnx_solution_files()
+    {
+        // Arrange & Act
+        var slnxPath = ChainablePath.Current / "TestCases" / "SlnxApp" / "SlnxApp.slnx";
+        var projects = cSharpProjectScanner.FindProjects(slnxPath);
+
+        // Assert
+        projects.Should().ContainSingle(p => p.EndsWith("SlnxApp.csproj"));
+    }
+
+    [TestMethod]
+    public void Can_find_slnx_files_in_directory()
+    {
+        // Arrange & Act
+        var directoryPath = ChainablePath.Current / "TestCases" / "SlnxApp";
+        var projects = cSharpProjectScanner.FindProjects(directoryPath);
+
+        // Assert
+        projects.Should().ContainSingle(p => p.EndsWith("SlnxApp.csproj"));
+    }
 }
