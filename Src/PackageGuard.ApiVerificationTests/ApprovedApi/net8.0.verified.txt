@@ -48,6 +48,7 @@
     {
         public NuGetPackageAnalyzer(Microsoft.Extensions.Logging.ILogger logger, PackageGuard.Core.LicenseFetcher licenseFetcher) { }
         public string[] IgnoredFeeds { get; set; }
+        public bool InteractiveRestore { get; set; }
         public System.Threading.Tasks.Task CollectPackageMetadata(string projectPath, string packageName, NuGet.Versioning.NuGetVersion packageVersion, PackageGuard.Core.PackageInfoCollection packages) { }
     }
     [MemoryPack.MemoryPackable(MemoryPack.GenerateType.Object)]
