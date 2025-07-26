@@ -1,4 +1,6 @@
-﻿namespace PackageGuard.Core;
+﻿using NuGet.Versioning;
+
+namespace PackageGuard.Core;
 
 public class AllowList : PackagePolicy
 {
@@ -11,6 +13,11 @@ public class AllowList : PackagePolicy
     public List<string> Feeds { get; set; } = [];
 
     /// <summary>
+    /// Gets or sets a value indicating whether to allow prerelease packages regardless of package name.
+    /// </summary>
+    public bool Prerelease { get; set; }
+
+    /// <summary>
     /// Verifies if the given package complies given the feeds, packages and licenses defined in this allow list.
     /// </summary>
     internal bool Allows(PackageInfo package)
@@ -19,6 +26,9 @@ public class AllowList : PackagePolicy
         {
             return true;
         }
+
+        // Check if prerelease packages are explicitly disallowed
+        bool prereleaseComplies = Prerelease || !NuGetVersion.Parse(package.Version).IsPrerelease;
 
         bool licenseComplies = !(Licenses.Any() && !Licenses.Contains(package.License!, StringComparer.OrdinalIgnoreCase));
 
@@ -43,7 +53,7 @@ public class AllowList : PackagePolicy
             }
         }
 
-        return licenseComplies && packageComplies;
+        return prereleaseComplies && licenseComplies && packageComplies;
     }
 
     private bool PackageIsExplicitlyAllowedByFeed(PackageInfo package) => Feeds.Any(package.MatchesFeed);
