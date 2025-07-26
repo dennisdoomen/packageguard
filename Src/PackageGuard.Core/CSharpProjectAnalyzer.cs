@@ -74,6 +74,7 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
     public async Task<PolicyViolation[]> ExecuteAnalysis()
     {
         analyzer.IgnoredFeeds = IgnoredFeeds;
+        analyzer.InteractiveRestore = InteractiveRestore;
 
         ValidateConfiguration();
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using NuGet.Common;
 using NuGet.Configuration;
+using NuGet.Credentials;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using PackageGuard.Core.Common;
@@ -16,6 +17,8 @@ namespace PackageGuard.Core;
 public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 {
     private readonly Dictionary<string, SourceRepository[]> nuGetSourcesByProject = new();
+    private static bool credentialProvidersConfigured = false;
+    private static readonly Lock CredentialProviderLock = new();
 
     /// <summary>
     /// One or more NuGet feeds that should be completely ignored during the analysis.
@@ -24,6 +27,12 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
     /// Each feed is wildcard string that can match the NuGet feed name or URL.
     /// </value>
     public string[] IgnoredFeeds { get; set; } = [];
+
+    /// <summary>
+    /// Specifies whether interactive mode should be enabled for the .NET restore process.
+    /// When enabled, the restore operation may prompt for user input, such as authentication information.
+    /// </summary>
+    public bool InteractiveRestore { get; set; } = true;
 
     public async Task CollectPackageMetadata(string projectPath, string packageName, NuGetVersion packageVersion,
         PackageInfoCollection packages)
@@ -61,6 +70,9 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         {
             logger.LogInformation("Finding NuGet sources");
 
+            // Ensure credential providers are configured for Azure DevOps and other authenticated feeds
+            EnsureCredentialProvidersConfigured();
+
             var settings = Settings.LoadDefaultSettings(projectDirectory);
             var sourceProvider = new PackageSourceProvider(settings);
 
@@ -91,6 +103,26 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         }
 
         return nuGetSourcesByProject[projectDirectory];
+    }
+
+    /// <summary>
+    /// Ensures that NuGet credential providers (including Git Credential Manager) are configured.
+    /// This is necessary for authenticating against Azure DevOps feeds and other authenticated sources.
+    /// </summary>
+    private void EnsureCredentialProvidersConfigured()
+    {
+        if (!credentialProvidersConfigured)
+        {
+            lock (CredentialProviderLock)
+            {
+                if (!credentialProvidersConfigured)
+                {
+                    DefaultCredentialServiceUtility.SetupDefaultCredentialService(NullLogger.Instance, nonInteractive: !InteractiveRestore);
+
+                    credentialProvidersConfigured = true;
+                }
+            }
+        }
     }
 
     private async Task<PackageInfo?> RetrievePackageMetadata(SourceRepository[] projectNuGetSources, string packageName,
