@@ -1,6 +1,7 @@
 {
     "settings": {
         "allow": {
+            "prerelease": false,
             "licenses": [
                 "Apache-2.0",
                 "MIT"
@@ -10,6 +11,7 @@
             ]
         },
         "deny": {
+            "prerelease": true,
             "licenses": [],
             "packages": [
                 "moq"
