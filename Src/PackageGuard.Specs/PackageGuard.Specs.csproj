@@ -46,9 +46,19 @@
       <None Include="TestCases\UnreachableFeed\Program.cs">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <Compile Remove="TestCases\Prerelease\UnitTest1.cs" />
+      <None Include="TestCases\Prerelease\UnitTest1.cs">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
     <ItemGroup>
+      <None Include="TestCases\Prerelease\SimpleApp.csproj">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Include="TestCases\Prerelease\SimpleApp.sln">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
       <Content Include="TestCases\SimpleApp\SimpleApp.csproj">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>

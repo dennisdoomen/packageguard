@@ -71,23 +71,28 @@ OPTIONS:
     -s, --skip-restore           Prevent the restore operation from running, even if the lock file is missing or out-of-date
     -a, --github-api-key         GitHub API key to use for fetching package licenses. If not specified, you may run into GitHub's rate limiting issues
         --use-caching            Maintains a cache of the package information to speed up future analysis
-        --cache-file-path        Overrides the file path where analysis data is cached. Defaults to the "<workingdirectory>/.packageguard/cache.bin"```
+        --cache-file-path        Overrides the file path where analysis data is cached. Defaults to the "<workingdirectory>/.packageguard/cache.bin"
+```
 
 ## How do I configure it?
 
-First, you need to create a JSON configuration file listing the packages and/or licenses you want to allow/deny list. By default, this file is called `config.json` and loaded from the working directory, but you can override that using the `--configpath` CLI parameter. The config file needs to have the following format:
+First, you need to create a JSON configuration file listing the packages and/or licenses you want to allow/deny list. By default, this file is called `config.json` and loaded from the working directory, but you can override that using the `--configpath` CLI parameter. The config supports lots of options, but the most important ones are:
 
 ```json
 {
     "settings": {
         "allow": {
+          "prerelease": false,
           "licenses": [
               "Apache-2.0", // Uses SPDX naming
               "MIT",
           ],
           "packages": [
               "MyPackage/[7.0.0,8.0.0)"
-          ]            
+          ],
+          "feeds": [
+            "*dev.azure.com*"
+          ]
         },
         "deny": {
           "licenses": [],
@@ -102,7 +107,12 @@ First, you need to create a JSON configuration file listing the packages and/or 
 }
 ```
 
-In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, the use of the package `ProhibitedPackage` is prohibited, and `MyPackage` should stick to version 7 only. Both the `allow` and `deny` sections support the `licenses` and `packages` properties. But licenses and packages listed under `allow` have precedence over those under the `deny` section.
+In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, the use of the package `ProhibitedPackage` and any pre-release packages (e.g. `0.1.2` or `1.0.2-beta.2`) are prohibited, and `MyPackage` should stick to version 7 only. Both the `allow` and `deny` sections support the `licenses` and `packages` properties. But licenses and packages listed under `allow` have precedence over those under the `deny` section.
+
+> [!IMPORTANT]
+> Deny rules always take precedence over allow rules. If a package is denied by the `deny` section, it will be blocked regardless of what the `allow` section specifies.
+
+### Identifying packages and license
 
 License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions, but we have special support for certain proprietary Microsoft licenses such as used by the `Microsoft.AspNet.WebApi*` packages. For those, we support using the license name `Microsoft .NET Library License`.
 
@@ -121,7 +131,11 @@ Package names can include just the NuGet ID but may also include a [NuGet-compat
 | "Package/(1.0,2.0)"       | 1.0 < v < 2.0      |
 | "Package/[1.0,2.0)"       | 1.0 ≤ v < 2.0      |
 
-You can also tell PackageGuard to allow all packages from a particular feed, even if a package on that feed doesn't meet the licenses or packages listed under `allow`. Just add the element `feeds` under the `allow` element and specify a wildcard pattern that matches the name or URL of the feed.
+### About feeds
+
+PackageGuard follows the same logic for getting the applicable NuGet feeds as `dotnet` or your IDE does. That also means that it will use the configured credential providers to access authenticated feeds. 
+
+You can tell PackageGuard to allow all packages from a particular feed, even if a package on that feed doesn't meet the licenses or packages listed under `allow`. Just add the element `feeds` under the `allow` element and specify a wildcard pattern that matches the name or URL of the feed.
 
 ```json
 {

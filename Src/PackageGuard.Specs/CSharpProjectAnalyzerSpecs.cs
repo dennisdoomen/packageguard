@@ -472,6 +472,96 @@ public class CSharpProjectAnalyzerSpecs
         });
     }
 
+    // todo: allowing overrides denying it
+
+    [TestMethod]
+    public async Task Can_allow_prerelease_packages()
+    {
+        // Arrange
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ForceRestore = true,
+                ProjectPath = ChainablePath.Current / "TestCases" / "Prerelease" / "SimpleApp.csproj",
+                AllowList = new AllowList
+                {
+                    Licenses = ["mit", "Apache-2.0", "Microsoft .NET Library License"],
+                    Prerelease = true,
+                },
+            };
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis();
+
+        // Assert
+        violations.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public async Task Can_deny_prerelease_packages_using_an_allow_clause()
+    {
+        // Arrange
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ForceRestore = true,
+                ProjectPath = ChainablePath.Current / "TestCases" / "Prerelease" / "SimpleApp.csproj",
+                AllowList = new AllowList
+                {
+                    Licenses = ["mit", "Apache-2.0", "Microsoft .NET Library License"],
+                    Prerelease = false,
+                },
+            };
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis();
+
+        // Assert
+        violations.Should().ContainEquivalentOf(new
+        {
+            PackageId = "FluentAssertions"
+        });
+
+        violations.Should().ContainEquivalentOf(new
+        {
+            PackageId = "System.CommandLine"
+        });
+    }
+
+    [TestMethod]
+    public async Task Can_deny_prerelease_packages_using_a_deny_clause()
+    {
+        // Arrange
+        var analyzer =
+            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+            {
+                ForceRestore = true,
+                ProjectPath = ChainablePath.Current / "TestCases" / "Prerelease" / "SimpleApp.csproj",
+                AllowList = new AllowList
+                {
+                    Licenses = ["mit", "Apache-2.0", "Microsoft .NET Library License"],
+                },
+                DenyList = new DenyList
+                {
+                    Prerelease = true,
+                }
+            };
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis();
+
+        // Assert
+        violations.Should().ContainEquivalentOf(new
+        {
+            PackageId = "FluentAssertions"
+        });
+
+        violations.Should().ContainEquivalentOf(new
+        {
+            PackageId = "System.CommandLine"
+        });
+    }
+
     [TestMethod]
     public async Task Can_exclude_an_entire_feed()
     {

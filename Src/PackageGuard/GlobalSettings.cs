@@ -8,7 +8,7 @@ public class GlobalSettings
     public AllowPolicyItem Allow { get; set; } = new();
 
     [UsedImplicitly]
-    public PolicyItem Deny { get; set; } = new();
+    public DenyPolicyItem Deny { get; set; } = new();
 
     [UsedImplicitly]
     public string[] IgnoredFeeds { get; set; } = [];
@@ -26,5 +26,14 @@ public class GlobalSettings
     {
         [UsedImplicitly]
         public string[] Feeds { get; set; } = [];
+
+        [UsedImplicitly]
+        public bool Prerelease { get; set; } = true;
+    }
+
+    public class DenyPolicyItem : PolicyItem
+    {
+        [UsedImplicitly]
+        public bool Prerelease { get; set; }
     }
 }
