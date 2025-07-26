@@ -104,6 +104,66 @@ First, you need to create a JSON configuration file listing the packages and/or 
 
 In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, the use of the package `ProhibitedPackage` is prohibited, and `MyPackage` should stick to version 7 only. Both the `allow` and `deny` sections support the `licenses` and `packages` properties. But licenses and packages listed under `allow` have precedence over those under the `deny` section.
 
+### Managing Prerelease Packages
+
+PackageGuard provides granular control over prerelease packages through the `prerelease` property in both `allow` and `deny` sections.
+
+#### Denying Prerelease Packages
+
+To deny all prerelease packages regardless of their name, set the `prerelease` property to `true` in the `deny` section:
+
+```json
+{
+    "settings": {
+        "deny": {
+            "prerelease": true,
+            "licenses": [],
+            "packages": []
+        }
+    }
+}
+```
+
+#### Allowing Prerelease Packages
+
+Similarly, you can explicitly allow prerelease packages by setting the `prerelease` property to `true` in the `allow` section:
+
+```json
+{
+    "settings": {
+        "allow": {
+            "prerelease": true,
+            "licenses": ["MIT"],
+            "packages": []
+        }
+    }
+}
+```
+
+When `allow.prerelease` is `false` (the default), prerelease packages will not be allowed unless explicitly permitted by other rules. When `allow.prerelease` is `true`, prerelease packages are treated like stable packages and subject to the same license and package name checks.
+
+#### Combined Rules
+
+The `prerelease` settings work in combination with other rules. For example, this configuration allows prerelease packages with MIT license but denies all GPL packages:
+
+```json
+{
+    "settings": {
+        "allow": {
+            "prerelease": true,
+            "licenses": ["MIT"],
+            "packages": []
+        },
+        "deny": {
+            "licenses": ["GPL"],
+            "packages": []
+        }
+    }
+}
+```
+
+**Note:** Deny rules always take precedence over allow rules. If a package is denied by the `deny` section, it will be blocked regardless of what the `allow` section specifies.
+
 License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions, but we have special support for certain proprietary Microsoft licenses such as used by the `Microsoft.AspNet.WebApi*` packages. For those, we support using the license name `Microsoft .NET Library License`.
 
 Package names can include just the NuGet ID but may also include a [NuGet-compatible version (range)](https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort) separated by `/`. Here's a summary of the possible notations:

@@ -24,6 +24,7 @@ public static class ConfigurationLoader
 
         analyzer.AllowList.Licenses.AddRange(globalSettings.Allow.Licenses);
         analyzer.AllowList.Feeds.AddRange(globalSettings.Allow.Feeds);
+        analyzer.AllowList.Prerelease = globalSettings.Allow.Prerelease;
 
         foreach (string package in globalSettings.Deny.Packages)
         {
@@ -33,6 +34,7 @@ public static class ConfigurationLoader
         }
 
         analyzer.DenyList.Licenses.AddRange(globalSettings.Deny.Licenses);
+        analyzer.DenyList.Prerelease = globalSettings.Deny.Prerelease;
 
         analyzer.IgnoredFeeds = globalSettings.IgnoredFeeds;
     }
