@@ -24,6 +24,7 @@ public class ConfigurationLoaderSpecs
             {
                 "settings": {
                     "allow": {
+                        "prerelease": true,
                         "packages": [
                             "PackageGuard/1.2.3"
                         ],
@@ -35,6 +36,7 @@ public class ConfigurationLoaderSpecs
                         ]
                     },
                     "deny": {
+                        "prerelease": true,
                         "packages": [
                             "Bogus/Package"
                         ],
@@ -62,7 +64,8 @@ public class ConfigurationLoaderSpecs
                     new PackageSelector("PackageGuard", "1.2.3")
                 },
                 Licenses = new[] { "MIT" },
-                Feeds = new[] { "https://api.nuget.org/v3/index.json" }
+                Feeds = new[] { "https://api.nuget.org/v3/index.json" },
+                Prerelease = true
             },
             DenyList = new
             {
@@ -70,11 +73,55 @@ public class ConfigurationLoaderSpecs
                 {
                     new PackageSelector("Bogus", "Package")
                 },
-                Licenses = new[] { "Proprietary" }
+                Licenses = new[] { "Proprietary" },
+                Prerelease = true
             },
             IgnoredFeeds = new[]
             {
                 "https://api.nuget.org/v3/index.json"
+            }
+        });
+    }
+
+    [TestMethod]
+    public void Allows_prerelease_packages_by_default()
+    {
+        // Arrange
+        var analyzer = new CSharpProjectAnalyzer(
+            A.Fake<CSharpProjectScanner>(),
+            new NuGetPackageAnalyzer(A.Fake<ILogger>(), new LicenseFetcher(A.Fake<ILogger>())));
+
+        File.WriteAllText(ChainablePath.Current / "test.json",
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "packages": [
+                            "PackageGuard/1.2.3"
+                        ],
+                        "licenses": [
+                            "MIT"
+                        ],
+                    },
+                    "deny": {
+                    }
+                }
+            }
+            """);
+
+        // Act
+        ConfigurationLoader.Configure(analyzer, "test.json");
+
+        // Assert
+        analyzer.Should().BeEquivalentTo(new
+        {
+            AllowList = new
+            {
+                Prerelease = true
+            },
+            DenyList = new
+            {
+                Prerelease = false
             }
         });
     }

@@ -4,6 +4,7 @@
     {
         public AllowList() { }
         public System.Collections.Generic.List<string> Feeds { get; set; }
+        public bool Prerelease { get; set; }
     }
     public class CSharpProjectAnalyzer
     {
@@ -29,6 +30,7 @@
     public class DenyList : PackageGuard.Core.PackagePolicy
     {
         public DenyList() { }
+        public bool Prerelease { get; set; }
     }
     public class DotNetLockFileLoader
     {
