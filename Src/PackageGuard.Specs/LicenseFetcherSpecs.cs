@@ -71,7 +71,7 @@ public class LicenseFetcherSpecs
     }
 
     [TestMethod]
-    public async Task NETStandard_Library_should_have_MIT_license()
+    public async Task Reports_the_correct_license_for_net_standard_libraries()
     {
         // Arrange
         var fetcher = new LicenseFetcher(NullLogger.Instance, gitHubApiKey);

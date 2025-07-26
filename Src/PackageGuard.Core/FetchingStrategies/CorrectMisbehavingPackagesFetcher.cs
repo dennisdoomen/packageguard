@@ -1,7 +1,7 @@
 namespace PackageGuard.Core.FetchingStrategies;
 
 /// <summary>
-/// A specialized license fetcher that corrects the repository URL for packages that have historically used the wrong URL.
+/// A specialized license fetcher that corrects the metadata for packages that have historically used the wrong repository URL or missed license information.
 /// </summary>
 internal class CorrectMisbehavingPackagesFetcher : IFetchLicense
 {
