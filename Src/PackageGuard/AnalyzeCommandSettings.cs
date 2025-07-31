@@ -13,7 +13,7 @@ internal class AnalyzeCommandSettings : CommandSettings
     [CommandArgument(0, "[path]")]
     public string ProjectPath { get; set; } = string.Empty;
 
-    [Description("The path to the configuration file. Defaults to the config.json in the current working directory.")]
+    [Description("The path to the configuration file. Defaults to hierarchical discovery of packageguard.config.json or .packageguard/config.json files starting from the solution directory.")]
     [CommandOption("-c|--config-path|--configPath")]
     public string ConfigPath { get;  set; } = "config.json";
 
