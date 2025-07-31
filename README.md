@@ -76,7 +76,30 @@ OPTIONS:
 
 ## How do I configure it?
 
-First, you need to create a JSON configuration file listing the packages and/or licenses you want to allow/deny list. By default, this file is called `config.json` and loaded from the working directory, but you can override that using the `--configpath` CLI parameter. The config supports lots of options, but the most important ones are:
+PackageGuard supports hierarchical configuration files that are automatically discovered based on your solution and project structure. This allows you to define organization-wide policies at the solution level and add project-specific rules as needed.
+
+### Hierarchical Configuration Discovery
+
+PackageGuard will automatically look for configuration files in the following order:
+
+1. **Solution level**: `packageguard.config.json` in the same folder as your `.sln` or `.slnx` file
+2. **Solution level**: `config.json` in a `.packageguard` subdirectory of your solution folder  
+3. **Project level**: `packageguard.config.json` in individual project directories
+4. **Project level**: `config.json` in a `.packageguard` subdirectory of project directories
+
+Settings from multiple configuration files are merged together, with project-level settings taking precedence over solution-level settings for boolean values, while arrays (packages, licenses, feeds) are combined.
+
+### Manual Configuration Path
+
+You can still specify a custom configuration file path using the `--configpath` CLI parameter to override the hierarchical discovery:
+
+```bash
+packageguard --configpath path/to/my-config.json
+```
+
+### Configuration Format
+
+Each configuration file should follow this JSON format:
 
 ```json
 {
@@ -111,6 +134,40 @@ In this example, only NuGet packages with the MIT or Apache 2.0 licenses are all
 
 > [!IMPORTANT]
 > Deny rules always take precedence over allow rules. If a package is denied by the `deny` section, it will be blocked regardless of what the `allow` section specifies.
+
+### Example: Multi-level Configuration
+
+**Solution-level configuration** (`MySolution/packageguard.config.json`):
+```json
+{
+    "settings": {
+        "allow": {
+            "licenses": ["MIT", "Apache-2.0"],
+            "packages": ["Microsoft.*", "System.*"]
+        },
+        "deny": {
+            "packages": ["UnsafePackage"]
+        }
+    }
+}
+```
+
+**Project-level configuration** (`MySolution/WebProject/packageguard.config.json`):
+```json
+{
+    "settings": {
+        "allow": {
+            "licenses": ["BSD-3-Clause"],
+            "packages": ["WebSpecificPackage/[1.0.0,2.0.0)"]
+        }
+    }
+}
+```
+
+The effective configuration for `WebProject` will allow:
+- Licenses: MIT, Apache-2.0, BSD-3-Clause (merged)
+- Packages: Microsoft.*, System.*, WebSpecificPackage/[1.0.0,2.0.0) (merged)
+- Denied packages: UnsafePackage (inherited)
 
 ### Identifying packages and license
 
