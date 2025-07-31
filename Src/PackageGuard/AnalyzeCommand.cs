@@ -39,8 +39,15 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             Logger = logger,
         };
 
-
-        ConfigurationLoader.Configure(analyzer, settings.ConfigPath);
+        // Use hierarchical configuration discovery if using default config path and it doesn't exist
+        if (settings.ConfigPath == "config.json" && !File.Exists(settings.ConfigPath))
+        {
+            ConfigurationLoader.ConfigureHierarchical(analyzer, settings.ProjectPath);
+        }
+        else
+        {
+            ConfigurationLoader.Configure(analyzer, settings.ConfigPath);
+        }
 
         var violations = await analyzer.ExecuteAnalysis();
 
