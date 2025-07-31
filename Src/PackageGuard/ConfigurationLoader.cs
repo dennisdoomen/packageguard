@@ -20,19 +20,24 @@ public static class ConfigurationLoader
             return;
         }
 
-        var configurationBuilder = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddEnvironmentVariables();
-
-        // Add configuration files in order from most general to most specific
-        // This ensures that project-level settings override solution-level settings
+        // Load and merge configurations manually to ensure proper accumulation
+        var mergedSettings = new GlobalSettings();
+        
         foreach (var configPath in configPaths)
         {
-            configurationBuilder.AddJsonFile(configPath, optional: true);
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile(configPath, optional: true)
+                .Build();
+
+            var settings = configuration.GetSection("Settings").Get<GlobalSettings>();
+            if (settings != null)
+            {
+                MergeSettings(mergedSettings, settings);
+            }
         }
 
-        var configuration = configurationBuilder.Build();
-        ApplyConfiguration(analyzer, configuration);
+        ApplyGlobalSettings(analyzer, mergedSettings);
     }
 
     /// <summary>
@@ -137,7 +142,67 @@ public static class ConfigurationLoader
     private static void ApplyConfiguration(CSharpProjectAnalyzer analyzer, IConfiguration configuration)
     {
         var globalSettings = configuration.GetSection("Settings").Get<GlobalSettings>() ?? new GlobalSettings();
+        ApplyGlobalSettings(analyzer, globalSettings);
+    }
 
+    /// <summary>
+    /// Merges two GlobalSettings objects, with the second overriding the first where specified.
+    /// For collections, items are accumulated rather than replaced.
+    /// </summary>
+    private static void MergeSettings(GlobalSettings target, GlobalSettings source)
+    {
+        // Merge Allow settings
+        if (source.Allow.Packages.Length > 0)
+        {
+            var mergedPackages = target.Allow.Packages.Concat(source.Allow.Packages).ToArray();
+            target.Allow.Packages = mergedPackages;
+        }
+        
+        if (source.Allow.Licenses.Length > 0)
+        {
+            var mergedLicenses = target.Allow.Licenses.Concat(source.Allow.Licenses).ToArray();
+            target.Allow.Licenses = mergedLicenses;
+        }
+        
+        if (source.Allow.Feeds.Length > 0)
+        {
+            var mergedFeeds = target.Allow.Feeds.Concat(source.Allow.Feeds).ToArray();
+            target.Allow.Feeds = mergedFeeds;
+        }
+
+        // For boolean settings, later values override earlier ones
+        // We need to track if the source actually specified a value different from default
+        target.Allow.Prerelease = source.Allow.Prerelease;
+
+        // Merge Deny settings
+        if (source.Deny.Packages.Length > 0)
+        {
+            var mergedPackages = target.Deny.Packages.Concat(source.Deny.Packages).ToArray();
+            target.Deny.Packages = mergedPackages;
+        }
+        
+        if (source.Deny.Licenses.Length > 0)
+        {
+            var mergedLicenses = target.Deny.Licenses.Concat(source.Deny.Licenses).ToArray();
+            target.Deny.Licenses = mergedLicenses;
+        }
+
+        // For boolean settings, later values override earlier ones
+        target.Deny.Prerelease = source.Deny.Prerelease;
+
+        // Merge IgnoredFeeds
+        if (source.IgnoredFeeds.Length > 0)
+        {
+            var mergedFeeds = target.IgnoredFeeds.Concat(source.IgnoredFeeds).ToArray();
+            target.IgnoredFeeds = mergedFeeds;
+        }
+    }
+
+    /// <summary>
+    /// Applies GlobalSettings to the analyzer.
+    /// </summary>
+    private static void ApplyGlobalSettings(CSharpProjectAnalyzer analyzer, GlobalSettings globalSettings)
+    {
         foreach (string package in globalSettings.Allow.Packages)
         {
             string[] segments = package.Split("/");
