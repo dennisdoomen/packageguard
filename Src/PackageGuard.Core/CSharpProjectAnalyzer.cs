@@ -20,27 +20,6 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
     public string ProjectPath { get; set; } = string.Empty;
 
     /// <summary>
-    /// If specified, a list of packages, versions, and licenses that are allowed. Everything else is forbidden.
-    /// </summary>
-    /// <remarks>
-    /// Can be overridden by <see cref="DenyList"/>
-    /// </remarks>
-    public AllowList AllowList { get; set; } = new();
-
-    /// <summary>
-    /// If specified, a list of packages, versions, and licenses that are forbidden, even if it was listed in <see cref="AllowList"/>.
-    /// </summary>
-    public DenyList DenyList { get; set; } = new();
-
-    /// <summary>
-    /// One or more NuGet feeds that should be completely ignored during the analysis.
-    /// </summary>
-    /// <value>
-    /// Each feed is wildcard string that can match the NuGet feed name or URL.
-    /// </value>
-    public string[] IgnoredFeeds { get; set; } = [];
-
-    /// <summary>
     /// Specifies whether interactive mode should be enabled for the .NET restore process.
     /// When enabled, the restore operation may prompt for user input, such as authentication information.
     /// </summary>
@@ -61,7 +40,7 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
     public bool SkipRestore { get; set; }
 
     /// <summary>
-    /// Indicates whether analysis results should be cached to improve subsequent execution performance.
+    /// Indicates whether analysis results should be cached to improve the performance of further analysis.
     /// When set to true, caching is enabled, and if a cache file is specified and exists, it will be used.
     /// </summary>
     public bool UseCaching { get; set; }
@@ -71,73 +50,70 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
     /// </summary>
     public string CacheFilePath { get; set; } = ChainablePath.Current / ".packageguard" / "cache.bin";
 
-    public async Task<PolicyViolation[]> ExecuteAnalysis()
+    public async Task<PolicyViolation[]> ExecuteAnalysis(GetPolicyByProject getPolicyByProject)
     {
-        analyzer.IgnoredFeeds = IgnoredFeeds;
+        List<PolicyViolation> violations = new();
         analyzer.InteractiveRestore = InteractiveRestore;
 
-        ValidateConfiguration();
-
-        List<string> projectPaths = scanner.FindProjects(ProjectPath);
-
         PackageInfoCollection packages = new(Logger);
-
         if (UseCaching && CacheFilePath.Length > 0)
         {
             Logger.LogInformation("Try loading package cache from {CacheFilePath}", CacheFilePath);
             await packages.TryInitializeFromCache(CacheFilePath);
         }
 
-        await CollectPackagesFrom(projectPaths, packages);
+        List<string> projectPaths = scanner.FindProjects(ProjectPath);
+        foreach (string projectPath in projectPaths)
+        {
+            packages.Clear();
+
+            ProjectPolicy policy = getPolicyByProject(projectPath);
+            policy.Validate();
+
+            analyzer.IgnoredFeeds = policy.IgnoredFeeds;
+
+            await CollectPackagesFrom(projectPath, packages);
+
+            violations.AddRange(VerifyAgainstPolicy(packages, policy));
+        }
 
         if (UseCaching)
         {
             await packages.WriteToCache(CacheFilePath);
         }
 
-        return VerifyAgainstPolicy(packages);
+        return violations.ToArray();
     }
 
-    private void ValidateConfiguration()
+    private async Task CollectPackagesFrom(string projectPath, PackageInfoCollection packages)
     {
-        if (!AllowList.HasPolicies && !DenyList.HasPolicies)
+        Logger.LogHeader($"Getting metadata for packages in {projectPath}");
+
+        var lockFileLoader = new DotNetLockFileLoader
         {
-            throw new ArgumentException("Either a allowlist or a denylist must be specified");
-        }
-    }
+            Logger = Logger,
+            InteractiveRestore = InteractiveRestore,
+            ForceRestore = ForceRestore,
+            SkipRestore = SkipRestore,
+        };
 
-    private async Task CollectPackagesFrom(List<string> projectPaths, PackageInfoCollection packages)
-    {
-        foreach (ChainablePath projectPath in projectPaths)
+        LockFile? lockFile = lockFileLoader.GetPackageLockFile(projectPath);
+        if (lockFile is not null)
         {
-            Logger.LogHeader($"Getting metadata for packages in {projectPath}");
-
-            var lockFileLoader = new DotNetLockFileLoader
+            foreach (LockFileLibrary? library in lockFile.Libraries.Where(library => library.Type == "package"))
             {
-                Logger = Logger,
-                InteractiveRestore = InteractiveRestore,
-                ForceRestore = ForceRestore,
-                SkipRestore = SkipRestore,
-            };
-
-            LockFile? lockFile = lockFileLoader.GetPackageLockFile(projectPath);
-            if (lockFile is not null)
-            {
-                foreach (LockFileLibrary? library in lockFile.Libraries.Where(library => library.Type == "package"))
-                {
-                    await analyzer.CollectPackageMetadata(projectPath, library.Name, library.Version, packages);
-                }
+                await analyzer.CollectPackageMetadata(projectPath, library.Name, library.Version, packages);
             }
         }
     }
 
-    private PolicyViolation[] VerifyAgainstPolicy(PackageInfoCollection packages)
+    private PolicyViolation[] VerifyAgainstPolicy(PackageInfoCollection packages, ProjectPolicy policy)
     {
         var violations = new List<PolicyViolation>();
 
         foreach (PackageInfo package in packages)
         {
-            if (!AllowList.Allows(package) || DenyList.Denies(package))
+            if (!policy.AllowList.Allows(package) || policy.DenyList.Denies(package))
             {
                 violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(), package.Source, package.SourceUrl));
             }

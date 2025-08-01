@@ -1,7 +1,6 @@
 using System.IO;
-using FakeItEasy;
 using FluentAssertions;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
 using Pathy;
@@ -11,31 +10,28 @@ namespace PackageGuard.Specs;
 [TestClass]
 public class ConfigurationLoaderSpecs
 {
-    private string tempDir;
+    private ChainablePath tempDir;
+    private ConfigurationLoader configurationLoader;
 
     [TestInitialize]
     public void Setup()
     {
-        tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        tempDir = ChainablePath.Temp / Path.GetRandomFileName();
         Directory.CreateDirectory(tempDir);
+
+        configurationLoader = new ConfigurationLoader(NullLogger.Instance);
     }
 
-    [TestCleanup] 
+    [TestCleanup]
     public void Cleanup()
     {
-        if (Directory.Exists(tempDir))
-        {
-            Directory.Delete(tempDir, true);
-        }
+        tempDir.DeleteFileOrDirectory();
     }
+
     [TestMethod]
     public void Can_parse_the_configuration_file()
     {
         // Arrange
-        var analyzer = new CSharpProjectAnalyzer(
-            A.Fake<CSharpProjectScanner>(),
-            new NuGetPackageAnalyzer(A.Fake<ILogger>(), new LicenseFetcher(A.Fake<ILogger>())));
-
         File.WriteAllText(ChainablePath.Current / "test.json",
             """
             {
@@ -69,10 +65,10 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Act
-        ConfigurationLoader.Configure(analyzer, "test.json");
+        ProjectPolicy policy = configurationLoader.GetConfigurationFromConfigPath("test.json");
 
         // Assert
-        analyzer.Should().BeEquivalentTo(new
+        policy.Should().BeEquivalentTo(new
         {
             AllowList = new
             {
@@ -80,8 +76,14 @@ public class ConfigurationLoaderSpecs
                 {
                     new PackageSelector("PackageGuard", "1.2.3")
                 },
-                Licenses = new[] { "MIT" },
-                Feeds = new[] { "https://api.nuget.org/v3/index.json" },
+                Licenses = new[]
+                {
+                    "MIT"
+                },
+                Feeds = new[]
+                {
+                    "https://api.nuget.org/v3/index.json"
+                },
                 Prerelease = true
             },
             DenyList = new
@@ -90,7 +92,10 @@ public class ConfigurationLoaderSpecs
                 {
                     new PackageSelector("Bogus", "Package")
                 },
-                Licenses = new[] { "Proprietary" },
+                Licenses = new[]
+                {
+                    "Proprietary"
+                },
                 Prerelease = true
             },
             IgnoredFeeds = new[]
@@ -104,10 +109,6 @@ public class ConfigurationLoaderSpecs
     public void Allows_prerelease_packages_by_default()
     {
         // Arrange
-        var analyzer = new CSharpProjectAnalyzer(
-            A.Fake<CSharpProjectScanner>(),
-            new NuGetPackageAnalyzer(A.Fake<ILogger>(), new LicenseFetcher(A.Fake<ILogger>())));
-
         File.WriteAllText(ChainablePath.Current / "test.json",
             """
             {
@@ -127,10 +128,10 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Act
-        ConfigurationLoader.Configure(analyzer, "test.json");
+        ProjectPolicy policy = configurationLoader.GetConfigurationFromConfigPath("test.json");
 
         // Assert
-        analyzer.Should().BeEquivalentTo(new
+        policy.Should().BeEquivalentTo(new
         {
             AllowList = new
             {
@@ -144,18 +145,16 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
-    public void Should_find_packageguard_config_in_solution_directory()
+    public void Can_find_the_config_in_the_solution_directory()
     {
         // Arrange
-        var analyzer = new CSharpProjectAnalyzer(
-            A.Fake<CSharpProjectScanner>(),
-            new NuGetPackageAnalyzer(A.Fake<ILogger>(), new LicenseFetcher(A.Fake<ILogger>())));
 
         // Create solution directory with solution file and config
-        var solutionDir = Path.Combine(tempDir, "MySolution");
-        Directory.CreateDirectory(solutionDir);
-        File.WriteAllText(Path.Combine(solutionDir, "MySolution.sln"), "# Solution file");
-        File.WriteAllText(Path.Combine(solutionDir, "packageguard.config.json"),
+        var solutionDir = tempDir / "MySolution";
+        solutionDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+        File.WriteAllText(solutionDir / "packageguard.config.json",
             """
             {
                 "settings": {
@@ -168,27 +167,25 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Act
-        ConfigurationLoader.ConfigureHierarchical(analyzer, solutionDir);
+        ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(solutionDir);
 
         // Assert
-        analyzer.AllowList.Licenses.Should().Contain("MIT");
-        analyzer.AllowList.Packages.Should().ContainSingle(p => p.Id == "SolutionPackage");
+        policy.AllowList.Licenses.Should().Contain("MIT");
+        policy.AllowList.Packages.Should().ContainSingle(p => p.Id == "SolutionPackage");
     }
 
     [TestMethod]
-    public void Should_find_config_in_packageguard_subdirectory()
+    public void Can_find_the_config_in_a_subdirectory()
     {
         // Arrange
-        var analyzer = new CSharpProjectAnalyzer(
-            A.Fake<CSharpProjectScanner>(),
-            new NuGetPackageAnalyzer(A.Fake<ILogger>(), new LicenseFetcher(A.Fake<ILogger>())));
 
         // Create solution directory with solution file and config in .packageguard subdirectory
-        var solutionDir = Path.Combine(tempDir, "MySolution");
-        var packageGuardDir = Path.Combine(solutionDir, ".packageguard");
-        Directory.CreateDirectory(packageGuardDir);
-        File.WriteAllText(Path.Combine(solutionDir, "MySolution.sln"), "# Solution file");
-        File.WriteAllText(Path.Combine(packageGuardDir, "config.json"),
+        var solutionDir = tempDir / "MySolution";
+        var packageGuardDir = solutionDir / ".packageguard";
+        packageGuardDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+        File.WriteAllText(packageGuardDir / "config.json",
             """
             {
                 "settings": {
@@ -201,26 +198,24 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Act
-        ConfigurationLoader.ConfigureHierarchical(analyzer, solutionDir);
+        ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(solutionDir);
 
         // Assert
-        analyzer.AllowList.Licenses.Should().Contain("Apache-2.0");
-        analyzer.AllowList.Packages.Should().ContainSingle(p => p.Id == "SubdirPackage");
+        policy.AllowList.Licenses.Should().Contain("Apache-2.0");
+        policy.AllowList.Packages.Should().ContainSingle(p => p.Id == "SubdirPackage");
     }
 
     [TestMethod]
-    public void Should_merge_solution_and_project_configs()
+    public void Will_merge_the_solution_and_project_configs()
     {
         // Arrange
-        var analyzer = new CSharpProjectAnalyzer(
-            A.Fake<CSharpProjectScanner>(),
-            new NuGetPackageAnalyzer(A.Fake<ILogger>(), new LicenseFetcher(A.Fake<ILogger>())));
 
         // Create solution directory with config
-        var solutionDir = Path.Combine(tempDir, "MySolution");
-        Directory.CreateDirectory(solutionDir);
-        File.WriteAllText(Path.Combine(solutionDir, "MySolution.sln"), "# Solution file");
-        File.WriteAllText(Path.Combine(solutionDir, "packageguard.config.json"),
+        var solutionDir = tempDir / "MySolution";
+        solutionDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+        File.WriteAllText(solutionDir / "packageguard.config.json",
             """
             {
                 "settings": {
@@ -233,9 +228,10 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Create project directory with additional config
-        var projectDir = Path.Combine(solutionDir, "MyProject");
-        Directory.CreateDirectory(projectDir);
-        File.WriteAllText(Path.Combine(projectDir, "packageguard.config.json"),
+        var projectDir = solutionDir / "MyProject";
+        projectDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(projectDir / "packageguard.config.json",
             """
             {
                 "settings": {
@@ -248,28 +244,29 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Act
-        ConfigurationLoader.ConfigureHierarchical(analyzer, projectDir);
+        ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(projectDir);
 
         // Assert
-        analyzer.AllowList.Licenses.Should().Contain(new[] { "MIT", "Apache-2.0" });
-        analyzer.AllowList.Packages.Should().HaveCount(2);
-        analyzer.AllowList.Packages.Should().ContainSingle(p => p.Id == "SolutionPackage");
-        analyzer.AllowList.Packages.Should().ContainSingle(p => p.Id == "ProjectPackage");
+        policy.AllowList.Licenses.Should().Contain([
+            "MIT",
+            "Apache-2.0"
+        ]);
+
+        policy.AllowList.Packages.Should().HaveCount(2);
+        policy.AllowList.Packages.Should().ContainSingle(p => p.Id == "SolutionPackage");
+        policy.AllowList.Packages.Should().ContainSingle(p => p.Id == "ProjectPackage");
     }
 
     [TestMethod]
-    public void Should_allow_project_config_to_override_solution_prerelease_setting()
+    public void Project_settings_override_solution_settings()
     {
         // Arrange
-        var analyzer = new CSharpProjectAnalyzer(
-            A.Fake<CSharpProjectScanner>(),
-            new NuGetPackageAnalyzer(A.Fake<ILogger>(), new LicenseFetcher(A.Fake<ILogger>())));
 
         // Create solution directory with prerelease allowed
-        var solutionDir = Path.Combine(tempDir, "MySolution");
+        var solutionDir = tempDir / "MySolution";
         Directory.CreateDirectory(solutionDir);
-        File.WriteAllText(Path.Combine(solutionDir, "MySolution.sln"), "# Solution file");
-        File.WriteAllText(Path.Combine(solutionDir, "packageguard.config.json"),
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+        File.WriteAllText(solutionDir / "packageguard.config.json",
             """
             {
                 "settings": {
@@ -281,9 +278,9 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Create project directory that disallows prerelease
-        var projectDir = Path.Combine(solutionDir, "MyProject");
+        var projectDir = solutionDir / "MyProject";
         Directory.CreateDirectory(projectDir);
-        File.WriteAllText(Path.Combine(projectDir, "packageguard.config.json"),
+        File.WriteAllText(projectDir / "packageguard.config.json",
             """
             {
                 "settings": {
@@ -295,46 +292,39 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Act
-        ConfigurationLoader.ConfigureHierarchical(analyzer, projectDir);
+        var policy = configurationLoader.GetEffectiveConfigurationForProject(projectDir);
 
         // Assert
-        analyzer.AllowList.Prerelease.Should().BeFalse("project-level setting should override solution-level");
+        policy.AllowList.Prerelease.Should().BeFalse("project-level setting should override solution-level");
     }
 
     [TestMethod]
-    public void Should_do_nothing_when_no_configs_found()
+    public void Does_not_do_anything_if_no_config_is_found()
     {
         // Arrange
-        var analyzer = new CSharpProjectAnalyzer(
-            A.Fake<CSharpProjectScanner>(),
-            new NuGetPackageAnalyzer(A.Fake<ILogger>(), new LicenseFetcher(A.Fake<ILogger>())));
-
         // Create directory without solution or config files
-        var emptyDir = Path.Combine(tempDir, "EmptyDir");
-        Directory.CreateDirectory(emptyDir);
+        var emptyDir = tempDir / "EmptyDir";
+        emptyDir.CreateDirectoryRecursively();
 
         // Act
-        ConfigurationLoader.ConfigureHierarchical(analyzer, emptyDir);
+        ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(emptyDir);
 
         // Assert
-        analyzer.AllowList.Licenses.Should().BeEmpty();
-        analyzer.AllowList.Packages.Should().BeEmpty();
-        analyzer.AllowList.Prerelease.Should().BeTrue("default value");
+        policy.AllowList.Licenses.Should().BeEmpty();
+        policy.AllowList.Packages.Should().BeEmpty();
+        policy.AllowList.Prerelease.Should().BeTrue("default value");
     }
 
     [TestMethod]
-    public void Should_find_solution_in_parent_directory()
+    public void Finds_the_solution_config_in_the_parent_directory_of_the_project()
     {
         // Arrange
-        var analyzer = new CSharpProjectAnalyzer(
-            A.Fake<CSharpProjectScanner>(),
-            new NuGetPackageAnalyzer(A.Fake<ILogger>(), new LicenseFetcher(A.Fake<ILogger>())));
-
         // Create solution in parent directory
-        var solutionDir = Path.Combine(tempDir, "MySolution");
-        Directory.CreateDirectory(solutionDir);
-        File.WriteAllText(Path.Combine(solutionDir, "MySolution.sln"), "# Solution file");
-        File.WriteAllText(Path.Combine(solutionDir, "packageguard.config.json"),
+        var solutionDir = tempDir / "MySolution";
+        solutionDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+        File.WriteAllText(solutionDir / "packageguard.config.json",
             """
             {
                 "settings": {
@@ -346,29 +336,26 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Create nested project directory
-        var projectDir = Path.Combine(solutionDir, "src", "MyProject");
-        Directory.CreateDirectory(projectDir);
+        var projectDir = solutionDir / "src" / "MyProject";
+        projectDir.CreateDirectoryRecursively();
 
         // Act
-        ConfigurationLoader.ConfigureHierarchical(analyzer, projectDir);
+        ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(projectDir);
 
         // Assert
-        analyzer.AllowList.Licenses.Should().Contain("BSD-3-Clause");
+        policy.AllowList.Licenses.Should().Contain("BSD-3-Clause");
     }
 
     [TestMethod]
-    public void Should_not_include_sibling_project_configs()
+    public void Ignores_the_settings_of_sibling_folders()
     {
         // Arrange
-        var analyzer = new CSharpProjectAnalyzer(
-            A.Fake<CSharpProjectScanner>(),
-            new NuGetPackageAnalyzer(A.Fake<ILogger>(), new LicenseFetcher(A.Fake<ILogger>())));
-
         // Create solution directory with config
-        var solutionDir = Path.Combine(tempDir, "MySolution");
-        Directory.CreateDirectory(solutionDir);
-        File.WriteAllText(Path.Combine(solutionDir, "MySolution.sln"), "# Solution file");
-        File.WriteAllText(Path.Combine(solutionDir, "packageguard.config.json"),
+        var solutionDir = tempDir / "MySolution";
+        solutionDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+        File.WriteAllText(solutionDir / "packageguard.config.json",
             """
             {
                 "settings": {
@@ -380,9 +367,10 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Create ProjectA with its own config
-        var projectADir = Path.Combine(solutionDir, "ProjectA");
-        Directory.CreateDirectory(projectADir);
-        File.WriteAllText(Path.Combine(projectADir, "packageguard.config.json"),
+        var projectADir = solutionDir / "ProjectA";
+        projectADir.CreateDirectoryRecursively();
+
+        File.WriteAllText(projectADir / "packageguard.config.json",
             """
             {
                 "settings": {
@@ -395,9 +383,10 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Create ProjectB with its own config
-        var projectBDir = Path.Combine(solutionDir, "ProjectB");
-        Directory.CreateDirectory(projectBDir);
-        File.WriteAllText(Path.Combine(projectBDir, "packageguard.config.json"),
+        var projectBDir = solutionDir / "ProjectB";
+        projectBDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(projectBDir / "packageguard.config.json",
             """
             {
                 "settings": {
@@ -410,13 +399,90 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Act - Configure for ProjectA only
-        ConfigurationLoader.ConfigureHierarchical(analyzer, projectADir);
+        ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(projectADir);
 
         // Assert - Should have solution config + ProjectA config, but NOT ProjectB config
-        analyzer.AllowList.Licenses.Should().Contain(new[] { "MIT", "Apache-2.0" });
-        analyzer.AllowList.Licenses.Should().NotContain("BSD-3-Clause");
-        analyzer.AllowList.Packages.Should().HaveCount(1);
-        analyzer.AllowList.Packages.Should().ContainSingle(p => p.Id == "ProjectAPackage");
-        analyzer.AllowList.Packages.Should().NotContain(p => p.Id == "ProjectBPackage");
+        policy.AllowList.Licenses.Should().Contain([
+            "MIT",
+            "Apache-2.0"
+        ]);
+
+        policy.AllowList.Licenses.Should().NotContain("BSD-3-Clause");
+        policy.AllowList.Packages.Should().HaveCount(1);
+        policy.AllowList.Packages.Should().ContainSingle(p => p.Id == "ProjectAPackage");
+        policy.AllowList.Packages.Should().NotContain(p => p.Id == "ProjectBPackage");
+    }
+
+    [TestMethod]
+    public void Applies_different_effective_configurations_to_different_projects()
+    {
+        // Test that demonstrates each project gets its own merged configuration
+        // when using hierarchical configuration
+
+        // Arrange - Create solution with different project configurations
+        var solutionDir = tempDir / "MySolution";
+        solutionDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+
+        // Solution-level config allows MIT
+        File.WriteAllText(solutionDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "licenses": ["MIT"]
+                    }
+                }
+            }
+            """);
+
+        // ProjectA additionally allows Apache-2.0
+        var projectADir = solutionDir / "ProjectA";
+        projectADir.CreateDirectoryRecursively();
+
+        File.WriteAllText(projectADir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "licenses": ["Apache-2.0"]
+                    }
+                }
+            }
+            """);
+
+        // ProjectB additionally allows BSD-3-Clause
+        var projectBDir = solutionDir / "ProjectB";
+        projectBDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(projectBDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "licenses": ["BSD-3-Clause"]
+                    }
+                }
+            }
+            """);
+
+        // Act & Assert - Test ProjectA configuration
+        var projectAConfig = configurationLoader.GetEffectiveConfigurationForProject(projectADir);
+        projectAConfig.AllowList.Licenses.Should().Contain([
+            "MIT",
+            "Apache-2.0"
+        ]);
+
+        projectAConfig.AllowList.Licenses.Should().NotContain("BSD-3-Clause");
+
+        // Act & Assert - Test ProjectB configuration
+        var projectBConfig = configurationLoader.GetEffectiveConfigurationForProject(projectBDir);
+        projectBConfig.AllowList.Licenses.Should().Contain([
+            "MIT",
+            "BSD-3-Clause"
+        ]);
+
+        projectBConfig.AllowList.Licenses.Should().NotContain("Apache-2.0");
     }
 }

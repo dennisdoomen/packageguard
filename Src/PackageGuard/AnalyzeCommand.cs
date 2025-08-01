@@ -1,4 +1,5 @@
 using System.Reflection;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core;
 using Spectre.Console;
@@ -6,6 +7,7 @@ using Spectre.Console.Cli;
 
 namespace PackageGuard;
 
+[UsedImplicitly]
 internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommandSettings>
 {
     public override async Task<int> ExecuteAsync(CommandContext context, AnalyzeCommandSettings settings)
@@ -39,17 +41,16 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             Logger = logger,
         };
 
+        var loader = new ConfigurationLoader(logger);
+
         // Use hierarchical configuration discovery if using default config path and it doesn't exist
-        if (settings.ConfigPath == "config.json" && !File.Exists(settings.ConfigPath))
+        GetPolicyByProject getPolicy = _ => loader.GetConfigurationFromConfigPath(settings.ConfigPath);
+        if (settings.ConfigPath == AnalyzeCommandSettings.DefaultConfigFileName && !File.Exists(settings.ConfigPath))
         {
-            ConfigurationLoader.ConfigureHierarchical(analyzer, settings.ProjectPath);
-        }
-        else
-        {
-            ConfigurationLoader.Configure(analyzer, settings.ConfigPath);
+            getPolicy = loader.GetEffectiveConfigurationForProject;
         }
 
-        var violations = await analyzer.ExecuteAnalysis();
+        PolicyViolation[] violations = await analyzer.ExecuteAnalysis(getPolicy);
 
         logger.LogHeader("Completing analysis");
 

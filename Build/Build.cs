@@ -133,17 +133,24 @@ class Build : NukeBuild
         {
             var project = Solution.PackageGuard;
 
-            DotNetRun(s => s
+            Configure<DotNetRunSettings> configurator = s => s
                 .SetProjectFile(project)
                 .SetConfiguration(Configuration)
-                .AddApplicationArguments($"--configpath={RootDirectory / ".packageguard" / "config.json"}")
+
                 .WhenNotNull(GitHubApiKey, (ss, key) => ss
                     .AddApplicationArguments($"--github-api-key={key}")
                     .AddProcessRedactedSecrets(key))
                 .AddApplicationArguments("--use-caching")
                 .AddApplicationArguments($"{RootDirectory}")
                 .EnableNoBuild()
-                .EnableNoRestore());
+                .EnableNoRestore();
+
+            Information("Running PackageGuard without explicit config path:");
+            DotNetRun(configurator);
+
+            Information("Running PackageGuard with explicit config path:");
+            DotNetRun(s => configurator(s)
+                .AddApplicationArguments($"--configpath={RootDirectory / ".packageguard" / "config.json"}"));
         });
 
     Target CodeCoverage => _ => _
