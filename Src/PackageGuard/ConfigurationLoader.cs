@@ -11,25 +11,36 @@ public static class ConfigurationLoader
     /// This method loads and merges configuration files in the following order:
     /// 1. Solution-level configuration files (if a solution is found)
     /// 2. The specific project's configuration files (if different from solution directory)
-    /// 
-    /// Note: Only configurations for the specified project are loaded - configurations 
+    ///
+    /// Note: Only configurations for the specified project are loaded - configurations
     /// from sibling projects are NOT included in the merge.
     /// </summary>
     /// <param name="analyzer">The analyzer to configure</param>
     /// <param name="projectPath">Path to the specific project directory or project file</param>
     public static void ConfigureHierarchical(CSharpProjectAnalyzer analyzer, string projectPath)
     {
-        var configPaths = DiscoverConfigurationFiles(projectPath);
-        
+        PackagePolicy policy = GetEffectiveConfigurationForProject(projectPath);
+        ApplyPolicy(analyzer, policy);
+    }
+
+    /// <summary>
+    /// Gets the effective configuration for a specific project by merging solution-level and project-level configurations.
+    /// </summary>
+    /// <param name="projectPath">Path to the specific project directory or file</param>
+    /// <returns>Merged GlobalSettings for the project</returns>
+    public static PackagePolicy GetEffectiveConfigurationForProject(string projectPath)
+    {
+        List<string> configPaths = DiscoverConfigurationFiles(projectPath);
+
         if (configPaths.Count == 0)
         {
-            // No configuration files found, use empty configuration
-            return;
+            // No configuration files found, return empty configuration
+            return new PackagePolicy();
         }
 
         // Load and merge configurations manually to ensure proper accumulation
-        var mergedSettings = new GlobalSettings();
-        
+        var mergedSettings = new PackagePolicy();
+
         foreach (var configPath in configPaths)
         {
             var configuration = new ConfigurationBuilder()
@@ -37,29 +48,14 @@ public static class ConfigurationLoader
                 .AddJsonFile(configPath, optional: true)
                 .Build();
 
-            var settings = configuration.GetSection("Settings").Get<GlobalSettings>();
+            var settings = configuration.GetSection("Settings").Get<PackagePolicy>();
             if (settings != null)
             {
-                MergeSettings(mergedSettings, settings);
+                mergedSettings.MergeWith(settings);
             }
         }
 
-        ApplyGlobalSettings(analyzer, mergedSettings);
-    }
-
-    /// <summary>
-    /// Configures the analyzer using a single configuration file.
-    /// This is the original behavior for backward compatibility.
-    /// </summary>
-    public static void Configure(CSharpProjectAnalyzer analyzer, string configurationPath)
-    {
-        var configuration = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile(configurationPath, optional: true)
-            .AddEnvironmentVariables()
-            .Build();
-
-        ApplyConfiguration(analyzer, configuration);
+        return mergedSettings;
     }
 
     /// <summary>
@@ -99,12 +95,27 @@ public static class ConfigurationLoader
     }
 
     /// <summary>
+    /// Configures the analyzer using a single configuration file.
+    /// This is the original behavior for backward compatibility.
+    /// </summary>
+    public static void ConfigureForBackwardsCompatibility(CSharpProjectAnalyzer analyzer, string configurationPath)
+    {
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile(configurationPath, optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        ApplyConfiguration(analyzer, configuration);
+    }
+
+    /// <summary>
     /// Finds the directory containing a solution file (.sln or .slnx).
     /// </summary>
     private static ChainablePath? FindSolutionDirectory(ChainablePath startPath)
     {
         var currentPath = startPath.ToString();
-        
+
         // Look for solution files in the current directory and parent directories
         while (!string.IsNullOrEmpty(currentPath) && Directory.Exists(currentPath))
         {
@@ -153,89 +164,34 @@ public static class ConfigurationLoader
     /// </summary>
     private static void ApplyConfiguration(CSharpProjectAnalyzer analyzer, IConfiguration configuration)
     {
-        var globalSettings = configuration.GetSection("Settings").Get<GlobalSettings>() ?? new GlobalSettings();
-        ApplyGlobalSettings(analyzer, globalSettings);
-    }
-
-    /// <summary>
-    /// Merges two GlobalSettings objects, with the second overriding the first where specified.
-    /// For collections, items are accumulated rather than replaced.
-    /// </summary>
-    private static void MergeSettings(GlobalSettings target, GlobalSettings source)
-    {
-        // Merge Allow settings
-        if (source.Allow.Packages.Length > 0)
-        {
-            var mergedPackages = target.Allow.Packages.Concat(source.Allow.Packages).ToArray();
-            target.Allow.Packages = mergedPackages;
-        }
-        
-        if (source.Allow.Licenses.Length > 0)
-        {
-            var mergedLicenses = target.Allow.Licenses.Concat(source.Allow.Licenses).ToArray();
-            target.Allow.Licenses = mergedLicenses;
-        }
-        
-        if (source.Allow.Feeds.Length > 0)
-        {
-            var mergedFeeds = target.Allow.Feeds.Concat(source.Allow.Feeds).ToArray();
-            target.Allow.Feeds = mergedFeeds;
-        }
-
-        // For boolean settings, later values override earlier ones
-        // We need to track if the source actually specified a value different from default
-        target.Allow.Prerelease = source.Allow.Prerelease;
-
-        // Merge Deny settings
-        if (source.Deny.Packages.Length > 0)
-        {
-            var mergedPackages = target.Deny.Packages.Concat(source.Deny.Packages).ToArray();
-            target.Deny.Packages = mergedPackages;
-        }
-        
-        if (source.Deny.Licenses.Length > 0)
-        {
-            var mergedLicenses = target.Deny.Licenses.Concat(source.Deny.Licenses).ToArray();
-            target.Deny.Licenses = mergedLicenses;
-        }
-
-        // For boolean settings, later values override earlier ones
-        target.Deny.Prerelease = source.Deny.Prerelease;
-
-        // Merge IgnoredFeeds
-        if (source.IgnoredFeeds.Length > 0)
-        {
-            var mergedFeeds = target.IgnoredFeeds.Concat(source.IgnoredFeeds).ToArray();
-            target.IgnoredFeeds = mergedFeeds;
-        }
+        var globalSettings = configuration.GetSection("Settings").Get<PackagePolicy>() ?? new PackagePolicy();
+        ApplyPolicy(analyzer, globalSettings);
     }
 
     /// <summary>
     /// Applies GlobalSettings to the analyzer.
     /// </summary>
-    private static void ApplyGlobalSettings(CSharpProjectAnalyzer analyzer, GlobalSettings globalSettings)
+    private static void ApplyPolicy(CSharpProjectAnalyzer analyzer, PackagePolicy packagePolicy)
     {
-        foreach (string package in globalSettings.Allow.Packages)
+        foreach (string package in packagePolicy.Allow.Packages)
         {
             string[] segments = package.Split("/");
-
             analyzer.AllowList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? ""));
         }
 
-        analyzer.AllowList.Licenses.AddRange(globalSettings.Allow.Licenses);
-        analyzer.AllowList.Feeds.AddRange(globalSettings.Allow.Feeds);
-        analyzer.AllowList.Prerelease = globalSettings.Allow.Prerelease;
+        analyzer.AllowList.Licenses.AddRange(packagePolicy.Allow.Licenses);
+        analyzer.AllowList.Feeds.AddRange(packagePolicy.Allow.Feeds);
+        analyzer.AllowList.Prerelease = packagePolicy.Allow.Prerelease;
 
-        foreach (string package in globalSettings.Deny.Packages)
+        foreach (string package in packagePolicy.Deny.Packages)
         {
             string[] segments = package.Split("/");
-
             analyzer.DenyList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? ""));
         }
 
-        analyzer.DenyList.Licenses.AddRange(globalSettings.Deny.Licenses);
-        analyzer.DenyList.Prerelease = globalSettings.Deny.Prerelease;
+        analyzer.DenyList.Licenses.AddRange(packagePolicy.Deny.Licenses);
+        analyzer.DenyList.Prerelease = packagePolicy.Deny.Prerelease;
 
-        analyzer.IgnoredFeeds = globalSettings.IgnoredFeeds;
+        analyzer.IgnoredFeeds = packagePolicy.IgnoredFeeds;
     }
 }

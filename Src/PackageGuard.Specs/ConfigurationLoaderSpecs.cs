@@ -69,7 +69,7 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Act
-        ConfigurationLoader.Configure(analyzer, "test.json");
+        ConfigurationLoader.ConfigureForBackwardsCompatibility(analyzer, "test.json");
 
         // Assert
         analyzer.Should().BeEquivalentTo(new
@@ -127,7 +127,7 @@ public class ConfigurationLoaderSpecs
             """);
 
         // Act
-        ConfigurationLoader.Configure(analyzer, "test.json");
+        ConfigurationLoader.ConfigureForBackwardsCompatibility(analyzer, "test.json");
 
         // Assert
         analyzer.Should().BeEquivalentTo(new
@@ -418,5 +418,67 @@ public class ConfigurationLoaderSpecs
         analyzer.AllowList.Packages.Should().HaveCount(1);
         analyzer.AllowList.Packages.Should().ContainSingle(p => p.Id == "ProjectAPackage");
         analyzer.AllowList.Packages.Should().NotContain(p => p.Id == "ProjectBPackage");
+    }
+
+    [TestMethod]
+    public void Should_apply_different_effective_configurations_to_different_projects()
+    {
+        // Test that demonstrates each project gets its own merged configuration
+        // when using hierarchical configuration
+
+        // Arrange - Create solution with different project configurations
+        var solutionDir = Path.Combine(tempDir, "MySolution");
+        Directory.CreateDirectory(solutionDir);
+        File.WriteAllText(Path.Combine(solutionDir, "MySolution.sln"), "# Solution file");
+        
+        // Solution-level config allows MIT
+        File.WriteAllText(Path.Combine(solutionDir, "packageguard.config.json"),
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "licenses": ["MIT"]
+                    }
+                }
+            }
+            """);
+
+        // ProjectA additionally allows Apache-2.0
+        var projectADir = Path.Combine(solutionDir, "ProjectA");
+        Directory.CreateDirectory(projectADir);
+        File.WriteAllText(Path.Combine(projectADir, "packageguard.config.json"),
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "licenses": ["Apache-2.0"]
+                    }
+                }
+            }
+            """);
+
+        // ProjectB additionally allows BSD-3-Clause
+        var projectBDir = Path.Combine(solutionDir, "ProjectB");
+        Directory.CreateDirectory(projectBDir);
+        File.WriteAllText(Path.Combine(projectBDir, "packageguard.config.json"),
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "licenses": ["BSD-3-Clause"]
+                    }
+                }
+            }
+            """);
+
+        // Act & Assert - Test ProjectA configuration
+        var projectAConfig = ConfigurationLoader.GetEffectiveConfigurationForProject(projectADir);
+        projectAConfig.Allow.Licenses.Should().Contain(new[] { "MIT", "Apache-2.0" });
+        projectAConfig.Allow.Licenses.Should().NotContain("BSD-3-Clause");
+
+        // Act & Assert - Test ProjectB configuration
+        var projectBConfig = ConfigurationLoader.GetEffectiveConfigurationForProject(projectBDir);
+        projectBConfig.Allow.Licenses.Should().Contain(new[] { "MIT", "BSD-3-Clause" });
+        projectBConfig.Allow.Licenses.Should().NotContain("Apache-2.0");
     }
 }
