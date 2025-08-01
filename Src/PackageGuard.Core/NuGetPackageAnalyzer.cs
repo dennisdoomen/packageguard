@@ -18,7 +18,7 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 {
     private readonly Dictionary<string, SourceRepository[]> nuGetSourcesByProject = new();
     private static bool credentialProvidersConfigured = false;
-    private static readonly object CredentialProviderLock = new();
+    private static readonly Lock CredentialProviderLock = new();
 
     /// <summary>
     /// One or more NuGet feeds that should be completely ignored during the analysis.
