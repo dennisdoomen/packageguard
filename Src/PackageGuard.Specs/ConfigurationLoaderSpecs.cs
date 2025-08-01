@@ -144,7 +144,7 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
-    public void ConfigureHierarchical_finds_packageguard_config_in_solution_directory()
+    public void Should_find_packageguard_config_in_solution_directory()
     {
         // Arrange
         var analyzer = new CSharpProjectAnalyzer(
@@ -176,7 +176,7 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
-    public void ConfigureHierarchical_finds_config_in_packageguard_subdirectory()
+    public void Should_find_config_in_packageguard_subdirectory()
     {
         // Arrange
         var analyzer = new CSharpProjectAnalyzer(
@@ -209,7 +209,7 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
-    public void ConfigureHierarchical_merges_solution_and_project_configs()
+    public void Should_merge_solution_and_project_configs()
     {
         // Arrange
         var analyzer = new CSharpProjectAnalyzer(
@@ -258,7 +258,7 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
-    public void ConfigureHierarchical_project_config_overrides_solution_prerelease_setting()
+    public void Should_allow_project_config_to_override_solution_prerelease_setting()
     {
         // Arrange
         var analyzer = new CSharpProjectAnalyzer(
@@ -302,7 +302,7 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
-    public void ConfigureHierarchical_does_nothing_when_no_configs_found()
+    public void Should_do_nothing_when_no_configs_found()
     {
         // Arrange
         var analyzer = new CSharpProjectAnalyzer(
@@ -323,7 +323,7 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
-    public void ConfigureHierarchical_finds_solution_in_parent_directory()
+    public void Should_find_solution_in_parent_directory()
     {
         // Arrange
         var analyzer = new CSharpProjectAnalyzer(
@@ -354,5 +354,69 @@ public class ConfigurationLoaderSpecs
 
         // Assert
         analyzer.AllowList.Licenses.Should().Contain("BSD-3-Clause");
+    }
+
+    [TestMethod]
+    public void Should_not_include_sibling_project_configs()
+    {
+        // Arrange
+        var analyzer = new CSharpProjectAnalyzer(
+            A.Fake<CSharpProjectScanner>(),
+            new NuGetPackageAnalyzer(A.Fake<ILogger>(), new LicenseFetcher(A.Fake<ILogger>())));
+
+        // Create solution directory with config
+        var solutionDir = Path.Combine(tempDir, "MySolution");
+        Directory.CreateDirectory(solutionDir);
+        File.WriteAllText(Path.Combine(solutionDir, "MySolution.sln"), "# Solution file");
+        File.WriteAllText(Path.Combine(solutionDir, "packageguard.config.json"),
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "licenses": ["MIT"]
+                    }
+                }
+            }
+            """);
+
+        // Create ProjectA with its own config
+        var projectADir = Path.Combine(solutionDir, "ProjectA");
+        Directory.CreateDirectory(projectADir);
+        File.WriteAllText(Path.Combine(projectADir, "packageguard.config.json"),
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "licenses": ["Apache-2.0"],
+                        "packages": ["ProjectAPackage/1.0.0"]
+                    }
+                }
+            }
+            """);
+
+        // Create ProjectB with its own config
+        var projectBDir = Path.Combine(solutionDir, "ProjectB");
+        Directory.CreateDirectory(projectBDir);
+        File.WriteAllText(Path.Combine(projectBDir, "packageguard.config.json"),
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "licenses": ["BSD-3-Clause"],
+                        "packages": ["ProjectBPackage/2.0.0"]
+                    }
+                }
+            }
+            """);
+
+        // Act - Configure for ProjectA only
+        ConfigurationLoader.ConfigureHierarchical(analyzer, projectADir);
+
+        // Assert - Should have solution config + ProjectA config, but NOT ProjectB config
+        analyzer.AllowList.Licenses.Should().Contain(new[] { "MIT", "Apache-2.0" });
+        analyzer.AllowList.Licenses.Should().NotContain("BSD-3-Clause");
+        analyzer.AllowList.Packages.Should().HaveCount(1);
+        analyzer.AllowList.Packages.Should().ContainSingle(p => p.Id == "ProjectAPackage");
+        analyzer.AllowList.Packages.Should().NotContain(p => p.Id == "ProjectBPackage");
     }
 }
