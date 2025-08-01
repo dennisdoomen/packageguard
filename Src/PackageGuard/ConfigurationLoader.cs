@@ -7,9 +7,16 @@ namespace PackageGuard;
 public static class ConfigurationLoader
 {
     /// <summary>
-    /// Configures the analyzer using hierarchical configuration discovery.
-    /// Looks for configuration files at solution and project levels.
+    /// Configures the analyzer using hierarchical configuration discovery for a specific project.
+    /// This method loads and merges configuration files in the following order:
+    /// 1. Solution-level configuration files (if a solution is found)
+    /// 2. The specific project's configuration files (if different from solution directory)
+    /// 
+    /// Note: Only configurations for the specified project are loaded - configurations 
+    /// from sibling projects are NOT included in the merge.
     /// </summary>
+    /// <param name="analyzer">The analyzer to configure</param>
+    /// <param name="projectPath">Path to the specific project directory or project file</param>
     public static void ConfigureHierarchical(CSharpProjectAnalyzer analyzer, string projectPath)
     {
         var configPaths = DiscoverConfigurationFiles(projectPath);
@@ -56,8 +63,13 @@ public static class ConfigurationLoader
     }
 
     /// <summary>
-    /// Discovers configuration files in hierarchical order from solution to project level.
+    /// Discovers configuration files for a specific project in hierarchical order.
+    /// Returns configuration files from:
+    /// 1. Solution level (if found)
+    /// 2. The specific project level only (not sibling projects)
     /// </summary>
+    /// <param name="projectPath">Path to the specific project directory or file</param>
+    /// <returns>List of configuration file paths in order of precedence</returns>
     private static List<string> DiscoverConfigurationFiles(string projectPath)
     {
         var configFiles = new List<string>();
@@ -69,15 +81,15 @@ public static class ConfigurationLoader
             pathy = pathy.Directory;
         }
 
-        // Find solution directory and config files
+        // Find solution directory and add its config files
         var solutionDirectory = FindSolutionDirectory(pathy);
         if (solutionDirectory.HasValue)
         {
             AddConfigFilesFromDirectory(configFiles, solutionDirectory.Value);
         }
 
-        // If we're analyzing a specific project directory that's different from solution directory,
-        // also add config files from the project directory
+        // Add config files from the specific project directory (if different from solution directory)
+        // Note: This only adds configs for the specified project, not sibling projects
         if (solutionDirectory.HasValue && !pathy.Equals(solutionDirectory.Value))
         {
             AddConfigFilesFromDirectory(configFiles, pathy);
