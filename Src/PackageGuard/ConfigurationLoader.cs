@@ -19,32 +19,8 @@ public static class ConfigurationLoader
     /// <param name="projectPath">Path to the specific project directory or project file</param>
     public static void ConfigureHierarchical(CSharpProjectAnalyzer analyzer, string projectPath)
     {
-        var configPaths = DiscoverConfigurationFiles(projectPath);
-        
-        if (configPaths.Count == 0)
-        {
-            // No configuration files found, use empty configuration
-            return;
-        }
-
-        // Load and merge configurations manually to ensure proper accumulation
-        var mergedSettings = new GlobalSettings();
-        
-        foreach (var configPath in configPaths)
-        {
-            var configuration = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile(configPath, optional: true)
-                .Build();
-
-            var settings = configuration.GetSection("Settings").Get<GlobalSettings>();
-            if (settings != null)
-            {
-                MergeSettings(mergedSettings, settings);
-            }
-        }
-
-        ApplyGlobalSettings(analyzer, mergedSettings);
+        var globalSettings = GetEffectiveConfigurationForProject(projectPath);
+        ApplyGlobalSettings(analyzer, globalSettings);
     }
 
     /// <summary>
@@ -211,31 +187,79 @@ public static class ConfigurationLoader
     }
 
     /// <summary>
-    /// Applies GlobalSettings to the analyzer.
+    /// Gets the effective configuration for a specific project by merging solution-level and project-level configurations.
     /// </summary>
-    private static void ApplyGlobalSettings(CSharpProjectAnalyzer analyzer, GlobalSettings globalSettings)
+    /// <param name="projectPath">Path to the specific project directory or file</param>
+    /// <returns>Merged GlobalSettings for the project</returns>
+    public static GlobalSettings GetEffectiveConfigurationForProject(string projectPath)
     {
+        var configPaths = DiscoverConfigurationFiles(projectPath);
+        
+        if (configPaths.Count == 0)
+        {
+            // No configuration files found, return empty configuration
+            return new GlobalSettings();
+        }
+
+        // Load and merge configurations manually to ensure proper accumulation
+        var mergedSettings = new GlobalSettings();
+        
+        foreach (var configPath in configPaths)
+        {
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile(configPath, optional: true)
+                .Build();
+
+            var settings = configuration.GetSection("Settings").Get<GlobalSettings>();
+            if (settings != null)
+            {
+                MergeSettings(mergedSettings, settings);
+            }
+        }
+
+        return mergedSettings;
+    }
+
+    /// <summary>
+    /// Creates AllowList and DenyList from GlobalSettings.
+    /// </summary>
+    public static (AllowList allowList, DenyList denyList) CreatePolicyFromSettings(GlobalSettings globalSettings)
+    {
+        var allowList = new AllowList();
+        var denyList = new DenyList();
+
         foreach (string package in globalSettings.Allow.Packages)
         {
             string[] segments = package.Split("/");
-
-            analyzer.AllowList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? ""));
+            allowList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? ""));
         }
 
-        analyzer.AllowList.Licenses.AddRange(globalSettings.Allow.Licenses);
-        analyzer.AllowList.Feeds.AddRange(globalSettings.Allow.Feeds);
-        analyzer.AllowList.Prerelease = globalSettings.Allow.Prerelease;
+        allowList.Licenses.AddRange(globalSettings.Allow.Licenses);
+        allowList.Feeds.AddRange(globalSettings.Allow.Feeds);
+        allowList.Prerelease = globalSettings.Allow.Prerelease;
 
         foreach (string package in globalSettings.Deny.Packages)
         {
             string[] segments = package.Split("/");
-
-            analyzer.DenyList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? ""));
+            denyList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? ""));
         }
 
-        analyzer.DenyList.Licenses.AddRange(globalSettings.Deny.Licenses);
-        analyzer.DenyList.Prerelease = globalSettings.Deny.Prerelease;
+        denyList.Licenses.AddRange(globalSettings.Deny.Licenses);
+        denyList.Prerelease = globalSettings.Deny.Prerelease;
 
+        return (allowList, denyList);
+    }
+
+    /// <summary>
+    /// Applies GlobalSettings to the analyzer.
+    /// </summary>
+    private static void ApplyGlobalSettings(CSharpProjectAnalyzer analyzer, GlobalSettings globalSettings)
+    {
+        var (allowList, denyList) = CreatePolicyFromSettings(globalSettings);
+        
+        analyzer.AllowList = allowList;
+        analyzer.DenyList = denyList;
         analyzer.IgnoredFeeds = globalSettings.IgnoredFeeds;
     }
 }
