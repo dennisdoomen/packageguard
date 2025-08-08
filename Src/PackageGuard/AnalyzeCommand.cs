@@ -39,10 +39,18 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             Logger = logger,
         };
 
+        PolicyViolation[] violations;
 
-        ConfigurationLoader.Configure(analyzer, settings.ConfigPath);
-
-        var violations = await analyzer.ExecuteAnalysis();
+        // Use hierarchical configuration discovery if using default config path and it doesn't exist
+        if (settings.ConfigPath == AnalyzeCommandSettings.DefaultConfigFileName && !File.Exists(settings.ConfigPath))
+        {
+            violations = await ExecuteHierarchicalAnalysis(analyzer);
+        }
+        else
+        {
+            ConfigurationLoader.ConfigureForBackwardsCompatibility(analyzer, settings.ConfigPath);
+            violations = await analyzer.ExecuteAnalysis();
+        }
 
         logger.LogHeader("Completing analysis");
 
@@ -76,5 +84,39 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         AnsiConsole.MarkupLine("[green3_1]No policy violations found.[/]");
 
         return 0;
+    }
+
+    private async Task<PolicyViolation[]> ExecuteHierarchicalAnalysis(CSharpProjectAnalyzer analyzer)
+    {
+        var projectScanner = new CSharpProjectScanner(logger);
+        List<string> projectPaths = projectScanner.FindProjects(analyzer.ProjectPath);
+
+        var allViolations = new List<PolicyViolation>();
+
+        // Analyze each project with its own effective configuration
+        foreach (string projectPath in projectPaths)
+        {
+            logger.LogHeader($"Analyzing project with hierarchical configuration: {projectPath}");
+
+            // Create a new analyzer instance for this project with its specific configuration
+            var projectAnalyzer = new CSharpProjectAnalyzer(projectScanner, new NuGetPackageAnalyzer(logger, new LicenseFetcher(logger, "")))
+            {
+                ProjectPath = projectPath,
+                InteractiveRestore = analyzer.InteractiveRestore,
+                ForceRestore = analyzer.ForceRestore,
+                SkipRestore = analyzer.SkipRestore,
+                UseCaching = analyzer.UseCaching,
+                CacheFilePath = analyzer.CacheFilePath,
+                Logger = logger,
+            };
+
+            // Configure this analyzer with the effective configuration for this specific project
+            ConfigurationLoader.ConfigureHierarchical(projectAnalyzer, projectPath);
+
+            // Execute analysis for this specific project
+            allViolations.AddRange(await projectAnalyzer.ExecuteAnalysis());
+        }
+
+        return allViolations.ToArray();
     }
 }

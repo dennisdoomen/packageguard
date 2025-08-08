@@ -1,5 +1,4 @@
-﻿using System.Xml.Linq;
-using Microsoft.Build.Construction;
+﻿using Microsoft.Build.Construction;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core.Common;
 using Pathy;
@@ -106,39 +105,5 @@ public class CSharpProjectScanner(ILogger logger)
         }
 
         return projectFiles.Select(x => x.ToString()).ToList();
-    }
-
-    private List<string> ParseSlnxFile(ChainablePath slnxPath)
-    {
-        var projectPaths = new List<string>();
-        var slnxDirectory = slnxPath.Directory;
-
-        try
-        {
-            var xmlDoc = XDocument.Load(slnxPath);
-            var projectElements = xmlDoc.Descendants("Project");
-
-            foreach (var projectElement in projectElements)
-            {
-                var pathAttribute = projectElement.Attribute("Path");
-                if (pathAttribute != null)
-                {
-                    var relativePath = pathAttribute.Value;
-                    var absolutePath = Path.GetFullPath(Path.Combine(slnxDirectory, relativePath));
-
-                    // Only include C# projects
-                    if (absolutePath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
-                    {
-                        projectPaths.Add(absolutePath);
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to parse .slnx file: {SlnxPath}", slnxPath);
-        }
-
-        return projectPaths;
     }
 }
