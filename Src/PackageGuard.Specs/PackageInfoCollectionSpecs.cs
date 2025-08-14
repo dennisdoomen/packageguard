@@ -1,112 +1,200 @@
-﻿using FluentAssertions;
+﻿using System;
+using System.Threading.Tasks;
+using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NuGet.Configuration;
+using NuGet.Protocol.Core.Types;
 using PackageGuard.Core;
+using Pathy;
 
-namespace PackageGuard.Specs
+namespace PackageGuard.Specs;
+
+[TestClass]
+public class PackageInfoSpecs
 {
-    [TestClass]
-    public class PackageInfoSpecs
+    [TestMethod]
+    public void Can_match_on_case_insensitive_name_only()
     {
-        [TestMethod]
-        public void Can_match_on_case_insensitive_name_only()
+        // Arrange
+        var package = new PackageInfo
         {
-            // Arrange
-            var package = new PackageInfo
-            {
-                Name = "Bogus",
-                Version = "1.0.0",
-            };
+            Name = "Bogus",
+            Version = "1.0.0",
+        };
 
-            // Act
-            bool isMatch = package.SatisfiesRange("bogus", "1.0.0");
+        // Act
+        bool isMatch = package.SatisfiesRange("bogus", "1.0.0");
 
-            // Assert
-            isMatch.Should().BeTrue();
-        }
+        // Assert
+        isMatch.Should().BeTrue();
+    }
 
-        [TestMethod]
-        public void Can_match_without_version()
+    [TestMethod]
+    public void Can_match_without_version()
+    {
+        // Arrange
+        var package = new PackageInfo
         {
-            // Arrange
-            var package = new PackageInfo
-            {
-                Name = "Bogus",
-                Version = "1.0.0",
-            };
+            Name = "Bogus",
+            Version = "1.0.0",
+        };
 
-            // Act
-            bool isMatch = package.SatisfiesRange("Bugos");
+        // Act
+        bool isMatch = package.SatisfiesRange("Bugos");
 
-            // Assert
-            isMatch.Should().BeFalse();
-        }
+        // Assert
+        isMatch.Should().BeFalse();
+    }
 
-        [TestMethod]
-        public void An_exact_version_must_match()
+    [TestMethod]
+    public void An_exact_version_must_match()
+    {
+        // Arrange
+        var package = new PackageInfo
         {
-            // Arrange
-            var package = new PackageInfo
+            Name = "Bogus",
+            Version = "2.0.0",
+        };
+
+        // Act
+        bool isMatch = package.SatisfiesRange("Bugos", "2.0.1");
+
+        // Assert
+        isMatch.Should().BeFalse();
+    }
+
+    [TestMethod]
+    public void An_exact_version_matches()
+    {
+        // Arrange
+        var package = new PackageInfo
+        {
+            Name = "Bogus",
+            Version = "2.0.1",
+        };
+
+        // Act
+        bool isMatch = package.SatisfiesRange("Bugos", "2.0.1");
+
+        // Assert
+        isMatch.Should().BeFalse();
+    }
+
+    [TestMethod]
+    public void Can_use_an_exclusive_range()
+    {
+        // Arrange
+        var package = new PackageInfo
+        {
+            Name = "Bogus",
+            Version = "2.0.0",
+        };
+
+        // Act
+        bool isMatch = package.SatisfiesRange("Bugos", "[1.0.0,2.0.0)");
+
+        // Assert
+        isMatch.Should().BeFalse();
+    }
+
+    [TestMethod]
+    public void Can_use_an_inclusive_range()
+    {
+        // Arrange
+        var package = new PackageInfo
+        {
+            Name = "Bogus",
+            Version = "2.0.0",
+        };
+
+        // Act
+        bool isMatch = package.SatisfiesRange("Bogus", "[1.0.0,2.0.0]");
+
+        // Assert
+        isMatch.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public async Task Loading_the_cache_keeps_the_collection_empty()
+    {
+        // Arrange
+        var priorCollection = new PackageInfoCollection(NullLogger.Instance)
+        {
+            new PackageInfo
             {
                 Name = "Bogus",
                 Version = "2.0.0",
-            };
+            }
+        };
 
-            // Act
-            bool isMatch = package.SatisfiesRange("Bugos", "2.0.1");
+        await priorCollection.WriteToCache(ChainablePath.Current / "cache.bin");
 
-            // Assert
-            isMatch.Should().BeFalse();
-        }
+        var currentCollection = new PackageInfoCollection(NullLogger.Instance);
 
-        [TestMethod]
-        public void An_exact_version_matches()
+        // Act
+        await currentCollection.TryInitializeFromCache(ChainablePath.Current / "cache.bin");
+
+        // Assert
+        currentCollection.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public async Task Can_fetch_information_from_the_cache()
+    {
+        // Arrange
+        var source = new SourceRepository(new PackageSource("https://nuget.org"), Array.Empty<INuGetResourceProvider>());
+
+        var priorCollection = new PackageInfoCollection(NullLogger.Instance)
         {
-            // Arrange
-            var package = new PackageInfo
-            {
-                Name = "Bogus",
-                Version = "2.0.1",
-            };
-
-            // Act
-            bool isMatch = package.SatisfiesRange("Bugos", "2.0.1");
-
-            // Assert
-            isMatch.Should().BeFalse();
-        }
-
-        [TestMethod]
-        public void Can_use_an_exclusive_range()
-        {
-            // Arrange
-            var package = new PackageInfo
+            new PackageInfo
             {
                 Name = "Bogus",
                 Version = "2.0.0",
-            };
+                SourceUrl = source.PackageSource.Source,
+            }
+        };
 
-            // Act
-            bool isMatch = package.SatisfiesRange("Bugos", "[1.0.0,2.0.0)");
+        await priorCollection.WriteToCache(ChainablePath.Current / "cache.bin");
 
-            // Assert
-            isMatch.Should().BeFalse();
-        }
+        // Act
+        var currentCollection = new PackageInfoCollection(NullLogger.Instance);
+        await currentCollection.TryInitializeFromCache(ChainablePath.Current / "cache.bin");
 
-        [TestMethod]
-        public void Can_use_an_inclusive_range()
+        // Assert
+
+        PackageInfo package = currentCollection.Find("Bogus", "2.0.0", [source]);
+        package.Should().NotBeNull();
+    }
+
+    [TestMethod]
+    public async Task An_unused_package_is_removed_from_the_cache()
+    {
+        // Arrange
+        var source = new SourceRepository(new PackageSource("https://nuget.org"), Array.Empty<INuGetResourceProvider>());
+
+        var existingPackage = new PackageInfo
         {
-            // Arrange
-            var package = new PackageInfo
-            {
-                Name = "Bogus",
-                Version = "2.0.0",
-            };
+            Name = "Bogus",
+            Version = "2.0.0",
+            SourceUrl = source.PackageSource.Source,
+        };
 
-            // Act
-            bool isMatch = package.SatisfiesRange("Bogus", "[1.0.0,2.0.0]");
+        var priorCollection = new PackageInfoCollection(NullLogger.Instance)
+        {
+            existingPackage
+        };
 
-            // Assert
-            isMatch.Should().BeTrue();
-        }
+        existingPackage.IsUsed = false;
+
+        await priorCollection.WriteToCache(ChainablePath.Current / "cache.bin");
+
+        // Act
+        var currentCollection = new PackageInfoCollection(NullLogger.Instance);
+        await currentCollection.TryInitializeFromCache(ChainablePath.Current / "cache.bin");
+
+        // Assert
+        PackageInfo package = currentCollection.Find("Bogus", "2.0.0", [source]);
+        package.Should().BeNull();
     }
 }

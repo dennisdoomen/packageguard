@@ -20,7 +20,7 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
     public string ProjectPath { get; set; } = string.Empty;
 
     /// <summary>
-    /// If specified, a list of packages, versions and licenses that are allowed. Everything else is forbidden.
+    /// If specified, a list of packages, versions, and licenses that are allowed. Everything else is forbidden.
     /// </summary>
     /// <remarks>
     /// Can be overridden by <see cref="DenyList"/>
@@ -28,7 +28,7 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
     public AllowList AllowList { get; set; } = new();
 
     /// <summary>
-    /// If specified, a list of packages, versions and licenses that are forbidden, even if it was listed in <see cref="AllowList"/>.
+    /// If specified, a list of packages, versions, and licenses that are forbidden, even if it was listed in <see cref="AllowList"/>.
     /// </summary>
     public DenyList DenyList { get; set; } = new();
 

@@ -16,6 +16,16 @@ public partial class PackageInfo
     public string? License { get; set; }
     public string? LicenseUrl { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the package was used in any of the
+    /// projects during this run.
+    /// </summary>
+    /// <remarks>
+    /// It is used to clear out old package information before updating the persisted cache.
+    /// </remarks>
+    [MemoryPackIgnore]
+    public bool IsUsed { get; set; }
+
     public string[] Projects
     {
         get => projects.ToArray();
@@ -64,5 +74,13 @@ public partial class PackageInfo
     public bool MatchesFeed(string feedWildcard)
     {
         return Source.MatchesWildcard(feedWildcard) || SourceUrl.MatchesWildcard(feedWildcard);
+    }
+
+    /// <summary>
+    /// Marks the current package as being used by the current projects.
+    /// </summary>
+    public void MarkAsUsed()
+    {
+        IsUsed = true;
     }
 }

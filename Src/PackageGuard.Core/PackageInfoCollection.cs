@@ -8,7 +8,8 @@ namespace PackageGuard.Core;
 
 public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
 {
-    private HashSet<PackageInfo> packages = new();
+    private readonly HashSet<PackageInfo> packages = new();
+    private HashSet<PackageInfo> cache = new();
 
     public IEnumerator<PackageInfo> GetEnumerator() => packages.GetEnumerator();
 
@@ -17,6 +18,9 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
     public void Add(PackageInfo package)
     {
         packages.Add(package);
+        cache.Add(package);
+        package.MarkAsUsed();
+
         UpdateLicenseForWellKnownLicenseUrls(package);
     }
 
@@ -24,7 +28,7 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
     {
         if (package.License is null && package.LicenseUrl is not null)
         {
-            package.License = packages.FirstOrDefault(x => x.LicenseUrl == package.LicenseUrl)?.License;
+            package.License = cache.FirstOrDefault(x => x.LicenseUrl == package.LicenseUrl)?.License;
         }
     }
 
@@ -34,11 +38,12 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
             .Select(source => source.PackageSource.Source)
             .ToArray();
 
-        PackageInfo? package = packages.FirstOrDefault(p => p.Name == name && p.Version == version);
+        PackageInfo? package = cache.FirstOrDefault(p => p.Name == name && p.Version == version);
         if (package is not null)
         {
             if (sourceUrls.Contains(package.SourceUrl))
             {
+                package.MarkAsUsed();
                 return package;
             }
 
@@ -60,7 +65,7 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
 
                 if (cachedPackages is not null)
                 {
-                    packages = new HashSet<PackageInfo>(cachedPackages);
+                    cache = new HashSet<PackageInfo>(cachedPackages);
                 }
 
                 logger.LogInformation("Successfully loaded the cache from {CacheFilePath}", cacheFilePath);
@@ -79,7 +84,7 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
         await using FileStream fileStream = new(cacheFilePath, FileMode.Create, FileAccess.Write);
         try
         {
-            await MemoryPackSerializer.SerializeAsync(fileStream, packages.ToArray());
+            await MemoryPackSerializer.SerializeAsync(fileStream, cache.Where(c => c.IsUsed).ToArray());
             logger.LogInformation("Package cache written to {CacheFilePath}", cacheFilePath);
         }
         catch (Exception ex)
