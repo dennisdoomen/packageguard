@@ -9,17 +9,14 @@
     public class CSharpProjectAnalyzer
     {
         public CSharpProjectAnalyzer(PackageGuard.Core.CSharpProjectScanner scanner, PackageGuard.Core.NuGetPackageAnalyzer analyzer) { }
-        public PackageGuard.Core.AllowList AllowList { get; set; }
         public string CacheFilePath { get; set; }
-        public PackageGuard.Core.DenyList DenyList { get; set; }
         public bool ForceRestore { get; set; }
-        public string[] IgnoredFeeds { get; set; }
         public bool InteractiveRestore { get; set; }
         public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
         public string ProjectPath { get; set; }
         public bool SkipRestore { get; set; }
         public bool UseCaching { get; set; }
-        public System.Threading.Tasks.Task<PackageGuard.Core.PolicyViolation[]> ExecuteAnalysis() { }
+        public System.Threading.Tasks.Task<PackageGuard.Core.PolicyViolation[]> ExecuteAnalysis(PackageGuard.Core.GetPolicyByProject getPolicyByProject) { }
     }
     public class CSharpProjectScanner
     {
@@ -41,6 +38,7 @@
         public bool SkipRestore { get; set; }
         public NuGet.ProjectModel.LockFile? GetPackageLockFile(string path) { }
     }
+    public delegate PackageGuard.Core.ProjectPolicy GetPolicyByProject(string projectPath);
     public sealed class LicenseFetcher
     {
         public LicenseFetcher(Microsoft.Extensions.Logging.ILogger logger, string? gitHubApiKey = null) { }
@@ -77,6 +75,7 @@
     {
         public PackageInfoCollection(Microsoft.Extensions.Logging.ILogger logger) { }
         public void Add(PackageGuard.Core.PackageInfo package) { }
+        public void Clear() { }
         public PackageGuard.Core.PackageInfo? Find(string name, string version, NuGet.Protocol.Core.Types.SourceRepository[] projectNuGetSources) { }
         public System.Collections.Generic.IEnumerator<PackageGuard.Core.PackageInfo> GetEnumerator() { }
         public System.Threading.Tasks.Task TryInitializeFromCache(string cacheFilePath) { }
@@ -104,6 +103,14 @@
         public string PackageId { get; init; }
         public string[] Projects { get; init; }
         public string Version { get; init; }
+    }
+    public class ProjectPolicy
+    {
+        public ProjectPolicy() { }
+        public PackageGuard.Core.AllowList AllowList { get; set; }
+        public PackageGuard.Core.DenyList DenyList { get; set; }
+        public string[] IgnoredFeeds { get; set; }
+        public void Validate() { }
     }
 }
 namespace PackageGuard.Core.FetchingStrategies

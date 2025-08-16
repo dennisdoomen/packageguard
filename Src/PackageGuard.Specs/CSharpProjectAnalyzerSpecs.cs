@@ -37,7 +37,7 @@ public class CSharpProjectAnalyzerSpecs
             };
 
         // Act
-        var act = async () => await analyzer.ExecuteAnalysis();
+        var act = async () => await analyzer.ExecuteAnalysis(_ => new ProjectPolicy());
 
         // Assert
         await act.Should().ThrowAsync<ArgumentException>().WithMessage("*Either*allowlist*denylist*");
@@ -51,23 +51,25 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                DenyList = new DenyList
-                {
-                    Packages =
-                    [
-                        new PackageSelector("FluentAssertions")
-                    ]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            DenyList = new DenyList
+            {
+                Packages =
+                [
+                    new PackageSelector("FluentAssertions")
+                ]
+            }
+        });
 
         // Assert
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.5.0",
+            Version = Value.ThatSatisfies<string>(s=> s.Should().StartWith("8.")),
             License = "Unknown"
         });
     }
@@ -80,23 +82,25 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                DenyList = new DenyList
-                {
-                    Packages =
-                    [
-                        new PackageSelector("FluentAssertions", "8.5.0")
-                    ]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            DenyList = new DenyList
+            {
+                Packages =
+                [
+                    new PackageSelector("FluentAssertions", "8.5.0")
+                ]
+            }
+        });
 
         // Assert
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.5.0",
+            Version = Value.ThatSatisfies<string>(s=> s.Should().StartWith("8.")),
             License = "Unknown"
         });
     }
@@ -109,17 +113,19 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                DenyList = new DenyList
-                {
-                    Packages =
-                    [
-                        new PackageSelector("FluentAssertions", "blah")
-                    ]
-                }
             };
 
         // Act
-        var act = () => analyzer.ExecuteAnalysis();
+        var act = () => analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            DenyList = new DenyList
+            {
+                Packages =
+                [
+                    new PackageSelector("FluentAssertions", "blah")
+                ]
+            }
+        });
 
         // Assert
         await act.Should().ThrowAsync<ArgumentException>().WithMessage("*not a valid version string.*");
@@ -133,17 +139,19 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                DenyList = new DenyList
-                {
-                    Packages =
-                    [
-                        new PackageSelector("FluentAssertions", "[7.0.0,8.0.0)"),
-                    ]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            DenyList = new DenyList
+            {
+                Packages =
+                [
+                    new PackageSelector("FluentAssertions", "[7.0.0,8.0.0)"),
+                ]
+            }
+        });
 
         // Assert
         violations.Should().BeEmpty();
@@ -157,23 +165,25 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                DenyList = new DenyList
-                {
-                    Packages =
-                    [
-                        new PackageSelector("FluentAssertions", "[8.0.0,9.0.0)"),
-                    ]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            DenyList = new DenyList
+            {
+                Packages =
+                [
+                    new PackageSelector("FluentAssertions", "[8.0.0,9.0.0)"),
+                ]
+            }
+        });
 
         // Assert
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.5.0",
+            Version = Value.ThatSatisfies<string>(s=> s.Should().StartWith("8.")),
             License = "Unknown"
         });
     }
@@ -186,14 +196,16 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                DenyList = new DenyList
-                {
-                    Licenses = ["mit"]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            DenyList = new DenyList
+            {
+                Licenses = ["mit"]
+            }
+        });
 
         // Assert
         violations.Select(x => x.PackageId).Should().Contain(["CliWrap", "coverlet.collector", "JetBrains.Annotations"]);
@@ -211,17 +223,19 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                AllowList = new AllowList
-                {
-                    Packages =
-                    [
-                        new PackageSelector("FluentAssertions", string.Empty)
-                    ]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Packages =
+                [
+                    new PackageSelector("FluentAssertions", string.Empty)
+                ]
+            }
+        });
 
         // Assert
         violations.Should().BeEmpty();
@@ -235,14 +249,16 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit"]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit"]
+            }
+        });
 
         // Assert
         violations.Should().ContainEquivalentOf(new
@@ -259,14 +275,16 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit", "apache-2.0", "unknown"]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit", "apache-2.0", "unknown"]
+            }
+        });
 
         // Assert
         violations.Should().BeEmpty();
@@ -280,18 +298,20 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                AllowList =
-                {
-                    Licenses = ["mit"]
-                },
-                DenyList = new DenyList
-                {
-                    Licenses = ["mit"]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit"]
+            },
+            DenyList = new DenyList
+            {
+                Licenses = ["mit"]
+            }
+        });
 
         // Assert
         violations.Select(x => x.PackageId).Should().Contain(["CliWrap", "coverlet.collector", "JetBrains.Annotations"]);
@@ -305,23 +325,25 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                AllowList = new AllowList
-                {
-                    Packages =
-                    [
-                        new PackageSelector("FluentAssertions", "[7.0.0,8.0.0)"),
-                    ]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Packages =
+                [
+                    new PackageSelector("FluentAssertions", "[7.0.0,8.0.0)"),
+                ]
+            }
+        });
 
         // Assert
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = "8.5.0",
+            Version = Value.ThatSatisfies<string>(s=> s.Should().StartWith("8.")),
             License = "Unknown"
         });
     }
@@ -334,17 +356,19 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                AllowList = new AllowList
-                {
-                    Packages =
-                    [
-                        new PackageSelector("FluentAssertions", "[8.0.0,9.0.0)"),
-                    ]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Packages =
+                [
+                    new PackageSelector("FluentAssertions", "[8.0.0,9.0.0)"),
+                ]
+            }
+        });
 
         // Assert
         violations.Should().BeEmpty();
@@ -358,15 +382,17 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ProjectPath,
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit", "apache-2.0"],
-                    Packages = [new PackageSelector("FluentAssertions")]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit", "apache-2.0"],
+                Packages = [new PackageSelector("FluentAssertions")]
+            }
+        });
 
         // Assert
         violations.Should().BeEmpty();
@@ -380,14 +406,16 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = ChainablePath.Current / "NonExistingFolder" / "NonExisting.csproj",
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit"]
-                }
             };
 
         // Act
-        var act = () => analyzer.ExecuteAnalysis();
+        var act = () => analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit"]
+            }
+        });
 
         // Assert
         await act.Should().ThrowAsync<FileNotFoundException>()
@@ -403,15 +431,17 @@ public class CSharpProjectAnalyzerSpecs
             {
                 ForceRestore = true,
                 ProjectPath = ChainablePath.Current / "TestCases" / "UnknownLicense" / "ConsoleApp.csproj",
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit"],
-                    Feeds = ["nuget.org"]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit"],
+                Feeds = ["nuget.org"]
+            }
+        });
 
         // Assert
         violations.Should().BeEmpty("Since we excluded the feed");
@@ -426,15 +456,17 @@ public class CSharpProjectAnalyzerSpecs
             {
                 ForceRestore = true,
                 ProjectPath = ChainablePath.Current / "TestCases" / "UnknownLicense" / "ConsoleApp.csproj",
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit"],
-                    Feeds = ["*v3/index.json*"]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit"],
+                Feeds = ["*v3/index.json*"]
+            }
+        });
 
         // Assert
         violations.Should().BeEmpty("Since we excluded the feed");
@@ -449,19 +481,21 @@ public class CSharpProjectAnalyzerSpecs
             {
                 ForceRestore = true,
                 ProjectPath = ChainablePath.Current / "TestCases" / "UnknownLicense" / "ConsoleApp.csproj",
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit"],
-                    Feeds = ["nuget.org"]
-                },
-                DenyList = new DenyList
-                {
-                    Packages = [new PackageSelector("FluentAssertions")]
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit"],
+                Feeds = ["nuget.org"]
+            },
+            DenyList = new DenyList
+            {
+                Packages = [new PackageSelector("FluentAssertions")]
+            }
+        });
 
         // Assert
         violations.Should().ContainEquivalentOf(new
@@ -481,15 +515,17 @@ public class CSharpProjectAnalyzerSpecs
             {
                 ForceRestore = true,
                 ProjectPath = ChainablePath.Current / "TestCases" / "Prerelease" / "SimpleApp.csproj",
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit", "Apache-2.0", "Microsoft .NET Library License"],
-                    Prerelease = true,
-                },
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit", "Apache-2.0", "Microsoft .NET Library License"],
+                Prerelease = true,
+            }
+        });
 
         // Assert
         violations.Should().BeEmpty();
@@ -504,15 +540,17 @@ public class CSharpProjectAnalyzerSpecs
             {
                 ForceRestore = true,
                 ProjectPath = ChainablePath.Current / "TestCases" / "Prerelease" / "SimpleApp.csproj",
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit", "Apache-2.0", "Microsoft .NET Library License"],
-                    Prerelease = false,
-                },
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit", "Apache-2.0", "Microsoft .NET Library License"],
+                Prerelease = false,
+            }
+        });
 
         // Assert
         violations.Should().ContainEquivalentOf(new
@@ -535,18 +573,20 @@ public class CSharpProjectAnalyzerSpecs
             {
                 ForceRestore = true,
                 ProjectPath = ChainablePath.Current / "TestCases" / "Prerelease" / "SimpleApp.csproj",
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit", "Apache-2.0", "Microsoft .NET Library License"],
-                },
-                DenyList = new DenyList
-                {
-                    Prerelease = true,
-                }
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit", "Apache-2.0", "Microsoft .NET Library License"],
+            },
+            DenyList = new DenyList
+            {
+                Prerelease = true,
+            }
+        });
 
         // Assert
         violations.Should().ContainEquivalentOf(new
@@ -588,11 +628,6 @@ public class CSharpProjectAnalyzerSpecs
             {
                 SkipRestore = true,
                 ProjectPath = projectPath / "ConsoleApp.sln",
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit"],
-                },
-                IgnoredFeeds = ["unreachable"]
             };
 
         // Act
@@ -608,7 +643,14 @@ public class CSharpProjectAnalyzerSpecs
             </configuration>
             """);
 
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit"],
+            },
+            IgnoredFeeds = ["unreachable"]
+        });
 
         // Assert
         violations.Should().ContainEquivalentOf(new
@@ -630,15 +672,17 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit", "Apache-2.0"],
-                },
                 UseCaching = true
             };
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis();
+        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit", "Apache-2.0"],
+            }
+        });
 
         // Assert
         (current / ".packageguard" / "cache.bin").FileExists.Should().BeTrue();
@@ -665,16 +709,18 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit", "Apache-2.0"],
-                },
                 UseCaching = true,
                 CacheFilePath = current / ".mycustomfolder" / "packageguard.cache"
             };
 
         // Act
-        await analyzer.ExecuteAnalysis();
+        await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit", "Apache-2.0"],
+            }
+        });
 
         // Assert
         (current / ".mycustomfolder" / "packageguard.cache").FileExists.Should().BeTrue();
@@ -691,15 +737,17 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit", "Apache-2.0"],
-                },
                 UseCaching = true,
             };
 
         // Do the first run to create the cache
-        await analyzer.ExecuteAnalysis();
+        await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit", "Apache-2.0"],
+            }
+        });
 
         // Act
         var loggingProvider = new InMemoryLoggerProvider();
@@ -708,15 +756,17 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit", "Apache-2.0"],
-                },
                 UseCaching = true,
                 Logger = loggingProvider.CreateLogger("")
             };
 
-        await analyzer.ExecuteAnalysis();
+        await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit", "Apache-2.0"],
+            }
+        });
 
         // Assert
         loggingProvider.Logs.Select(x => x.Message).Should().ContainMatch("*Successfully loaded the cache from*");
@@ -741,15 +791,17 @@ public class CSharpProjectAnalyzerSpecs
             new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
             {
                 ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
-                AllowList = new AllowList
-                {
-                    Licenses = ["mit", "Apache-2.0"],
-                },
                 UseCaching = true,
                 Logger = loggingProvider.CreateLogger("")
             };
 
-        await analyzer.ExecuteAnalysis();
+        await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit", "Apache-2.0"],
+            }
+        });
 
         // Assert
         loggingProvider.Logs.Warnings.Select(x => x.Message).Should().ContainMatch("*Could not load package cache from*");

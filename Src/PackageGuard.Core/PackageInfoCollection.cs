@@ -10,6 +10,7 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
 {
     private readonly HashSet<PackageInfo> packages = new();
     private HashSet<PackageInfo> cache = new();
+    private bool isCacheInitialized;
 
     public IEnumerator<PackageInfo> GetEnumerator() => packages.GetEnumerator();
 
@@ -56,6 +57,11 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
 
     public async Task TryInitializeFromCache(string cacheFilePath)
     {
+        if (isCacheInitialized)
+        {
+            return;
+        }
+
         if (File.Exists(cacheFilePath))
         {
             try
@@ -75,6 +81,8 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
                 logger.LogWarning("Could not load package cache from {CacheFilePath}: {ErrorMessage}", cacheFilePath, ex.Message);
             }
         }
+
+        isCacheInitialized = true;
     }
 
     public async Task WriteToCache(string cacheFilePath)
@@ -91,5 +99,16 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
         {
             logger.LogWarning("Failed to write package cache {CacheFilePath}: {ErrorMessage}", cacheFilePath, ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Clears the list of packages collected.
+    /// </summary>
+    /// <remarks>
+    /// Does not affect the cache.
+    /// </remarks>
+    public void Clear()
+    {
+        packages.Clear();
     }
 }
