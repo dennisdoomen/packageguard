@@ -10,6 +10,9 @@ namespace PackageGuard;
 [UsedImplicitly]
 internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommandSettings>
 {
+    private const int SuccessExitCode = 0;
+    private const int FailureExitCode = 1;
+
     public override async Task<int> ExecuteAsync(CommandContext context, AnalyzeCommandSettings settings)
     {
         // Display PackageGuard version
@@ -78,11 +81,11 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
                 AnsiConsole.MarkupLine("");
             }
 
-            return 1;
+            return settings.IgnoreViolations ? SuccessExitCode : FailureExitCode;
         }
 
         AnsiConsole.MarkupLine("[green3_1]No policy violations found.[/]");
 
-        return 0;
+        return SuccessExitCode;
     }
 }
