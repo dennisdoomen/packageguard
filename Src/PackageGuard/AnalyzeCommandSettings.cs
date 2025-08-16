@@ -23,6 +23,10 @@ internal class AnalyzeCommandSettings : CommandSettings
     [CommandOption("-i|--restore-interactive|--restoreinteractive")]
     public bool Interactive {get; set;} = true;
 
+    [Description("Don't fail the analysis if any violations are found. Defaults to false.")]
+    [CommandOption("--ignore-violations|--ignoreviolations|--ignore")]
+    public bool IgnoreViolations {get; set;} = false;
+
     [Description("Force restoring the NuGet dependencies, even if the lockfile is up-to-date")]
     [CommandOption("-f|--force-restore|--forcerestore")]
     public bool ForceRestore { get; set; } = false;
