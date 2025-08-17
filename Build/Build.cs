@@ -47,6 +47,11 @@ class Build : NukeBuild
     [GitVersion(Framework = "net8.0", NoFetch = true, NoCache = true)]
     readonly GitVersion GitVersion;
 
+    [NuGetPackage("JetBrains.ReSharper.GlobalTools", "inspectcode.exe")]
+    Tool InspectCode;
+
+    string Value;
+
     AbsolutePath ArtifactsDirectory => RootDirectory / "Artifacts";
 
     AbsolutePath TestResultsDirectory => RootDirectory / "TestResults";
@@ -89,8 +94,15 @@ class Build : NukeBuild
                 .SetInformationalVersion(GitVersion.InformationalVersion));
         });
 
-    Target RunTests => _ => _
+    Target RunInspectCode => _ => _
         .DependsOn(Compile)
+        .Executes(() =>
+        {
+            InspectCode($"PackageGuard.sln -o={ArtifactsDirectory / "CodeIssues.sarif"} --no-build");
+        });
+
+    Target RunTests => _ => _
+        .DependsOn(Compile, RunInspectCode)
         .Executes(() =>
         {
             TestResultsDirectory.CreateOrCleanDirectory();

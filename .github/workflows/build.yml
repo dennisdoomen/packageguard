@@ -40,6 +40,11 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         file: TestResults/reports/lcov.info
 
+    - name: Upload SARIF file
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: Artifacts/CodeIssues.sarif
+
     - name: Upload artifacts
       if: always()
       uses: actions/upload-artifact@v4

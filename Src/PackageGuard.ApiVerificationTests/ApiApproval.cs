@@ -1,10 +1,4 @@
-﻿using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-using System.Xml.Linq;
-using System.Xml.XPath;
+﻿using System.Threading.Tasks;
 using PackageGuard.Core;
 using Pathy;
 using PublicApiGenerator;
