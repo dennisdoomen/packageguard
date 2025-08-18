@@ -39,7 +39,16 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
             .Select(source => source.PackageSource.Source)
             .ToArray();
 
-        PackageInfo? package = cache.FirstOrDefault(p => p.Name == name && p.Version == version);
+        PackageInfo? package = packages.FirstOrDefault(p => p.Name == name && p.Version == version);
+        if (package is null)
+        {
+            package = cache.FirstOrDefault(p => p.Name == name && p.Version == version);
+            if (package is not null)
+            {
+                packages.Add(package);
+            }
+        }
+
         if (package is not null)
         {
             if (sourceUrls.Contains(package.SourceUrl))
