@@ -162,9 +162,10 @@ public class PackageInfoSpecs
         await currentCollection.TryInitializeFromCache(ChainablePath.Current / "cache.bin");
 
         // Assert
-
         PackageInfo package = currentCollection.Find("Bogus", "2.0.0", [source]);
         package.Should().NotBeNull();
+
+        currentCollection.Should().Contain(x => x.IsUsed && x.Name == "Bogus" && x.Version == "2.0.0");
     }
 
     [TestMethod]
