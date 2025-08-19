@@ -4,14 +4,22 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "16:00"
-      timezone: "Europe/Copenhagen"
+    groups:
+      all-actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
 
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "16:00"
-      timezone: "Europe/Copenhagen"
+    groups:
+      minor-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    
