@@ -15,7 +15,7 @@
       <PackageReference Include="coverlet.collector" Version="6.0.4" PrivateAssets="all">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="Meziantou.Extensions.Logging.InMemory" Version="1.3.0" />
+      <PackageReference Include="Meziantou.Extensions.Logging.InMemory" Version="1.3.2" />
       <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="9.7.0" />
       <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
       <PackageReference Include="MSTest" Version="3.9.3" />
