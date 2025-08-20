@@ -45,6 +45,18 @@ public partial class PackageInfo
 
     public string? RepositoryUrl { get; set; }
 
+    /// <summary>
+    /// Gets or sets the overall risk score for this package (0-100, where 0 is lowest risk).
+    /// </summary>
+    [MemoryPackIgnore]
+    public double RiskScore { get; set; }
+
+    /// <summary>
+    /// Gets or sets the individual risk dimension scores.
+    /// </summary>
+    [MemoryPackIgnore]
+    public RiskDimensions RiskDimensions { get; set; } = new();
+
     public bool SatisfiesRange(string name, string? versionRange = null)
     {
         if (!name.Equals(Name, StringComparison.OrdinalIgnoreCase))

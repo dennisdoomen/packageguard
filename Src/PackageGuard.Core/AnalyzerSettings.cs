@@ -50,4 +50,9 @@ public class AnalyzerSettings
     /// The NPM package manager to use.
     /// </summary>
     public NpmPackageManager? NpmPackageManager { get; set; }
+
+    /// <summary>
+    /// Indicates whether risk metrics should be included in the analysis result.
+    /// </summary>
+    public bool ShowRisk { get; init; }
 }

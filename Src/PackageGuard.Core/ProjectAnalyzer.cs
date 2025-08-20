@@ -8,11 +8,18 @@ namespace PackageGuard.Core;
 /// <summary>
 /// Analyzes C# projects for compliance with defined policies, such as allowed and denied packages, licenses, and feeds.
 /// </summary>
-public class ProjectAnalyzer(LicenseFetcher licenseFetcher)
+public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskEvaluator = null)
 {
     public ILogger Logger { get; set; } = NullLogger.Instance;
 
     public async Task<PolicyViolation[]> ExecuteAnalysis(string projectPath, AnalyzerSettings settings, GetPolicyByProject getPolicyByProject)
+    {
+        AnalysisResult result = await ExecuteAnalysisWithRisk(projectPath, settings, getPolicyByProject);
+        return result.Violations;
+    }
+
+    public async Task<AnalysisResult> ExecuteAnalysisWithRisk(string projectPath, AnalyzerSettings settings,
+        GetPolicyByProject getPolicyByProject)
     {
         IProjectAnalysisStrategy[] strategies =
         [
@@ -39,6 +46,20 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher)
             await packages.WriteToCache(settings.CacheFilePath);
         }
 
-        return violations.ToArray();
+        PackageInfo[] allPackages = packages.GetAllUsedPackages();
+        if (settings.ShowRisk)
+        {
+            RiskEvaluator evaluator = riskEvaluator ?? new RiskEvaluator(Logger);
+            foreach (PackageInfo package in allPackages)
+            {
+                evaluator.EvaluateRisk(package);
+            }
+        }
+
+        return new AnalysisResult
+        {
+            Violations = violations.ToArray(),
+            Packages = allPackages
+        };
     }
 }

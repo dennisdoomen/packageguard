@@ -71,6 +71,11 @@ internal class AnalyzeCommandSettings : CommandSettings
     [CommandOption("--npm-exe-path|--npmexepath")]
     public string? NpmExePath { get; set; }
 
+    [Description("Show risk metrics for all packages in addition to policy violations. Defaults to false.")]
+    [CommandOption("--show-risk|--showrisk")]
+    [DefaultValue(false)]
+    public bool ShowRisk { get; set; }
+
     public AnalyzerSettings ToCoreSettings()
     {
         return new AnalyzerSettings
@@ -82,7 +87,8 @@ internal class AnalyzeCommandSettings : CommandSettings
             NpmPackageManager = NpmPackageManager,
             UseCaching = UseCaching,
             NpmExePath = NpmExePath,
-            ScanNuGet = ScanNuGet
+            ScanNuGet = ScanNuGet,
+            ShowRisk = ShowRisk
         };
     }
 }

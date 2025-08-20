@@ -110,6 +110,11 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
         }
     }
 
+    public PackageInfo[] GetAllUsedPackages()
+    {
+        return cache.Where(package => package.IsUsed).ToArray();
+    }
+
     /// <summary>
     /// Clears the list of packages collected.
     /// </summary>
