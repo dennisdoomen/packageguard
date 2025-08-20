@@ -9,8 +9,18 @@ namespace PackageGuard.Core;
 /// <summary>
 /// Analyzes C# projects for compliance with defined policies, such as allowed and denied packages, licenses, and feeds.
 /// </summary>
-public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAnalyzer analyzer)
+public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAnalyzer analyzer, RiskEvaluator riskEvaluator)
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="CSharpProjectAnalyzer"/> class with a default RiskEvaluator.
+    /// </summary>
+    /// <param name="scanner">The project scanner.</param>
+    /// <param name="analyzer">The NuGet package analyzer.</param>
+    public CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAnalyzer analyzer) 
+        : this(scanner, analyzer, new RiskEvaluator(NullLogger.Instance))
+    {
+    }
+
     public ILogger Logger { get; set; } = NullLogger.Instance;
 
     /// <summary>
@@ -52,7 +62,14 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
 
     public async Task<PolicyViolation[]> ExecuteAnalysis(GetPolicyByProject getPolicyByProject)
     {
+        var result = await ExecuteAnalysisWithRisk(getPolicyByProject);
+        return result.Violations;
+    }
+
+    public async Task<AnalysisResult> ExecuteAnalysisWithRisk(GetPolicyByProject getPolicyByProject)
+    {
         List<PolicyViolation> violations = new();
+        List<PackageInfo> allPackages = new();
         analyzer.InteractiveRestore = InteractiveRestore;
 
         PackageInfoCollection packages = new(Logger);
@@ -75,6 +92,15 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
             await CollectPackagesFrom(projectPath, packages);
 
             violations.AddRange(VerifyAgainstPolicy(packages, policy));
+            
+            // Collect all packages for risk reporting (avoiding duplicates by name+version)
+            foreach (var package in packages)
+            {
+                if (!allPackages.Any(p => p.Name == package.Name && p.Version == package.Version))
+                {
+                    allPackages.Add(package);
+                }
+            }
         }
 
         if (UseCaching)
@@ -82,7 +108,11 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
             await packages.WriteToCache(CacheFilePath);
         }
 
-        return violations.ToArray();
+        return new AnalysisResult
+        {
+            Violations = violations.ToArray(),
+            Packages = allPackages.ToArray()
+        };
     }
 
     private async Task CollectPackagesFrom(string projectPath, PackageInfoCollection packages)
@@ -103,6 +133,12 @@ public class CSharpProjectAnalyzer(CSharpProjectScanner scanner, NuGetPackageAna
             foreach (LockFileLibrary? library in lockFile.Libraries.Where(library => library.Type == "package"))
             {
                 await analyzer.CollectPackageMetadata(projectPath, library.Name, library.Version, packages);
+            }
+
+            // Evaluate risk for all packages in this project
+            foreach (PackageInfo package in packages)
+            {
+                riskEvaluator.EvaluateRisk(package);
             }
         }
     }

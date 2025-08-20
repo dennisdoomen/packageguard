@@ -46,4 +46,8 @@ internal class AnalyzeCommandSettings : CommandSettings
     [Description("Overrides the file path where analysis data is cached. Defaults to the \"<workingdirectory>/.packageguard/cache.bin\"")]
     [CommandOption("--cache-file-path|--cachefilepath")]
     public string CacheFilePath { get; set; } = ChainablePath.Current / ".packageguard" / "cache.bin";
+
+    [Description("Show risk metrics for all packages in addition to policy violations. Defaults to false.")]
+    [CommandOption("--show-risk|--showrisk")]
+    public bool ShowRisk { get; set; } = false;
 }
