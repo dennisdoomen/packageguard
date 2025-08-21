@@ -60,6 +60,7 @@
         public string? License { get; set; }
         public string? LicenseUrl { get; set; }
         public string Name { get; set; }
+        [set: JetBrains.Annotations.UsedImplicitly]
         public string[] Projects { get; set; }
         public string? RepositoryUrl { get; set; }
         public string Source { get; set; }
