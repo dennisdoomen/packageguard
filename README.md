@@ -220,6 +220,37 @@ If everything was configured correctly, you'll get something like:
 
 The exit code indicates either 0 for success or 1 for failure. 
 
+### Risk Metrics
+
+PackageGuard also includes a comprehensive risk assessment system to help you evaluate the risk associated with each package in your project. Use the `--show-risk` flag to display risk metrics alongside policy violations:
+
+`packageguard --show-risk <path-to-project>`
+
+This will analyze each package across three key risk dimensions:
+
+- **Legal Risk** (0-10): Based on license compatibility and compliance factors
+- **Security Risk** (0-10): Based on source code transparency and known vulnerabilities  
+- **Operational Risk** (0-10): Based on maintenance status and project activity
+
+The overall risk score is calculated as the average of these dimensions and scaled to 0-100 for easy interpretation. Results are color-coded:
+- 🟢 Green (0-19): Low risk
+- 🟡 Yellow (20-39): Low-medium risk  
+- 🟠 Orange (40-69): Medium risk
+- 🔴 Red (70-100): High risk
+
+Example output:
+```
+Package Risk Analysis:
+
+Newtonsoft.Json 13.0.1
+- Overall Risk: 20.0/100
+- Legal: 1.0/10
+- Security: 2.0/10
+- Operational: 3.0/10
+- License: MIT
+- Repository: https://www.newtonsoft.com/json
+``` 
+
 ## Additional notes
 
 ### Speeding up the analysis using caching
