@@ -26,7 +26,7 @@
 
     <ItemGroup>
       <PackageReference Include="CliWrap" Version="3.9.0" />
-      <PackageReference Include="JetBrains.Annotations" Version="2025.2.0" />
+      <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
       <PackageReference Include="Microsoft.Build" Version="17.14.8" />
       <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.8" />
       <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.8" />
@@ -39,10 +39,10 @@
       <PackageReference Include="Serilog" Version="4.3.0" />
       <PackageReference Include="Serilog.Extensions.Logging" Version="9.0.2" />
       <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
-      <PackageReference Include="Spectre.Console" Version="0.50.0" />
-      <PackageReference Include="Spectre.Console.Cli" Version="0.50.0" />
+      <PackageReference Include="Spectre.Console" Version="0.51.1" />
+      <PackageReference Include="Spectre.Console.Cli" Version="0.51.1" />
       <PackageReference Include="NuGet.ProjectModel" Version="6.14.0" />
-      <PackageReference Include="Spectre.Console.Cli.Extensions.DependencyInjection" Version="0.11.0" />
+      <PackageReference Include="Spectre.Console.Cli.Extensions.DependencyInjection" Version="0.12.0" />
       <PackageReference Include="vertical-spectreconsolelogger" Version="0.10.1-dev.20241201.35" />
     </ItemGroup>
 
