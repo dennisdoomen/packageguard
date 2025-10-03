@@ -130,3 +130,12 @@ namespace PackageGuard.Core.FetchingStrategies
         public System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.PackageInfo package) { }
     }
 }
+namespace PackageGuard.Core.Npm
+{
+    public class NpmLockFileLoader
+    {
+        public NpmLockFileLoader() { }
+        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
+        public void CollectPackageMetadata(string packageLockPath, string projectPath, PackageGuard.Core.PackageInfoCollection packages) { }
+    }
+}
