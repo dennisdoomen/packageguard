@@ -87,6 +87,9 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
       <Compile Remove="TestCases\UnknownLicense\Program.cs" />
+      <None Include="TestCases\NpmApp\package-lock.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>
