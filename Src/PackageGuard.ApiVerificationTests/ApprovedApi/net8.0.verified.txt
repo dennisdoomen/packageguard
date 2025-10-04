@@ -134,8 +134,13 @@ namespace PackageGuard.Core.Npm
 {
     public class NpmLockFileLoader
     {
-        public NpmLockFileLoader() { }
+        public NpmLockFileLoader(Microsoft.Extensions.Logging.ILogger? logger = null) { }
         public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
-        public void CollectPackageMetadata(string packageLockPath, string projectPath, PackageGuard.Core.PackageInfoCollection packages) { }
+        public System.Threading.Tasks.Task CollectPackageMetadata(string packageLockPath, string projectPath, PackageGuard.Core.PackageInfoCollection packages) { }
+    }
+    public class NpmRegistryLicenseFetcher : PackageGuard.Core.FetchingStrategies.IFetchLicense
+    {
+        public NpmRegistryLicenseFetcher(Microsoft.Extensions.Logging.ILogger logger) { }
+        public System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.PackageInfo package) { }
     }
 }

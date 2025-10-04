@@ -90,6 +90,9 @@
       <None Include="TestCases\NpmApp\package-lock.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <None Include="TestCases\NpmApp\package-lock-no-license.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>
