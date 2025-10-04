@@ -1,11 +1,13 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace PackageGuard.Core.Npm;
 
 /// <summary>
-/// Loads and parses Yarn yarn.lock files to extract package information.
+/// Loads and parses Yarn yarn.lock files (both v1 and v2 formats) to extract package information.
 /// </summary>
 public class YarnLockFileLoader
 {
@@ -21,6 +23,7 @@ public class YarnLockFileLoader
 
     /// <summary>
     /// Parses a Yarn yarn.lock file and populates a <see cref="PackageInfoCollection"/> with the packages found.
+    /// Supports both Yarn v1 (custom text format) and Yarn v2+ (YAML format).
     /// </summary>
     /// <param name="yarnLockPath">The full path to the yarn.lock file.</param>
     /// <param name="projectPath">The path to the project that contains the yarn.lock file.</param>
@@ -38,7 +41,21 @@ public class YarnLockFileLoader
             Logger.LogInformation("Loading Yarn lock file from {Path}", yarnLockPath);
 
             string content = File.ReadAllText(yarnLockPath);
-            var parsedPackages = ParseYarnLock(content);
+            
+            // Detect Yarn version based on format
+            bool isYarnV2 = IsYarnV2Format(content);
+            
+            Dictionary<string, YarnPackageData> parsedPackages;
+            if (isYarnV2)
+            {
+                Logger.LogDebug("Detected Yarn v2+ format (YAML)");
+                parsedPackages = ParseYarnV2Lock(content);
+            }
+            else
+            {
+                Logger.LogDebug("Detected Yarn v1 format (custom text)");
+                parsedPackages = ParseYarnV1Lock(content);
+            }
 
             Logger.LogInformation("Successfully parsed yarn.lock with {PackageCount} packages", parsedPackages.Count);
 
@@ -70,9 +87,131 @@ public class YarnLockFileLoader
     }
 
     /// <summary>
-    /// Parses the yarn.lock file format into a dictionary of packages.
+    /// Detects if the yarn.lock file is in Yarn v2+ format (YAML with __metadata).
     /// </summary>
-    private Dictionary<string, YarnPackageData> ParseYarnLock(string content)
+    private bool IsYarnV2Format(string content)
+    {
+        // Yarn v2+ files have a __metadata section at the top
+        return content.Contains("__metadata:");
+    }
+
+    /// <summary>
+    /// Parses the Yarn v2+ YAML lock file format into a dictionary of packages.
+    /// </summary>
+    private Dictionary<string, YarnPackageData> ParseYarnV2Lock(string content)
+    {
+        var packages = new Dictionary<string, YarnPackageData>();
+
+        try
+        {
+            var deserializer = new DeserializerBuilder()
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .IgnoreUnmatchedProperties()
+                .Build();
+
+            var lockFile = deserializer.Deserialize<Dictionary<string, object>>(content);
+
+            foreach (var (key, value) in lockFile)
+            {
+                // Skip metadata and other special entries
+                if (key.StartsWith("__") || value is not Dictionary<object, object> packageData)
+                {
+                    continue;
+                }
+
+                // Parse package descriptor like "express@npm:^4.18.2"
+                var (packageName, _) = ParseYarnV2PackageKey(key);
+                
+                if (string.IsNullOrEmpty(packageName))
+                {
+                    continue;
+                }
+
+                string? version = null;
+                string? resolution = null;
+
+                if (packageData.TryGetValue("version", out object? versionObj))
+                {
+                    version = versionObj?.ToString();
+                }
+
+                if (packageData.TryGetValue("resolution", out object? resolutionObj))
+                {
+                    resolution = resolutionObj?.ToString();
+                    
+                    // Extract version from resolution if not present
+                    // Format: "package@npm:version"
+                    if (version == null && resolution != null)
+                    {
+                        var resMatch = Regex.Match(resolution, @"@npm:(.+)$");
+                        if (resMatch.Success)
+                        {
+                            version = resMatch.Groups[1].Value;
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(version))
+                {
+                    // For Yarn v2, construct resolved URL from npm registry
+                    string resolvedUrl = $"https://registry.yarnpkg.com/{packageName}/-/{packageName.Split('/').Last()}-{version}.tgz";
+                    
+                    packages[packageName] = new YarnPackageData
+                    {
+                        Version = version,
+                        Resolved = resolvedUrl
+                    };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to parse Yarn v2 lock file");
+        }
+
+        return packages;
+    }
+
+    /// <summary>
+    /// Parses a Yarn v2 package key to extract the package name.
+    /// Format: "package@npm:^version" or "@scope/package@npm:^version"
+    /// </summary>
+    private (string packageName, string descriptor) ParseYarnV2PackageKey(string key)
+    {
+        // Remove quotes if present
+        key = key.Trim('"', '\'');
+
+        // Handle scoped packages: @scope/package@npm:^version
+        if (key.StartsWith("@"))
+        {
+            // Find the second @ which separates name from descriptor
+            int secondAtIndex = key.IndexOf('@', 1);
+            if (secondAtIndex > 0)
+            {
+                string packageName = key.Substring(0, secondAtIndex);
+                string descriptor = key.Substring(secondAtIndex + 1);
+                return (packageName, descriptor);
+            }
+        }
+        else
+        {
+            // Regular package: package@npm:^version
+            int atIndex = key.IndexOf('@');
+            if (atIndex > 0)
+            {
+                string packageName = key.Substring(0, atIndex);
+                string descriptor = key.Substring(atIndex + 1);
+                return (packageName, descriptor);
+            }
+        }
+
+        return (string.Empty, string.Empty);
+    }
+
+    /// <summary>
+    /// Parses the Yarn v1 custom text lock file format into a dictionary of packages.
+    /// </summary>
+    private Dictionary<string, YarnPackageData> ParseYarnV1Lock(string content)
     {
         var packages = new Dictionary<string, YarnPackageData>();
         var lines = content.Split('\n');
