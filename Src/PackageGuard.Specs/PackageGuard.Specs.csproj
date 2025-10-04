@@ -96,6 +96,12 @@
       <None Include="TestCases\NpmApp\package-lock-private-registry.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <None Include="TestCases\NpmApp\yarn.lock">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Include="TestCases\NpmApp\pnpm-lock.yaml">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>

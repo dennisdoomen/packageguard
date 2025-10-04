@@ -143,4 +143,16 @@ namespace PackageGuard.Core.Npm
         public NpmRegistryLicenseFetcher(Microsoft.Extensions.Logging.ILogger logger) { }
         public System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.PackageInfo package) { }
     }
+    public class PnpmLockFileLoader
+    {
+        public PnpmLockFileLoader(Microsoft.Extensions.Logging.ILogger? logger = null) { }
+        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
+        public System.Threading.Tasks.Task CollectPackageMetadata(string pnpmLockPath, string projectPath, PackageGuard.Core.PackageInfoCollection packages) { }
+    }
+    public class YarnLockFileLoader
+    {
+        public YarnLockFileLoader(Microsoft.Extensions.Logging.ILogger? logger = null) { }
+        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
+        public System.Threading.Tasks.Task CollectPackageMetadata(string yarnLockPath, string projectPath, PackageGuard.Core.PackageInfoCollection packages) { }
+    }
 }
