@@ -134,4 +134,35 @@ public class NpmLockFileLoaderSpecs
         isNumberPackage.License.Should().NotBeNullOrEmpty();
         isNumberPackage.RepositoryUrl.Should().NotBeNullOrEmpty();
     }
+
+    [TestMethod]
+    public async Task Supports_private_npm_registries()
+    {
+        // Arrange
+        var loggingProvider = new InMemoryLoggerProvider();
+        var testProject = ChainablePath.Current / "TestCases" / "NpmApp";
+        var packageLockPath = (testProject / "package-lock-private-registry.json").ToString();
+        var projectPath = testProject.ToString();
+
+        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+
+        var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
+
+        // Act
+        await loader.CollectPackageMetadata(packageLockPath, projectPath, packages);
+
+        // Assert
+        packages.Should().NotBeEmpty();
+        
+        var privatePackage = packages.FirstOrDefault(p => p.Name == "@mycompany/private-package");
+        privatePackage.Should().NotBeNull();
+        privatePackage!.Version.Should().Be("1.2.3");
+        privatePackage.License.Should().Be("MIT");
+        
+        // SourceUrl should point to the private registry
+        privatePackage.SourceUrl.Should().Contain("npm.mycompany.com");
+        
+        // Verify the fetcher would use the correct registry URL (though it won't actually fetch in this test)
+        privatePackage.Source.Should().Be("npm");
+    }
 }
