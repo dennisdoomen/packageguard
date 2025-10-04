@@ -21,55 +21,6 @@ public class NpmLockFileLoader
     }
 
     /// <summary>
-    /// Loads and parses a package-lock.json file from the specified path.
-    /// </summary>
-    /// <param name="packageLockPath">The full path to the package-lock.json file.</param>
-    /// <returns>An <see cref="NpmPackageLock"/> object containing the parsed data, or null if parsing fails.</returns>
-    internal NpmPackageLock? LoadPackageLockFile(string packageLockPath)
-    {
-        if (!File.Exists(packageLockPath))
-        {
-            Logger.LogWarning("Package-lock.json file not found at {Path}", packageLockPath);
-            return null;
-        }
-
-        try
-        {
-            Logger.LogInformation("Loading npm lock file from {Path}", packageLockPath);
-
-            string jsonContent = File.ReadAllText(packageLockPath);
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                AllowTrailingCommas = true
-            };
-
-            NpmPackageLock? lockFile = JsonSerializer.Deserialize<NpmPackageLock>(jsonContent, options);
-
-            if (lockFile == null)
-            {
-                Logger.LogWarning("Failed to deserialize package-lock.json from {Path}", packageLockPath);
-                return null;
-            }
-
-            Logger.LogInformation("Successfully loaded npm lock file with {PackageCount} packages",
-                lockFile.Packages?.Count ?? 0);
-
-            return lockFile;
-        }
-        catch (JsonException ex)
-        {
-            Logger.LogError(ex, "Failed to parse package-lock.json from {Path}", packageLockPath);
-            return null;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Unexpected error while loading package-lock.json from {Path}", packageLockPath);
-            return null;
-        }
-    }
-
-    /// <summary>
     /// Parses an npm package-lock.json file and populates a <see cref="PackageInfoCollection"/> with the packages found.
     /// </summary>
     /// <param name="packageLockPath">The full path to the package-lock.json file.</param>
@@ -141,6 +92,55 @@ public class NpmLockFileLoader
 
             Logger.LogDebug("Added npm package {Name} {Version} with license {License}",
                 packageName, packageEntry.Version, packageInfo.License ?? "Unknown");
+        }
+    }
+
+    /// <summary>
+    /// Loads and parses a package-lock.json file from the specified path.
+    /// </summary>
+    /// <param name="packageLockPath">The full path to the package-lock.json file.</param>
+    /// <returns>An <see cref="NpmPackageLock"/> object containing the parsed data, or null if parsing fails.</returns>
+    private NpmPackageLock? LoadPackageLockFile(string packageLockPath)
+    {
+        if (!File.Exists(packageLockPath))
+        {
+            Logger.LogWarning("Package-lock.json file not found at {Path}", packageLockPath);
+            return null;
+        }
+
+        try
+        {
+            Logger.LogInformation("Loading npm lock file from {Path}", packageLockPath);
+
+            string jsonContent = File.ReadAllText(packageLockPath);
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                AllowTrailingCommas = true
+            };
+
+            NpmPackageLock? lockFile = JsonSerializer.Deserialize<NpmPackageLock>(jsonContent, options);
+
+            if (lockFile == null)
+            {
+                Logger.LogWarning("Failed to deserialize package-lock.json from {Path}", packageLockPath);
+                return null;
+            }
+
+            Logger.LogInformation("Successfully loaded npm lock file with {PackageCount} packages",
+                lockFile.Packages?.Count ?? 0);
+
+            return lockFile;
+        }
+        catch (JsonException ex)
+        {
+            Logger.LogError(ex, "Failed to parse package-lock.json from {Path}", packageLockPath);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unexpected error while loading package-lock.json from {Path}", packageLockPath);
+            return null;
         }
     }
 }
