@@ -46,4 +46,23 @@ internal class AnalyzeCommandSettings : CommandSettings
     [Description("Overrides the file path where analysis data is cached. Defaults to the \"<workingdirectory>/.packageguard/cache.bin\"")]
     [CommandOption("--cache-file-path|--cachefilepath")]
     public string CacheFilePath { get; set; } = ChainablePath.Current / ".packageguard" / "cache.bin";
+
+    [Description("Explicitly enable scanning for .csproj, .sln or .slnx files")]
+    [CommandOption("--nuget")]
+    public bool ScanNuGet { get; set; } = false;
+
+    [Description("Explicitly enable scanning for package.json files and optionally specify the package manager to use (npm, yarn, pnpm)")]
+    [CommandOption("--npm")]
+    public NpmPackageManager? NpmPackageManager { get; set; }
+
+    [Description("The path to the npm, yarn or pnpm executable. If not specified, the tool will try to find it in the system PATH.")]
+    [CommandOption("--npm-exe-path|--npmexepath")]
+    public string? NpmExePath { get; set; }
+}
+
+internal enum NpmPackageManager
+{
+    Npm,
+    Yarn,
+    Pnpm
 }
