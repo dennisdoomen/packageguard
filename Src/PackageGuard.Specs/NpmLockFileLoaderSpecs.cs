@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Threading.Tasks;
 using FluentAssertions;
 using Meziantou.Extensions.Logging.InMemory;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -12,7 +13,7 @@ namespace PackageGuard.Specs;
 public class NpmLockFileLoaderSpecs
 {
     [TestMethod]
-    public void Can_collect_package_metadata_from_lock_file()
+    public async Task Can_collect_package_metadata_from_lock_file()
     {
         // Arrange
         var loggingProvider = new InMemoryLoggerProvider();
@@ -20,15 +21,12 @@ public class NpmLockFileLoaderSpecs
         var packageLockPath = (testProject / "package-lock.json").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new NpmLockFileLoader
-        {
-            Logger = loggingProvider.CreateLogger("")
-        };
+        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
         // Act
-        loader.CollectPackageMetadata(packageLockPath, projectPath, packages);
+        await loader.CollectPackageMetadata(packageLockPath, projectPath, packages);
 
         // Assert
         packages.Should().NotBeEmpty();
@@ -52,7 +50,7 @@ public class NpmLockFileLoaderSpecs
     }
 
     [TestMethod]
-    public void Skips_root_package_entry()
+    public async Task Skips_root_package_entry()
     {
         // Arrange
         var loggingProvider = new InMemoryLoggerProvider();
@@ -60,15 +58,12 @@ public class NpmLockFileLoaderSpecs
         var packageLockPath = (testProject / "package-lock.json").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new NpmLockFileLoader
-        {
-            Logger = loggingProvider.CreateLogger("")
-        };
+        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
         // Act
-        loader.CollectPackageMetadata(packageLockPath, projectPath, packages);
+        await loader.CollectPackageMetadata(packageLockPath, projectPath, packages);
 
         // Assert
         // The root package with empty string key should not be included
@@ -76,7 +71,7 @@ public class NpmLockFileLoaderSpecs
     }
 
     [TestMethod]
-    public void Handles_packages_without_license()
+    public async Task Handles_packages_without_license()
     {
         // Arrange
         var loggingProvider = new InMemoryLoggerProvider();
@@ -84,15 +79,12 @@ public class NpmLockFileLoaderSpecs
         var packageLockPath = (testProject / "package-lock.json").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new NpmLockFileLoader
-        {
-            Logger = loggingProvider.CreateLogger("")
-        };
+        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
         // Act
-        loader.CollectPackageMetadata(packageLockPath, projectPath, packages);
+        await loader.CollectPackageMetadata(packageLockPath, projectPath, packages);
 
         // Assert - should not throw exception and packages without license should have null License
         packages.Should().NotBeEmpty();
@@ -100,22 +92,46 @@ public class NpmLockFileLoaderSpecs
     }
 
     [TestMethod]
-    public void Handles_nonexistent_file_gracefully()
+    public async Task Handles_nonexistent_file_gracefully()
     {
         // Arrange
         var loggingProvider = new InMemoryLoggerProvider();
-        var loader = new NpmLockFileLoader
-        {
-            Logger = loggingProvider.CreateLogger("")
-        };
+        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
         // Act
-        loader.CollectPackageMetadata("/nonexistent/package-lock.json", "/some/project", packages);
+        await loader.CollectPackageMetadata("/nonexistent/package-lock.json", "/some/project", packages);
 
         // Assert - should not throw and should log warning
         packages.Should().BeEmpty();
         loggingProvider.Logs.Should().Contain(log => log.Message.Contains("not found"));
+    }
+
+    [TestMethod]
+    public async Task Fetches_license_from_npm_registry_when_missing()
+    {
+        // Arrange
+        var loggingProvider = new InMemoryLoggerProvider();
+        var testProject = ChainablePath.Current / "TestCases" / "NpmApp";
+        var packageLockPath = (testProject / "package-lock-no-license.json").ToString();
+        var projectPath = testProject.ToString();
+
+        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+
+        var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
+
+        // Act
+        await loader.CollectPackageMetadata(packageLockPath, projectPath, packages);
+
+        // Assert
+        packages.Should().NotBeEmpty();
+        
+        var isNumberPackage = packages.FirstOrDefault(p => p.Name == "is-number");
+        isNumberPackage.Should().NotBeNull();
+        isNumberPackage!.Version.Should().Be("7.0.0");
+        // License should be fetched from NPM registry
+        isNumberPackage.License.Should().NotBeNullOrEmpty();
+        isNumberPackage.RepositoryUrl.Should().NotBeNullOrEmpty();
     }
 }
