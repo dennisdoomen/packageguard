@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using PackageGuard.Core.FetchingStrategies;
 
 namespace PackageGuard.Core.Npm;
 
@@ -9,7 +10,15 @@ namespace PackageGuard.Core.Npm;
 /// </summary>
 public class NpmLockFileLoader
 {
+    private readonly NpmRegistryLicenseFetcher licenseFetcher;
+
     public ILogger Logger { get; set; } = NullLogger.Instance;
+
+    public NpmLockFileLoader(ILogger? logger = null)
+    {
+        Logger = logger ?? NullLogger.Instance;
+        licenseFetcher = new NpmRegistryLicenseFetcher(Logger);
+    }
 
     /// <summary>
     /// Loads and parses a package-lock.json file from the specified path.
@@ -66,7 +75,7 @@ public class NpmLockFileLoader
     /// <param name="packageLockPath">The full path to the package-lock.json file.</param>
     /// <param name="projectPath">The path to the project that contains the package-lock.json file.</param>
     /// <param name="packages">The collection to populate with package information.</param>
-    public void CollectPackageMetadata(string packageLockPath, string projectPath, PackageInfoCollection packages)
+    public async Task CollectPackageMetadata(string packageLockPath, string projectPath, PackageInfoCollection packages)
     {
         NpmPackageLock? lockFile = LoadPackageLockFile(packageLockPath);
 
@@ -124,8 +133,14 @@ public class NpmLockFileLoader
             packages.Add(packageInfo);
             packageInfo.TrackAsUsedInProject(projectPath);
 
+            // Fetch additional metadata from NPM registry if license is missing
+            if (packageInfo.License is null)
+            {
+                await licenseFetcher.FetchLicenseAsync(packageInfo);
+            }
+
             Logger.LogDebug("Added npm package {Name} {Version} with license {License}",
-                packageName, packageEntry.Version, packageEntry.License ?? "Unknown");
+                packageName, packageEntry.Version, packageInfo.License ?? "Unknown");
         }
     }
 }
