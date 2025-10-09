@@ -7,7 +7,7 @@ using PackageGuard.Core;
 using PackageGuard.Core.Npm;
 using Pathy;
 
-namespace PackageGuard.Specs;
+namespace PackageGuard.Specs.Npm;
 
 [TestClass]
 public class PnpmLockFileLoaderSpecs

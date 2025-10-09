@@ -29,6 +29,7 @@
         "CodeCoverage",
         "Compile",
         "Default",
+        "InstallNode",
         "Pack",
         "PreparePackageReadme",
         "Push",
