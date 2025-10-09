@@ -1,4 +1,5 @@
-﻿namespace PackageGuard.Core
+﻿[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("PackageGuard.Specs")]
+namespace PackageGuard.Core
 {
     public class AllowList : PackageGuard.Core.PackagePolicy
     {
@@ -6,37 +7,22 @@
         public System.Collections.Generic.List<string> Feeds { get; set; }
         public bool Prerelease { get; set; }
     }
-    public class CSharpProjectAnalyzer
+    public class AnalyzerSettings
     {
-        public CSharpProjectAnalyzer(PackageGuard.Core.CSharpProjectScanner scanner, PackageGuard.Core.NuGetPackageAnalyzer analyzer) { }
-        public string CacheFilePath { get; set; }
-        public bool ForceRestore { get; set; }
-        public bool InteractiveRestore { get; set; }
-        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
-        public string ProjectPath { get; set; }
-        public bool SkipRestore { get; set; }
-        public bool UseCaching { get; set; }
-        public System.Threading.Tasks.Task<PackageGuard.Core.PolicyViolation[]> ExecuteAnalysis(PackageGuard.Core.GetPolicyByProject getPolicyByProject) { }
-    }
-    public class CSharpProjectScanner
-    {
-        public CSharpProjectScanner(Microsoft.Extensions.Logging.ILogger logger) { }
-        public System.Func<string[], string>? SelectSolution { get; set; }
-        public System.Collections.Generic.List<string> FindProjects(string path) { }
+        public AnalyzerSettings() { }
+        public string CacheFilePath { get; init; }
+        public bool ForceRestore { get; init; }
+        public bool InteractiveRestore { get; init; }
+        public string? NpmExePatch { get; init; }
+        public PackageGuard.Core.NpmPackageManager? NpmPackageManager { get; set; }
+        public bool ScanNuGet { get; init; }
+        public bool SkipRestore { get; init; }
+        public bool UseCaching { get; init; }
     }
     public class DenyList : PackageGuard.Core.PackagePolicy
     {
         public DenyList() { }
         public bool Prerelease { get; set; }
-    }
-    public class DotNetLockFileLoader
-    {
-        public DotNetLockFileLoader() { }
-        public bool ForceRestore { get; set; }
-        public bool InteractiveRestore { get; set; }
-        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
-        public bool SkipRestore { get; set; }
-        public NuGet.ProjectModel.LockFile? GetPackageLockFile(string path) { }
     }
     public delegate PackageGuard.Core.ProjectPolicy GetPolicyByProject(string projectPath);
     public sealed class LicenseFetcher
@@ -44,12 +30,12 @@
         public LicenseFetcher(Microsoft.Extensions.Logging.ILogger logger, string? gitHubApiKey = null) { }
         public System.Threading.Tasks.Task AmendWithMissingLicenseInformation(PackageGuard.Core.PackageInfo package) { }
     }
-    public class NuGetPackageAnalyzer
+    public enum NpmPackageManager
     {
-        public NuGetPackageAnalyzer(Microsoft.Extensions.Logging.ILogger logger, PackageGuard.Core.LicenseFetcher licenseFetcher) { }
-        public string[] IgnoredFeeds { get; set; }
-        public bool InteractiveRestore { get; set; }
-        public System.Threading.Tasks.Task CollectPackageMetadata(string projectPath, string packageName, NuGet.Versioning.NuGetVersion packageVersion, PackageGuard.Core.PackageInfoCollection packages) { }
+        None = 0,
+        Npm = 1,
+        Yarn = 2,
+        Pnpm = 3,
     }
     [MemoryPack.MemoryPackable(MemoryPack.GenerateType.Object)]
     public class PackageInfo : MemoryPack.IMemoryPackFormatterRegister, MemoryPack.IMemoryPackable<PackageGuard.Core.PackageInfo>
@@ -104,6 +90,12 @@
         public string[] Projects { get; init; }
         public string Version { get; init; }
     }
+    public class ProjectAnalyzer
+    {
+        public ProjectAnalyzer(PackageGuard.Core.LicenseFetcher licenseFetcher) { }
+        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
+        public System.Threading.Tasks.Task<PackageGuard.Core.PolicyViolation[]> ExecuteAnalysis(string projectPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.GetPolicyByProject getPolicyByProject) { }
+    }
     public class ProjectPolicy
     {
         public ProjectPolicy() { }
@@ -113,9 +105,39 @@
         public void Validate() { }
     }
 }
-namespace PackageGuard.Core.FetchingStrategies
+namespace PackageGuard.Core.CSharp
 {
-    public class GitHubLicenseFetcher : PackageGuard.Core.FetchingStrategies.IFetchLicense
+    public class CSharpProjectAnalysisStrategy
+    {
+        public CSharpProjectAnalysisStrategy(PackageGuard.Core.GetPolicyByProject getPolicyByProject, PackageGuard.Core.LicenseFetcher licenseFetcher, Microsoft.Extensions.Logging.ILogger? logger) { }
+        public System.Threading.Tasks.Task<PackageGuard.Core.PolicyViolation[]> ExecuteAnalysis(string projectOrSolutionPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.PackageInfoCollection packages) { }
+    }
+    public class CSharpProjectScanner
+    {
+        public CSharpProjectScanner(Microsoft.Extensions.Logging.ILogger logger) { }
+        public System.Func<string[], string>? SelectSolution { get; set; }
+        public System.Collections.Generic.List<string> FindProjects(string path) { }
+    }
+    public class DotNetLockFileLoader
+    {
+        public DotNetLockFileLoader() { }
+        public bool ForceRestore { get; set; }
+        public bool InteractiveRestore { get; set; }
+        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
+        public bool SkipRestore { get; set; }
+        public NuGet.ProjectModel.LockFile? GetPackageLockFile(string path) { }
+    }
+    public class NuGetPackageAnalyzer
+    {
+        public NuGetPackageAnalyzer(Microsoft.Extensions.Logging.ILogger logger, PackageGuard.Core.LicenseFetcher licenseFetcher) { }
+        public string[] IgnoredFeeds { get; set; }
+        public bool InteractiveRestore { get; set; }
+        public System.Threading.Tasks.Task CollectPackageMetadata(string projectPath, string packageName, NuGet.Versioning.NuGetVersion packageVersion, PackageGuard.Core.PackageInfoCollection packages) { }
+    }
+}
+namespace PackageGuard.Core.CSharp.FetchingStrategies
+{
+    public class GitHubLicenseFetcher : PackageGuard.Core.CSharp.FetchingStrategies.IFetchLicense
     {
         public GitHubLicenseFetcher(string? gitHubApiKey) { }
         public System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.PackageInfo package) { }
@@ -124,7 +146,7 @@ namespace PackageGuard.Core.FetchingStrategies
     {
         System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.PackageInfo package);
     }
-    public class UrlLicenseFetcher : PackageGuard.Core.FetchingStrategies.IFetchLicense
+    public class UrlLicenseFetcher : PackageGuard.Core.CSharp.FetchingStrategies.IFetchLicense
     {
         public UrlLicenseFetcher(Microsoft.Extensions.Logging.ILogger logger) { }
         public System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.PackageInfo package) { }
@@ -132,27 +154,14 @@ namespace PackageGuard.Core.FetchingStrategies
 }
 namespace PackageGuard.Core.Npm
 {
-    public class NpmLockFileLoader
+    public class NpmProjectAnalysisStrategy
     {
-        public NpmLockFileLoader(Microsoft.Extensions.Logging.ILogger? logger = null) { }
-        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
-        public System.Threading.Tasks.Task CollectPackageMetadata(string packageLockPath, string projectPath, PackageGuard.Core.PackageInfoCollection packages) { }
+        public NpmProjectAnalysisStrategy(PackageGuard.Core.GetPolicyByProject policyByProject, Microsoft.Extensions.Logging.ILogger logger) { }
+        public System.Threading.Tasks.Task<PackageGuard.Core.PolicyViolation[]> ExecuteAnalysis(string projectOrSolutionPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.PackageInfoCollection packages) { }
     }
-    public class NpmRegistryLicenseFetcher : PackageGuard.Core.FetchingStrategies.IFetchLicense
+    public class NpmRegistryMetadataFetcher
     {
-        public NpmRegistryLicenseFetcher(Microsoft.Extensions.Logging.ILogger logger) { }
-        public System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.PackageInfo package) { }
-    }
-    public class PnpmLockFileLoader
-    {
-        public PnpmLockFileLoader(Microsoft.Extensions.Logging.ILogger? logger = null) { }
-        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
-        public System.Threading.Tasks.Task CollectPackageMetadata(string pnpmLockPath, string projectPath, PackageGuard.Core.PackageInfoCollection packages) { }
-    }
-    public class YarnLockFileLoader
-    {
-        public YarnLockFileLoader(Microsoft.Extensions.Logging.ILogger? logger = null) { }
-        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
-        public System.Threading.Tasks.Task CollectPackageMetadata(string yarnLockPath, string projectPath, PackageGuard.Core.PackageInfoCollection packages) { }
+        public NpmRegistryMetadataFetcher(Microsoft.Extensions.Logging.ILogger logger) { }
+        public System.Threading.Tasks.Task FetchMetadataAsync(PackageGuard.Core.PackageInfo package) { }
     }
 }

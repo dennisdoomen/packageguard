@@ -77,6 +77,24 @@ class Build : NukeBuild
             Information("SemVer = {semver}", SemVer);
         });
 
+    Target InstallNode => _ => _
+        .Executes(() =>
+        {
+            NpmTasks.Initialize(RootDirectory);
+
+            NpmTasks.NpmFetchRuntime();
+
+            ReportSummary(conf =>
+            {
+                if (NpmTasks.HasCachedNodeModules)
+                {
+                    conf.AddPair("Skipped", "Downloading and extracting");
+                }
+
+                return conf;
+            });
+        });
+
     Target Compile => _ => _
         .DependsOn(CalculateNugetVersion)
         .Executes(() =>
@@ -102,7 +120,7 @@ class Build : NukeBuild
         });
 
     Target RunTests => _ => _
-        .DependsOn(Compile, RunInspectCode)
+        .DependsOn(Compile, RunInspectCode, InstallNode)
         .Executes(() =>
         {
             TestResultsDirectory.CreateOrCleanDirectory();

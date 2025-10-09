@@ -10,28 +10,30 @@
 
     <ItemGroup>
       <PackageReference Include="FakeItEasy" Version="8.3.0" />
-      <PackageReference Include="FluentAssertions" Version="8.7.1" />
+      <PackageReference Include="FluentAssertions" Version="8.8.0" />
       <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
       <PackageReference Include="coverlet.collector" Version="6.0.4" PrivateAssets="all">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
       <PackageReference Include="Meziantou.Extensions.Logging.InMemory" Version="1.3.5" />
-      <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="9.10.0" />
+      <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="9.9.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.9" />
       <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
-      <PackageReference Include="MSTest" Version="4.0.1" />
-      <PackageReference Include="Pathy" Version="1.7.0">
+      <PackageReference Include="Pathy.Globbing" Version="1.7.1">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
+      <PackageReference Include="MSTest" Version="4.0.1" />
+      <PackageReference Include="Pathy" Version="1.7.1">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      <PackageReference Include="xunit.extensibility.core" Version="2.9.3" />
       </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\PackageGuard.Core\PackageGuard.Core.csproj" />
       <ProjectReference Include="..\PackageGuard\PackageGuard.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="TestCases\" />
     </ItemGroup>
 
     <ItemGroup>
@@ -49,6 +51,63 @@
       <Compile Remove="TestCases\Prerelease\UnitTest1.cs" />
       <None Include="TestCases\Prerelease\UnitTest1.cs">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\YarnApp\package-lock-no-license.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\YarnApp\package-lock-private-registry.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\YarnApp\package-lock.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\YarnApp\pnpm-lock.yaml">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\YarnApp\yarn-v2.lock">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\YarnApp\yarn.lock">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\NpmPrivateRegistryApp\package-lock-private-registry.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\NpmApp\package.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\NpmAppWithoutLockFile\package.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\NpmAppNoLicense\package-lock.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\NpmAppNoLicense\package.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\YarnApp\package.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\YarnAppWithoutLockFile\package.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\YarnAppNoLicense\package.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\PNpmApp\package.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\PnpmApp\pnpm-lock.yaml">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\PnpmAppWithoutLockFile\package.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\Yarn1App\yarn.lock">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="TestCases\Yarn2App\yarn-v2.lock">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>
 
@@ -88,21 +147,6 @@
       </Content>
       <Compile Remove="TestCases\UnknownLicense\Program.cs" />
       <None Include="TestCases\NpmApp\package-lock.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Include="TestCases\NpmApp\package-lock-no-license.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Include="TestCases\NpmApp\package-lock-private-registry.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Include="TestCases\NpmApp\yarn.lock">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Include="TestCases\NpmApp\yarn-v2.lock">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
-      <None Include="TestCases\NpmApp\pnpm-lock.yaml">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>

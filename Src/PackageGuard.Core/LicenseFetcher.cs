@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using PackageGuard.Core.FetchingStrategies;
+using PackageGuard.Core.CSharp.FetchingStrategies;
 
 namespace PackageGuard.Core;
 
@@ -17,6 +17,11 @@ public sealed class LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
 
     public async Task AmendWithMissingLicenseInformation(PackageInfo package)
     {
+        if (gitHubApiKey is not null)
+        {
+            logger.LogInformation("Using GitHub API key");
+        }
+
         if (package.License is null)
         {
             foreach (IFetchLicense fetcher in fetchers)
