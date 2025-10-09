@@ -2,6 +2,7 @@ using System.Reflection;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core;
+using PackageGuard.Core.CSharp;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -19,28 +20,9 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown";
         logger.LogHeader($"PackageGuard v{version}");
 
-        var projectScanner = new CSharpProjectScanner(logger)
-        {
-            SelectSolution = solutions =>
-            {
-                string selected = AnsiConsole.Prompt(
-                    new SelectionPrompt<string>()
-                        .Title("Select a solution :")
-                        .AddChoices(solutions));
-
-                return selected;
-            }
-        };
-
         var licenseFetcher = new LicenseFetcher(logger, settings.GitHubApiKey);
-        var analyzer = new CSharpProjectAnalyzer(projectScanner, new NuGetPackageAnalyzer(logger, licenseFetcher))
+        var analyzer = new ProjectAnalyzer(licenseFetcher)
         {
-            ProjectPath = settings.ProjectPath,
-            InteractiveRestore = settings.Interactive,
-            ForceRestore = settings.ForceRestore,
-            SkipRestore = settings.SkipRestore,
-            UseCaching = settings.UseCaching,
-            CacheFilePath = settings.CacheFilePath,
             Logger = logger,
         };
 
@@ -53,7 +35,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             getPolicy = loader.GetEffectiveConfigurationForProject;
         }
 
-        PolicyViolation[] violations = await analyzer.ExecuteAnalysis(getPolicy);
+        PolicyViolation[] violations = await analyzer.ExecuteAnalysis(settings.ProjectPath, settings.ToCoreSettings(), getPolicy);
 
         logger.LogHeader("Completing analysis");
 

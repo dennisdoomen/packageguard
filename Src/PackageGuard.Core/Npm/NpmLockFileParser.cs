@@ -8,13 +8,13 @@ namespace PackageGuard.Core.Npm;
 /// <summary>
 /// Loads and parses npm package-lock.json files to extract package information.
 /// </summary>
-public class NpmLockFileLoader
+public class NpmLockFileParser
 {
     private readonly NpmRegistryLicenseFetcher licenseFetcher;
 
     public ILogger Logger { get; set; } = NullLogger.Instance;
 
-    public NpmLockFileLoader(ILogger? logger = null)
+    public NpmLockFileParser(ILogger? logger = null)
     {
         Logger = logger ?? NullLogger.Instance;
         licenseFetcher = new NpmRegistryLicenseFetcher(Logger);
@@ -30,7 +30,7 @@ public class NpmLockFileLoader
     {
         NpmPackageLock? lockFile = LoadPackageLockFile(packageLockPath);
 
-        if (lockFile?.Packages == null)
+        if (lockFile is null || lockFile.Packages.Count == 0)
         {
             return;
         }
@@ -120,7 +120,6 @@ public class NpmLockFileLoader
             };
 
             NpmPackageLock? lockFile = JsonSerializer.Deserialize<NpmPackageLock>(jsonContent, options);
-
             if (lockFile == null)
             {
                 Logger.LogWarning("Failed to deserialize package-lock.json from {Path}", packageLockPath);

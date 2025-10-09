@@ -7,10 +7,10 @@ using PackageGuard.Core;
 using PackageGuard.Core.Npm;
 using Pathy;
 
-namespace PackageGuard.Specs;
+namespace PackageGuard.Specs.Npm;
 
 [TestClass]
-public class NpmLockFileLoaderSpecs
+public class NpmLockFileParserSpecs
 {
     [TestMethod]
     public async Task Can_collect_package_metadata_from_lock_file()
@@ -21,7 +21,7 @@ public class NpmLockFileLoaderSpecs
         var packageLockPath = (testProject / "package-lock.json").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new NpmLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -58,7 +58,7 @@ public class NpmLockFileLoaderSpecs
         var packageLockPath = (testProject / "package-lock.json").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new NpmLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -79,7 +79,7 @@ public class NpmLockFileLoaderSpecs
         var packageLockPath = (testProject / "package-lock.json").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new NpmLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -96,7 +96,7 @@ public class NpmLockFileLoaderSpecs
     {
         // Arrange
         var loggingProvider = new InMemoryLoggerProvider();
-        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new NpmLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -117,7 +117,7 @@ public class NpmLockFileLoaderSpecs
         var packageLockPath = (testProject / "package-lock-no-license.json").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new NpmLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -144,7 +144,7 @@ public class NpmLockFileLoaderSpecs
         var packageLockPath = (testProject / "package-lock-private-registry.json").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new NpmLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 

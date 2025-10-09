@@ -5,7 +5,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
 using Pathy;
 
-namespace PackageGuard.Specs;
+namespace PackageGuard.Specs.CSharp;
 
 [TestClass]
 public class DotNetLockFileLoaderSpecs

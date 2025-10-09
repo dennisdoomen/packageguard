@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using PackageGuard.Core.Common;
 using Pathy;
 
-namespace PackageGuard.Core;
+namespace PackageGuard.Core.CSharp;
 
 public class CSharpProjectScanner(ILogger logger)
 {

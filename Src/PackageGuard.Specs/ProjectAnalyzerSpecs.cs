@@ -9,35 +9,30 @@ using Meziantou.Extensions.Logging.InMemory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
+using PackageGuard.Core.CSharp;
 using Pathy;
 
 namespace PackageGuard.Specs;
 
 [TestClass]
-public class CSharpProjectAnalyzerSpecs
+public class ProjectAnalyzerSpecs
 {
     private readonly CSharpProjectScanner cSharpProjectScanner = new(NullLogger.Instance);
 
-    private readonly NuGetPackageAnalyzer
-        nuGetPackageAnalyzer = new(
-            NullLogger.Instance,
-            new LicenseFetcher(NullLogger.Instance, Environment.GetEnvironmentVariable("GITHUB_API_KEY")));
+    private readonly LicenseFetcher licenseFetcher =
+        new(NullLogger.Instance, Environment.GetEnvironmentVariable("GITHUB_API_KEY"));
 
-    private ChainablePath ProjectPath =>
-        Assembly.GetExecutingAssembly().Location.ToPath().Directory / ".." / ".." / ".." / "PackageGuard.Specs.csproj";
+    private string ProjectPath =>
+        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "..", "..", "..", "PackageGuard.Specs.csproj"));
 
     [TestMethod]
     public async Task Either_a_denylist_or_a_allowlist_is_required()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var act = async () => await analyzer.ExecuteAnalysis(_ => new ProjectPolicy());
+        var act = async () => await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy());
 
         // Assert
         await act.Should().ThrowAsync<ArgumentException>().WithMessage("*Either*allowlist*denylist*");
@@ -47,14 +42,10 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Can_deny_an_entire_package()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             DenyList = new DenyList
             {
@@ -69,7 +60,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = Value.ThatSatisfies<string>(s=> s.Should().StartWith("8.")),
+            Version = Value.ThatSatisfies<string>(s => s.Should().StartWith("8.")),
             License = "Unknown"
         });
     }
@@ -78,14 +69,10 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Can_deny_a_specific_version()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             DenyList = new DenyList
             {
@@ -100,7 +87,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = Value.ThatSatisfies<string>(s=> s.Should().StartWith("8.")),
+            Version = Value.ThatSatisfies<string>(s => s.Should().StartWith("8.")),
             License = "Unknown"
         });
     }
@@ -109,14 +96,10 @@ public class CSharpProjectAnalyzerSpecs
     public async Task The_version_must_a_valid_string()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var act = () => analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var act = async () => await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             DenyList = new DenyList
             {
@@ -135,14 +118,10 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Does_not_deny_a_version_if_the_range_does_not_match()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             DenyList = new DenyList
             {
@@ -161,14 +140,10 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Can_deny_a_version_based_on_a_range()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             DenyList = new DenyList
             {
@@ -183,7 +158,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = Value.ThatSatisfies<string>(s=> s.Should().StartWith("8.")),
+            Version = Value.ThatSatisfies<string>(s => s.Should().StartWith("8.")),
             License = "Unknown"
         });
     }
@@ -192,14 +167,10 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Can_denyist_a_license()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             DenyList = new DenyList
             {
@@ -219,14 +190,10 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Can_allow_an_entire_package_using_an_empty_version()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -245,14 +212,10 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Can_allow_a_license()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -271,14 +234,10 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Can_allow_an_unknown_license()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -294,14 +253,10 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Denying_a_license_overrides_an_allowed_license()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -321,14 +276,10 @@ public class CSharpProjectAnalyzerSpecs
     public async Task A_version_outside_the_allowed_range_is_a_violation()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -343,7 +294,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
-            Version = Value.ThatSatisfies<string>(s=> s.Should().StartWith("8.")),
+            Version = Value.ThatSatisfies<string>(s => s.Should().StartWith("8.")),
             License = "Unknown"
         });
     }
@@ -352,14 +303,10 @@ public class CSharpProjectAnalyzerSpecs
     public async Task A_version_inside_the_allowed_range_is_okay()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -378,14 +325,10 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Can_still_allow_a_package_that_violates_the_allowed_licenses()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ProjectPath,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -402,14 +345,11 @@ public class CSharpProjectAnalyzerSpecs
     public async Task A_specified_project_must_exist()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = ChainablePath.Current / "NonExistingFolder" / "NonExisting.csproj",
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+        var projectPath = ChainablePath.Current / "NonExistingFolder" / "NonExisting.csproj";
 
         // Act
-        var act = () => analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var act = () => analyzer.ExecuteAnalysis(projectPath, new AnalyzerSettings(), _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -426,15 +366,11 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Allowing_a_feed_by_name_even_allows_a_package_which_license_is_not_allowed()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ForceRestore = true,
-                ProjectPath = ChainablePath.Current / "TestCases" / "UnknownLicense" / "ConsoleApp.csproj",
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+        var projectPath = ChainablePath.Current / "TestCases" / "UnknownLicense" / "ConsoleApp.csproj";
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(projectPath, new AnalyzerSettings { ForceRestore = true }, _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -451,15 +387,11 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Allowing_a_feed_by_url_even_allows_a_package_which_license_is_not_allowed()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ForceRestore = true,
-                ProjectPath = ChainablePath.Current / "TestCases" / "UnknownLicense" / "ConsoleApp.csproj",
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+        var projectPath = ChainablePath.Current / "TestCases" / "UnknownLicense" / "ConsoleApp.csproj";
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(projectPath, new AnalyzerSettings { ForceRestore = true }, _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -476,15 +408,11 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Can_still_deny_a_package_from_an_allowed_feed()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ForceRestore = true,
-                ProjectPath = ChainablePath.Current / "TestCases" / "UnknownLicense" / "ConsoleApp.csproj",
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+        var projectPath = ChainablePath.Current / "TestCases" / "UnknownLicense" / "ConsoleApp.csproj";
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(projectPath, new AnalyzerSettings { ForceRestore = true }, _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -510,15 +438,11 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Can_allow_prerelease_packages()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ForceRestore = true,
-                ProjectPath = ChainablePath.Current / "TestCases" / "Prerelease" / "SimpleApp.csproj",
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+        var projectPath = ChainablePath.Current / "TestCases" / "Prerelease" / "SimpleApp.csproj";
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(projectPath, new AnalyzerSettings { ForceRestore = true }, _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -535,15 +459,11 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Can_deny_prerelease_packages_using_an_allow_clause()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ForceRestore = true,
-                ProjectPath = ChainablePath.Current / "TestCases" / "Prerelease" / "SimpleApp.csproj",
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+        var projectPath = ChainablePath.Current / "TestCases" / "Prerelease" / "SimpleApp.csproj";
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(projectPath, new AnalyzerSettings { ForceRestore = true }, _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -568,15 +488,11 @@ public class CSharpProjectAnalyzerSpecs
     public async Task Can_deny_prerelease_packages_using_a_deny_clause()
     {
         // Arrange
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ForceRestore = true,
-                ProjectPath = ChainablePath.Current / "TestCases" / "Prerelease" / "SimpleApp.csproj",
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+        var projectPath = ChainablePath.Current / "TestCases" / "Prerelease" / "SimpleApp.csproj";
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(projectPath, new AnalyzerSettings { ForceRestore = true }, _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -623,12 +539,8 @@ public class CSharpProjectAnalyzerSpecs
             .WithArguments("restore --force")
             .ExecuteAsync();
 
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                SkipRestore = true,
-                ProjectPath = projectPath / "ConsoleApp.sln",
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+        var solutionPath = projectPath / "ConsoleApp.sln";
 
         // Act
         await File.WriteAllTextAsync(projectPath / "nuget.config",
@@ -643,7 +555,10 @@ public class CSharpProjectAnalyzerSpecs
             </configuration>
             """);
 
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(solutionPath, new AnalyzerSettings
+        {
+            SkipRestore = true
+        }, _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -668,15 +583,11 @@ public class CSharpProjectAnalyzerSpecs
         var current = ChainablePath.Current;
         (current / ".packageguard").DeleteFileOrDirectory();
 
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
-                UseCaching = true
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+        var projectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj";
 
         // Act
-        var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var violations = await analyzer.ExecuteAnalysis(projectPath, new AnalyzerSettings { UseCaching = true }, _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -690,7 +601,7 @@ public class CSharpProjectAnalyzerSpecs
         violations.Should().BeEquivalentTo(
         [
             new
-           {
+            {
                 License = "Microsoft .NET Library License",
                 PackageId = "Microsoft.AspNet.WebApi.Client",
                 Version = "6.0.0"
@@ -705,16 +616,15 @@ public class CSharpProjectAnalyzerSpecs
         var current = ChainablePath.Current;
         (current / ".mycustomfolder").DeleteFileOrDirectory();
 
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
-                UseCaching = true,
-                CacheFilePath = current / ".mycustomfolder" / "packageguard.cache"
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+        var projectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj";
 
         // Act
-        await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        await analyzer.ExecuteAnalysis(projectPath, new AnalyzerSettings
+        {
+            UseCaching = true,
+            CacheFilePath = current / ".mycustomfolder" / "packageguard.cache"
+        }, _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -733,15 +643,11 @@ public class CSharpProjectAnalyzerSpecs
         var current = ChainablePath.Current;
         (current / ".packageguard").DeleteFileOrDirectory();
 
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
-                UseCaching = true,
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+        var projectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj";
 
         // Do the first run to create the cache
-        await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        await analyzer.ExecuteAnalysis(projectPath, new AnalyzerSettings { UseCaching = true }, _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -752,15 +658,12 @@ public class CSharpProjectAnalyzerSpecs
         // Act
         var loggingProvider = new InMemoryLoggerProvider();
 
-        analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
-                UseCaching = true,
-                Logger = loggingProvider.CreateLogger("")
-            };
+        analyzer = new ProjectAnalyzer(licenseFetcher)
+        {
+            Logger = loggingProvider.CreateLogger("")
+        };
 
-        await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        await analyzer.ExecuteAnalysis(projectPath, new AnalyzerSettings { UseCaching = true }, _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
@@ -787,15 +690,14 @@ public class CSharpProjectAnalyzerSpecs
         var loggingProvider = new InMemoryLoggerProvider();
         // Act
 
-        var analyzer =
-            new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
-            {
-                ProjectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj",
-                UseCaching = true,
-                Logger = loggingProvider.CreateLogger("")
-            };
+        var analyzer = new ProjectAnalyzer(licenseFetcher)
+        {
+            Logger = loggingProvider.CreateLogger("")
+        };
 
-        await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+        var projectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj";
+
+        await analyzer.ExecuteAnalysis(projectPath, new AnalyzerSettings { UseCaching = true }, _ => new ProjectPolicy
         {
             AllowList = new AllowList
             {
