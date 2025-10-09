@@ -7,21 +7,21 @@ using PackageGuard.Core;
 using PackageGuard.Core.Npm;
 using Pathy;
 
-namespace PackageGuard.Specs;
+namespace PackageGuard.Specs.Npm;
 
 [TestClass]
-public class YarnLockFileLoaderSpecs
+public class YarnLockFileParserSpecs
 {
     [TestMethod]
     public async Task Can_collect_package_metadata_from_yarn_lock_file()
     {
         // Arrange
         var loggingProvider = new InMemoryLoggerProvider();
-        var testProject = ChainablePath.Current / "TestCases" / "NpmApp";
+        var testProject = ChainablePath.Current / "TestCases" / "Yarn1App";
         var yarnLockPath = (testProject / "yarn.lock").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new YarnLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new YarnLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -30,7 +30,7 @@ public class YarnLockFileLoaderSpecs
 
         // Assert
         packages.Should().NotBeEmpty();
-        
+
         var expressPackage = packages.FirstOrDefault(p => p.Name == "express");
         expressPackage.Should().NotBeNull();
         expressPackage!.Version.Should().Be("4.18.2");
@@ -40,7 +40,7 @@ public class YarnLockFileLoaderSpecs
         var lodashPackage = packages.FirstOrDefault(p => p.Name == "lodash");
         lodashPackage.Should().NotBeNull();
         lodashPackage!.Version.Should().Be("4.17.21");
-        
+
         // Should include scoped package
         var babelPackage = packages.FirstOrDefault(p => p.Name == "@babel/core");
         babelPackage.Should().NotBeNull();
@@ -52,7 +52,7 @@ public class YarnLockFileLoaderSpecs
     {
         // Arrange
         var loggingProvider = new InMemoryLoggerProvider();
-        var loader = new YarnLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new YarnLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -69,11 +69,11 @@ public class YarnLockFileLoaderSpecs
     {
         // Arrange
         var loggingProvider = new InMemoryLoggerProvider();
-        var testProject = ChainablePath.Current / "TestCases" / "NpmApp";
-        var yarnLockPath = (testProject / "yarn.lock").ToString();
+        var testProject = ChainablePath.Current / "TestCases" / "Yarn2App";
+        var yarnLockPath = (testProject / "yarn-v2.lock").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new YarnLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new YarnLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -82,7 +82,7 @@ public class YarnLockFileLoaderSpecs
 
         // Assert
         packages.Should().NotBeEmpty();
-        
+
         // License should be fetched from NPM registry
         var expressPackage = packages.FirstOrDefault(p => p.Name == "express");
         expressPackage.Should().NotBeNull();
@@ -94,11 +94,11 @@ public class YarnLockFileLoaderSpecs
     {
         // Arrange
         var loggingProvider = new InMemoryLoggerProvider();
-        var testProject = ChainablePath.Current / "TestCases" / "NpmApp";
+        var testProject = ChainablePath.Current / "TestCases" / "Yarn2App";
         var yarnV2LockPath = (testProject / "yarn-v2.lock").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new YarnLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new YarnLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -107,7 +107,7 @@ public class YarnLockFileLoaderSpecs
 
         // Assert
         packages.Should().NotBeEmpty();
-        
+
         var expressPackage = packages.FirstOrDefault(p => p.Name == "express");
         expressPackage.Should().NotBeNull();
         expressPackage!.Version.Should().Be("4.18.2");
@@ -117,12 +117,12 @@ public class YarnLockFileLoaderSpecs
         var lodashPackage = packages.FirstOrDefault(p => p.Name == "lodash");
         lodashPackage.Should().NotBeNull();
         lodashPackage!.Version.Should().Be("4.17.21");
-        
+
         // Should include scoped package
         var babelPackage = packages.FirstOrDefault(p => p.Name == "@babel/core");
         babelPackage.Should().NotBeNull();
         babelPackage!.Version.Should().Be("7.23.0");
-        
+
         // License should be fetched from NPM registry
         expressPackage.License.Should().NotBeNullOrEmpty();
     }

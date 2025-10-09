@@ -1,6 +1,6 @@
 ﻿using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-
+[assembly: Parallelize]
 namespace PackageGuard.Specs;
 
 [TestClass]

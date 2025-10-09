@@ -17,7 +17,7 @@ internal class NpmPackageLock
     public int LockfileVersion { get; set; }
 
     [JsonPropertyName("packages")]
-    public Dictionary<string, NpmPackageEntry>? Packages { get; set; }
+    public Dictionary<string, NpmPackageEntry> Packages { get; set; } = new();
 }
 
 /// <summary>

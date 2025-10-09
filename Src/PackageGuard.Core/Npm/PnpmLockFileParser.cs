@@ -8,16 +8,16 @@ namespace PackageGuard.Core.Npm;
 /// <summary>
 /// Loads and parses Pnpm pnpm-lock.yaml files to extract package information.
 /// </summary>
-public class PnpmLockFileLoader
+public class PnpmLockFileParser
 {
-    private readonly NpmRegistryLicenseFetcher licenseFetcher;
+    private readonly NpmRegistryMetadataFetcher metadataFetcher;
 
     public ILogger Logger { get; set; } = NullLogger.Instance;
 
-    public PnpmLockFileLoader(ILogger? logger = null)
+    public PnpmLockFileParser(ILogger? logger = null)
     {
         Logger = logger ?? NullLogger.Instance;
-        licenseFetcher = new NpmRegistryLicenseFetcher(Logger);
+        metadataFetcher = new NpmRegistryMetadataFetcher(Logger);
     }
 
     /// <summary>
@@ -39,7 +39,7 @@ public class PnpmLockFileLoader
             Logger.LogInformation("Loading Pnpm lock file from {Path}", pnpmLockPath);
 
             string yamlContent = File.ReadAllText(pnpmLockPath);
-            
+
             var deserializer = new DeserializerBuilder()
                 .WithNamingConvention(CamelCaseNamingConvention.Instance)
                 .IgnoreUnmatchedProperties()
@@ -67,7 +67,7 @@ public class PnpmLockFileLoader
                 }
 
                 // Extract resolved URL from resolution
-                string? resolvedUrl = packageData.Resolution?.Integrity != null 
+                string? resolvedUrl = packageData.Resolution?.Integrity != null
                     ? $"https://registry.npmjs.org/{packageName}/-/{packageName.Split('/').Last()}-{version}.tgz"
                     : null;
 
@@ -84,7 +84,7 @@ public class PnpmLockFileLoader
                 packageInfo.TrackAsUsedInProject(projectPath);
 
                 // Fetch additional metadata from NPM registry since Pnpm lock doesn't include license
-                await licenseFetcher.FetchLicenseAsync(packageInfo);
+                await metadataFetcher.FetchMetadataAsync(packageInfo);
 
                 Logger.LogDebug("Added Pnpm package {Name} {Version} with license {License}",
                     packageName, version, packageInfo.License ?? "Unknown");
@@ -117,14 +117,14 @@ public class PnpmLockFileLoader
             {
                 string packageName = packageKey.Substring(0, lastAtIndex);
                 string version = packageKey.Substring(lastAtIndex + 1);
-                
+
                 // Remove any additional path info (like (peer-deps) suffix)
                 int parenIndex = version.IndexOf('(');
                 if (parenIndex > 0)
                 {
                     version = version.Substring(0, parenIndex);
                 }
-                
+
                 return (packageName, version);
             }
         }
@@ -136,14 +136,14 @@ public class PnpmLockFileLoader
             {
                 string packageName = packageKey.Substring(0, atIndex);
                 string version = packageKey.Substring(atIndex + 1);
-                
+
                 // Remove any additional path info
                 int parenIndex = version.IndexOf('(');
                 if (parenIndex > 0)
                 {
                     version = version.Substring(0, parenIndex);
                 }
-                
+
                 return (packageName, version);
             }
         }

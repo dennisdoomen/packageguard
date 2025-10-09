@@ -1,0 +1,5 @@
+{
+	"dependencies": {
+		"test-npm-app": "link:C:/Workspaces/packageguard/Src/PackageGuard.Specs/TestCases/PnpmApp"
+	}
+}

@@ -7,10 +7,10 @@ using PackageGuard.Core;
 using PackageGuard.Core.Npm;
 using Pathy;
 
-namespace PackageGuard.Specs;
+namespace PackageGuard.Specs.Npm;
 
 [TestClass]
-public class NpmLockFileLoaderSpecs
+public class NpmLockFileParserSpecs
 {
     [TestMethod]
     public async Task Can_collect_package_metadata_from_lock_file()
@@ -21,7 +21,7 @@ public class NpmLockFileLoaderSpecs
         var packageLockPath = (testProject / "package-lock.json").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new NpmLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -30,7 +30,7 @@ public class NpmLockFileLoaderSpecs
 
         // Assert
         packages.Should().NotBeEmpty();
-        
+
         var expressPackage = packages.FirstOrDefault(p => p.Name == "express");
         expressPackage.Should().NotBeNull();
         expressPackage!.Version.Should().Be("4.18.2");
@@ -58,7 +58,7 @@ public class NpmLockFileLoaderSpecs
         var packageLockPath = (testProject / "package-lock.json").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new NpmLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -79,7 +79,7 @@ public class NpmLockFileLoaderSpecs
         var packageLockPath = (testProject / "package-lock.json").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new NpmLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -96,7 +96,7 @@ public class NpmLockFileLoaderSpecs
     {
         // Arrange
         var loggingProvider = new InMemoryLoggerProvider();
-        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new NpmLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -113,20 +113,18 @@ public class NpmLockFileLoaderSpecs
     {
         // Arrange
         var loggingProvider = new InMemoryLoggerProvider();
-        var testProject = ChainablePath.Current / "TestCases" / "NpmApp";
-        var packageLockPath = (testProject / "package-lock-no-license.json").ToString();
-        var projectPath = testProject.ToString();
+        var testProject = ChainablePath.Current / "TestCases" / "NpmAppNoLicense";
 
-        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new NpmLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
         // Act
-        await loader.CollectPackageMetadata(packageLockPath, projectPath, packages);
+        await loader.CollectPackageMetadata(testProject / "package-lock.json", testProject, packages);
 
         // Assert
         packages.Should().NotBeEmpty();
-        
+
         var isNumberPackage = packages.FirstOrDefault(p => p.Name == "is-number");
         isNumberPackage.Should().NotBeNull();
         isNumberPackage!.Version.Should().Be("7.0.0");
@@ -140,11 +138,11 @@ public class NpmLockFileLoaderSpecs
     {
         // Arrange
         var loggingProvider = new InMemoryLoggerProvider();
-        var testProject = ChainablePath.Current / "TestCases" / "NpmApp";
+        var testProject = ChainablePath.Current / "TestCases" / "NpmPrivateRegistryApp";
         var packageLockPath = (testProject / "package-lock-private-registry.json").ToString();
         var projectPath = testProject.ToString();
 
-        var loader = new NpmLockFileLoader(loggingProvider.CreateLogger(""));
+        var loader = new NpmLockFileParser(loggingProvider.CreateLogger(""));
 
         var packages = new PackageInfoCollection(loggingProvider.CreateLogger(""));
 
@@ -153,15 +151,15 @@ public class NpmLockFileLoaderSpecs
 
         // Assert
         packages.Should().NotBeEmpty();
-        
+
         var privatePackage = packages.FirstOrDefault(p => p.Name == "@mycompany/private-package");
         privatePackage.Should().NotBeNull();
         privatePackage!.Version.Should().Be("1.2.3");
         privatePackage.License.Should().Be("MIT");
-        
+
         // SourceUrl should point to the private registry
         privatePackage.SourceUrl.Should().Contain("npm.mycompany.com");
-        
+
         // Verify the fetcher would use the correct registry URL (though it won't actually fetch in this test)
         privatePackage.Source.Should().Be("npm");
     }

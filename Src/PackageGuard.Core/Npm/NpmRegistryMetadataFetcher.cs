@@ -1,17 +1,16 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using PackageGuard.Core.FetchingStrategies;
 
 namespace PackageGuard.Core.Npm;
 
 /// <summary>
 /// Fetches license, license URL, and repository URL information from the NPM registry.
 /// </summary>
-public class NpmRegistryLicenseFetcher(ILogger logger) : IFetchLicense
+public class NpmRegistryMetadataFetcher(ILogger logger)
 {
     private static readonly HttpClient HttpClient = new();
 
-    public async Task FetchLicenseAsync(PackageInfo package)
+    public async Task FetchMetadataAsync(PackageInfo package)
     {
         // Only process packages from npm source
         if (package.Source != "npm")
@@ -24,7 +23,7 @@ public class NpmRegistryLicenseFetcher(ILogger logger) : IFetchLicense
             // Extract the registry URL from the package's SourceUrl (resolved field)
             // This supports both public npmjs.org and private npm registries
             string registryUrl = GetRegistryUrl(package);
-            
+
             logger.LogDebug("Fetching NPM package metadata from {Url}", registryUrl);
 
             string jsonContent = await HttpClient.GetStringAsync(registryUrl);
@@ -45,7 +44,7 @@ public class NpmRegistryLicenseFetcher(ILogger logger) : IFetchLicense
                 {
                     package.RepositoryUrl = repositoryElement.GetString();
                 }
-                else if (repositoryElement.ValueKind == JsonValueKind.Object && 
+                else if (repositoryElement.ValueKind == JsonValueKind.Object &&
                          repositoryElement.TryGetProperty("url", out JsonElement urlElement))
                 {
                     string? repoUrl = urlElement.GetString();
@@ -58,7 +57,7 @@ public class NpmRegistryLicenseFetcher(ILogger logger) : IFetchLicense
                             .TrimEnd('/', '.', 'g', 'i', 't');
                     }
                 }
-                
+
                 logger.LogDebug("Found repository URL for {Name}: {Url}", package.Name, package.RepositoryUrl);
             }
 
@@ -77,12 +76,12 @@ public class NpmRegistryLicenseFetcher(ILogger logger) : IFetchLicense
         }
         catch (HttpRequestException ex)
         {
-            logger.LogWarning("Failed to fetch NPM package metadata for {Name} {Version}: {Error}", 
+            logger.LogWarning("Failed to fetch NPM package metadata for {Name} {Version}: {Error}",
                 package.Name, package.Version, ex.Message);
         }
         catch (JsonException ex)
         {
-            logger.LogWarning("Failed to parse NPM package metadata for {Name} {Version}: {Error}", 
+            logger.LogWarning("Failed to parse NPM package metadata for {Name} {Version}: {Error}",
                 package.Name, package.Version, ex.Message);
         }
     }
@@ -94,41 +93,40 @@ public class NpmRegistryLicenseFetcher(ILogger logger) : IFetchLicense
     private string GetRegistryUrl(PackageInfo package)
     {
         string sourceUrl = package.SourceUrl;
-        
+
         // If SourceUrl is the default fallback, use public registry
         if (sourceUrl == "https://registry.npmjs.org")
         {
             return $"{sourceUrl}/{package.Name}/{package.Version}";
         }
-        
+
         // Parse the resolved URL to extract the registry base URL
         // Format is typically: https://registry.example.com/package-name/-/package-name-version.tgz
         // We need to construct: https://registry.example.com/package-name/version
-        
+
         try
         {
-            Uri uri = new Uri(sourceUrl);
+            Uri uri = new(sourceUrl);
             string registryBase = $"{uri.Scheme}://{uri.Host}";
-            
+
             // Add port if not default
             if (uri.Port != 80 && uri.Port != 443 && uri.Port != -1)
             {
                 registryBase += $":{uri.Port}";
             }
-            
+
             // Add path prefix if present (for registries hosted under a subpath)
             string[] pathSegments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            
+
             // Find where the package name starts in the path
             // Common patterns:
             // - /package-name/-/package-name-version.tgz (public npm)
             // - /path/to/registry/package-name/-/package-name-version.tgz (private with path)
             // - /@scope/package-name/-/package-name-version.tgz (scoped package)
-            
+
             int packageIndex = -1;
             string packageNameInUrl = package.Name.Replace("/", "%2f"); // Scoped packages may be URL-encoded
-            
-            for (int i = 0; i < pathSegments.Length; i++)
+ for (int i = 0; i < pathSegments.Length; i++)
             {
                 string decodedSegment = Uri.UnescapeDataString(pathSegments[i]);
                 if (decodedSegment == package.Name || decodedSegment == packageNameInUrl)
@@ -136,6 +134,7 @@ public class NpmRegistryLicenseFetcher(ILogger logger) : IFetchLicense
                     packageIndex = i;
                     break;
                 }
+
                 // For scoped packages, check if this segment is the scope
                 if (package.Name.StartsWith("@") && decodedSegment.StartsWith("@"))
                 {
@@ -152,7 +151,7 @@ public class NpmRegistryLicenseFetcher(ILogger logger) : IFetchLicense
                     }
                 }
             }
-            
+
             // Add any path prefix before the package name
             if (packageIndex > 0)
             {
@@ -161,15 +160,15 @@ public class NpmRegistryLicenseFetcher(ILogger logger) : IFetchLicense
                     registryBase += "/" + pathSegments[i];
                 }
             }
-            
+
             // Construct the final metadata URL
             return $"{registryBase}/{package.Name}/{package.Version}";
         }
         catch (Exception ex)
         {
-            logger.LogWarning("Failed to parse registry URL from {SourceUrl}, falling back to public npm registry: {Error}", 
+            logger.LogWarning("Failed to parse registry URL from {SourceUrl}, falling back to public npm registry: {Error}",
                 sourceUrl, ex.Message);
-            
+
             // Fallback to public npm registry
             return $"https://registry.npmjs.org/{package.Name}/{package.Version}";
         }

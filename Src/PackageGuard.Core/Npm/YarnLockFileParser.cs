@@ -9,16 +9,16 @@ namespace PackageGuard.Core.Npm;
 /// <summary>
 /// Loads and parses Yarn yarn.lock files (both v1 and v2 formats) to extract package information.
 /// </summary>
-public class YarnLockFileLoader
+public class YarnLockFileParser
 {
-    private readonly NpmRegistryLicenseFetcher licenseFetcher;
+    private readonly NpmRegistryMetadataFetcher metadataFetcher;
 
     public ILogger Logger { get; set; } = NullLogger.Instance;
 
-    public YarnLockFileLoader(ILogger? logger = null)
+    public YarnLockFileParser(ILogger? logger = null)
     {
         Logger = logger ?? NullLogger.Instance;
-        licenseFetcher = new NpmRegistryLicenseFetcher(Logger);
+        metadataFetcher = new NpmRegistryMetadataFetcher(Logger);
     }
 
     /// <summary>
@@ -41,10 +41,10 @@ public class YarnLockFileLoader
             Logger.LogInformation("Loading Yarn lock file from {Path}", yarnLockPath);
 
             string content = File.ReadAllText(yarnLockPath);
-            
+
             // Detect Yarn version based on format
             bool isYarnV2 = IsYarnV2Format(content);
-            
+
             Dictionary<string, YarnPackageData> parsedPackages;
             if (isYarnV2)
             {
@@ -74,7 +74,7 @@ public class YarnLockFileLoader
                 packageInfo.TrackAsUsedInProject(projectPath);
 
                 // Fetch additional metadata from NPM registry since Yarn lock doesn't include license
-                await licenseFetcher.FetchLicenseAsync(packageInfo);
+                await metadataFetcher.FetchMetadataAsync(packageInfo);
 
                 Logger.LogDebug("Added Yarn package {Name} {Version} with license {License}",
                     packageName, packageData.Version, packageInfo.License ?? "Unknown");
@@ -121,7 +121,7 @@ public class YarnLockFileLoader
 
                 // Parse package descriptor like "express@npm:^4.18.2"
                 var (packageName, _) = ParseYarnV2PackageKey(key);
-                
+
                 if (string.IsNullOrEmpty(packageName))
                 {
                     continue;
@@ -138,7 +138,7 @@ public class YarnLockFileLoader
                 if (packageData.TryGetValue("resolution", out object? resolutionObj))
                 {
                     resolution = resolutionObj?.ToString();
-                    
+
                     // Extract version from resolution if not present
                     // Format: "package@npm:version"
                     if (version == null && resolution != null)
@@ -155,7 +155,7 @@ public class YarnLockFileLoader
                 {
                     // For Yarn v2, construct resolved URL from npm registry
                     string resolvedUrl = $"https://registry.yarnpkg.com/{packageName}/-/{packageName.Split('/').Last()}-{version}.tgz";
-                    
+
                     packages[packageName] = new YarnPackageData
                     {
                         Version = version,
@@ -215,7 +215,7 @@ public class YarnLockFileLoader
     {
         var packages = new Dictionary<string, YarnPackageData>();
         var lines = content.Split('\n');
-        
+
         string? currentPackageName = null;
         YarnPackageData? currentPackageData = null;
         int currentIndent = 0;
@@ -223,7 +223,7 @@ public class YarnLockFileLoader
         for (int i = 0; i < lines.Length; i++)
         {
             string line = lines[i];
-            
+
             // Skip empty lines and comments
             if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("#"))
             {
@@ -246,7 +246,7 @@ public class YarnLockFileLoader
                 string packageDeclaration = line.TrimEnd(':');
                 // Remove quotes if present
                 packageDeclaration = packageDeclaration.Trim('"', '\'');
-                
+
                 // Extract actual package name (before @ version specifier)
                 // Handle scoped packages like @babel/core@^7.0.0
                 string packageName;
@@ -270,7 +270,7 @@ public class YarnLockFileLoader
             {
                 // Property of current package
                 string trimmedLine = line.Trim();
-                
+
                 if (trimmedLine.StartsWith("version "))
                 {
                     currentPackageData.Version = ExtractValue(trimmedLine, "version");

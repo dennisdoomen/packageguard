@@ -1,0 +1,13 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      test-npm-app:
+        specifier: link:C:/Workspaces/packageguard/Src/PackageGuard.Specs/TestCases/PnpmApp
+        version: link:Src/PackageGuard.Specs/TestCases/PnpmApp

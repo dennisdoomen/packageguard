@@ -1,23 +1,22 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using PackageGuard.Core.FetchingStrategies;
 
 namespace PackageGuard.Core.Npm;
 
 /// <summary>
 /// Loads and parses npm package-lock.json files to extract package information.
 /// </summary>
-public class NpmLockFileLoader
+public class NpmLockFileParser
 {
-    private readonly NpmRegistryLicenseFetcher licenseFetcher;
+    private readonly NpmRegistryMetadataFetcher metadataFetcher;
 
     public ILogger Logger { get; set; } = NullLogger.Instance;
 
-    public NpmLockFileLoader(ILogger? logger = null)
+    public NpmLockFileParser(ILogger? logger = null)
     {
         Logger = logger ?? NullLogger.Instance;
-        licenseFetcher = new NpmRegistryLicenseFetcher(Logger);
+        metadataFetcher = new NpmRegistryMetadataFetcher(Logger);
     }
 
     /// <summary>
@@ -30,7 +29,7 @@ public class NpmLockFileLoader
     {
         NpmPackageLock? lockFile = LoadPackageLockFile(packageLockPath);
 
-        if (lockFile?.Packages == null)
+        if (lockFile is null || lockFile.Packages.Count == 0)
         {
             return;
         }
@@ -85,9 +84,9 @@ public class NpmLockFileLoader
             packageInfo.TrackAsUsedInProject(projectPath);
 
             // Fetch additional metadata from NPM registry if license is missing
-            if (packageInfo.License is null)
+            if (packageInfo.License is null || packageInfo.RepositoryUrl is null || packageInfo.LicenseUrl is null)
             {
-                await licenseFetcher.FetchLicenseAsync(packageInfo);
+                await metadataFetcher.FetchMetadataAsync(packageInfo);
             }
 
             Logger.LogDebug("Added npm package {Name} {Version} with license {License}",
@@ -120,7 +119,6 @@ public class NpmLockFileLoader
             };
 
             NpmPackageLock? lockFile = JsonSerializer.Deserialize<NpmPackageLock>(jsonContent, options);
-
             if (lockFile == null)
             {
                 Logger.LogWarning("Failed to deserialize package-lock.json from {Path}", packageLockPath);

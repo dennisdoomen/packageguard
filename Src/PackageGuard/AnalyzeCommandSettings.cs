@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using JetBrains.Annotations;
+using PackageGuard.Core;
 using Pathy;
 using Spectre.Console.Cli;
 
@@ -15,17 +16,18 @@ internal class AnalyzeCommandSettings : CommandSettings
     [CommandArgument(0, "[path]")]
     public string ProjectPath { get; set; } = string.Empty;
 
-    [Description("The path to the configuration file. Defaults to hierarchical discovery of packageguard.config.json or .packageguard/config.json files starting from the solution directory.")]
+    [Description(
+        "The path to the configuration file. Defaults to hierarchical discovery of packageguard.config.json or .packageguard/config.json files starting from the solution directory.")]
     [CommandOption("-c|--config-path|--configPath")]
-    public string ConfigPath { get;  set; } = DefaultConfigFileName;
+    public string ConfigPath { get; set; } = DefaultConfigFileName;
 
     [Description("Allow enabling or disabling an interactive mode of \"dotnet restore\". Defaults to true")]
     [CommandOption("-i|--restore-interactive|--restoreinteractive")]
-    public bool Interactive {get; set;} = true;
+    public bool Interactive { get; set; } = true;
 
     [Description("Don't fail the analysis if any violations are found. Defaults to false.")]
     [CommandOption("--ignore-violations|--ignoreviolations|--ignore")]
-    public bool IgnoreViolations {get; set;} = false;
+    public bool IgnoreViolations { get; set; } = false;
 
     [Description("Force restoring the NuGet dependencies, even if the lockfile is up-to-date")]
     [CommandOption("-f|--force-restore|--forcerestore")]
@@ -35,7 +37,8 @@ internal class AnalyzeCommandSettings : CommandSettings
     [CommandOption("-s|--skip-restore|--skiprestore")]
     public bool SkipRestore { get; set; } = false;
 
-    [Description("GitHub API key to use for fetching package licenses. If not specified, you may run into GitHub's rate limiting issues.")]
+    [Description(
+        "GitHub API key to use for fetching package licenses. If not specified, you may run into GitHub's rate limiting issues.")]
     [CommandOption("-a|--github-api-key|--githubapikey")]
     public string? GitHubApiKey { get; set; } = Environment.GetEnvironmentVariable("GITHUB_API_KEY");
 
@@ -43,7 +46,8 @@ internal class AnalyzeCommandSettings : CommandSettings
     [CommandOption("--use-caching|--usecaching")]
     public bool UseCaching { get; set; } = false;
 
-    [Description("Overrides the file path where analysis data is cached. Defaults to the \"<workingdirectory>/.packageguard/cache.bin\"")]
+    [Description(
+        "Overrides the file path where analysis data is cached. Defaults to the \"<workingdirectory>/.packageguard/cache.bin\"")]
     [CommandOption("--cache-file-path|--cachefilepath")]
     public string CacheFilePath { get; set; } = ChainablePath.Current / ".packageguard" / "cache.bin";
 
@@ -51,18 +55,28 @@ internal class AnalyzeCommandSettings : CommandSettings
     [CommandOption("--nuget")]
     public bool ScanNuGet { get; set; } = false;
 
-    [Description("Explicitly enable scanning for package.json files and optionally specify the package manager to use (npm, yarn, pnpm)")]
+    [Description(
+        "Explicitly enable scanning for package.json files and optionally specify the package manager to use (npm, yarn, pnpm)")]
     [CommandOption("--npm")]
     public NpmPackageManager? NpmPackageManager { get; set; }
 
-    [Description("The path to the npm, yarn or pnpm executable. If not specified, the tool will try to find it in the system PATH.")]
+    [Description(
+        "The path to the npm, yarn or pnpm executable. If not specified, the tool will try to find it in the system PATH.")]
     [CommandOption("--npm-exe-path|--npmexepath")]
     public string? NpmExePath { get; set; }
-}
 
-internal enum NpmPackageManager
-{
-    Npm,
-    Yarn,
-    Pnpm
+    public AnalyzerSettings ToCoreSettings()
+    {
+        return new AnalyzerSettings
+        {
+            ForceRestore = ForceRestore,
+            SkipRestore = SkipRestore,
+            InteractiveRestore = Interactive,
+            CacheFilePath = CacheFilePath,
+            NpmPackageManager = NpmPackageManager,
+            UseCaching = UseCaching,
+            NpmExePatch = NpmExePath,
+            ScanNuGet = ScanNuGet
+        };
+    }
 }
