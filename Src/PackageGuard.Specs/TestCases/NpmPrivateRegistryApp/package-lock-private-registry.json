@@ -1,0 +1,21 @@
+{
+  "name": "test-private-npm-app",
+  "version": "1.0.0",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "test-private-npm-app",
+      "version": "1.0.0",
+      "dependencies": {
+        "@mycompany/private-package": "^1.2.3"
+      }
+    },
+    "node_modules/@mycompany/private-package": {
+      "version": "1.2.3",
+      "resolved": "https://npm.mycompany.com/repository/npm/@mycompany/private-package/-/private-package-1.2.3.tgz",
+      "integrity": "sha512-test123",
+      "license": "MIT"
+    }
+  }
+}
