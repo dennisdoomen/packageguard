@@ -14,7 +14,7 @@ internal class CommonFileDetector : IDetectPackageManager
         {
             ( "package-lock.json", NpmPackageManager.Npm ),
             ( ".npmrc", NpmPackageManager.Npm ),
-            ( "pnpm-lock.json", NpmPackageManager.Pnpm ),
+            ( "pnpm-lock.yaml", NpmPackageManager.Pnpm ),
             ( "pnpm-workspace.yml", NpmPackageManager.Pnpm ),
             ( "yarn.lock", NpmPackageManager.Yarn ),
             ( ".yarnrc.yml", NpmPackageManager.Yarn ),
