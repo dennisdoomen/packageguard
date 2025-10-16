@@ -29,6 +29,36 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
                 violations.AddRange(VerifyAgainstPolicy(packages, policy));
             }
         }
+        else if (settings.NpmPackageManager == NpmPackageManager.Yarn)
+        {
+            packageJsonPath = packageJsonPath.ResolveFile("package.json");
+            if (!packageJsonPath.IsNull)
+            {
+                var loader = new LockFileLoader(logger);
+                var lockFile = loader.GetPackageLockFile(packageJsonPath, settings.NpmPackageManager.Value, settings);
+
+                var yarnLoader = new YarnLockFileLoader(logger);
+                await yarnLoader.CollectPackageMetadata(lockFile.ToString(), projectOrSolutionPath, packages);
+
+                ProjectPolicy policy = policyByProject(projectOrSolutionPath);
+                violations.AddRange(VerifyAgainstPolicy(packages, policy));
+            }
+        }
+        else if (settings.NpmPackageManager == NpmPackageManager.Pnpm)
+        {
+            packageJsonPath = packageJsonPath.ResolveFile("package.json");
+            if (!packageJsonPath.IsNull)
+            {
+                var loader = new LockFileLoader(logger);
+                var lockFile = loader.GetPackageLockFile(packageJsonPath, settings.NpmPackageManager.Value, settings);
+
+                var pnpmLoader = new PnpmLockFileLoader(logger);
+                await pnpmLoader.CollectPackageMetadata(lockFile.ToString(), projectOrSolutionPath, packages);
+
+                ProjectPolicy policy = policyByProject(projectOrSolutionPath);
+                violations.AddRange(VerifyAgainstPolicy(packages, policy));
+            }
+        }
 
         return violations.ToArray();
     }
