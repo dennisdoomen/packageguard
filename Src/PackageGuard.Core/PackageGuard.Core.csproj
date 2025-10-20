@@ -19,13 +19,13 @@
     <PackageReference Include="CliWrap" Version="3.9.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
     <PackageReference Include="MemoryPack" Version="1.21.4" />
-    <PackageReference Include="Microsoft.Build" Version="17.14.8" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Build" Version="17.14.28" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
     <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />
     <PackageReference Include="NuGet.Credentials" Version="6.14.0" />
     <PackageReference Include="NuGet.ProjectModel" Version="6.14.0" />
     <PackageReference Include="NuGet.Versioning" Version="6.14.0" />
-    <PackageReference Include="Pathy" Version="1.6.0">
+    <PackageReference Include="Pathy" Version="1.7.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
