@@ -27,12 +27,12 @@
     <ItemGroup>
       <PackageReference Include="CliWrap" Version="3.9.0" />
       <PackageReference Include="JetBrains.Annotations" Version="2025.2.2" />
-      <PackageReference Include="Microsoft.Build" Version="17.14.8" />
-      <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.9" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.9" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.9" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.9" />
-      <PackageReference Include="Pathy" Version="1.6.0">
+      <PackageReference Include="Microsoft.Build" Version="17.14.28" />
+      <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.10" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.10" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.10" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.10" />
+      <PackageReference Include="Pathy" Version="1.7.0">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
@@ -42,7 +42,7 @@
       <PackageReference Include="Spectre.Console" Version="0.52.0" />
       <PackageReference Include="Spectre.Console.Cli" Version="0.52.0" />
       <PackageReference Include="NuGet.ProjectModel" Version="6.14.0" />
-      <PackageReference Include="Spectre.Console.Cli.Extensions.DependencyInjection" Version="0.15.0" />
+      <PackageReference Include="Spectre.Console.Cli.Extensions.DependencyInjection" Version="0.16.0" />
       <PackageReference Include="vertical-spectreconsolelogger" Version="0.10.1-dev.20241201.35" />
     </ItemGroup>
 
