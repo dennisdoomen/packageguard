@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -78,6 +79,37 @@ public class ProjectAnalyzerSpecs
             PackageId = "inherits",
             Version = "2.0.4"
         });
+    }
+
+    [TestMethod]
+    public async Task Will_safely_ignore_a_missing_lock_file()
+    {
+        // Arrange
+        var project = ChainablePath.Current / "TestCases" / "NpmAppWithoutLockFile";
+        project.GlobFiles("*-lock.json", "node_modules\\**").DeleteFileOrDirectory();
+
+        // Act
+        var analyzer = new ProjectAnalyzer(licenseFetcher)
+        {
+            Logger = ConsoleTestLogger.Create("Test")
+        };
+
+        // Act
+        AnalyzerSettings settings = new()
+        {
+            SkipRestore = true
+        };
+
+        var violations = await analyzer.ExecuteAnalysis(project, settings, _ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit", "apache-2.0"]
+            },
+        });
+
+        // Assert
+        violations.Should().BeEmpty();
     }
 
     [TestMethod]
@@ -250,5 +282,40 @@ public class ProjectAnalyzerSpecs
             PackageId = "content-type",
             Version = "1.0.5"
         });
+    }
+
+    [TestMethod]
+    public async Task Can_prevent_fetching_metadata_from_a_private_npm_feed()
+    {
+        // Arrange
+        var testProject = ChainablePath.Current / "TestCases" / "NpmPrivateRegistryApp";
+        var packageLockPath = testProject / "package-lock-private-registry.json";
+        File.Copy(packageLockPath, testProject / "package-lock.json", true);
+
+        var analyzer = new ProjectAnalyzer(licenseFetcher)
+        {
+            Logger = ConsoleTestLogger.Create("Test"),
+        };
+
+        // Act
+        AnalyzerSettings settings = new()
+        {
+            SkipRestore = true,
+        };
+
+        var violations = await analyzer.ExecuteAnalysis(testProject, settings, _ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["not-mit"]
+            },
+            IgnoredFeeds = new[]
+            {
+                "*npm.mycompany.com*"
+            }
+        });
+
+        // Assert
+        violations.Should().BeEmpty();
     }
 }

@@ -162,6 +162,7 @@ namespace PackageGuard.Core.Npm
     public class NpmRegistryMetadataFetcher
     {
         public NpmRegistryMetadataFetcher(Microsoft.Extensions.Logging.ILogger logger) { }
+        public string[] IgnoredFeeds { get; set; }
         public System.Threading.Tasks.Task FetchMetadataAsync(PackageGuard.Core.PackageInfo package) { }
     }
 }

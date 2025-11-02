@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using PackageGuard.Core.Common;
 
 namespace PackageGuard.Core.Npm;
 
@@ -9,6 +10,14 @@ namespace PackageGuard.Core.Npm;
 public class NpmRegistryMetadataFetcher(ILogger logger)
 {
     private static readonly HttpClient HttpClient = new();
+
+    /// <summary>
+    /// One or more NuGet or NPM feeds that should be completely ignored during the analysis.
+    /// </summary>
+    /// <value>
+    /// Each feed is wildcard string that can match the NPM or NuGet feed name or URL.
+    /// </value>
+    public string[] IgnoredFeeds { get; set; } = [];
 
     public async Task FetchMetadataAsync(PackageInfo package)
     {
@@ -23,6 +32,13 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
             // Extract the registry URL from the package's SourceUrl (resolved field)
             // This supports both public npmjs.org and private npm registries
             string registryUrl = GetRegistryUrl(package);
+
+            // Skip this feed if it's in the ignored list
+            if (registryUrl.MatchesAnyWildcard(IgnoredFeeds))
+            {
+                logger.LogDebug("Ignoring feed {Url}", registryUrl);
+                return;
+            }
 
             logger.LogDebug("Fetching NPM package metadata from {Url}", registryUrl);
 

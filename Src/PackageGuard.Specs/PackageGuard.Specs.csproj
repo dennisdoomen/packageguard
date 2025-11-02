@@ -109,6 +109,9 @@
       <None Update="TestCases\Yarn2App\yarn-v2.lock">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
+      <None Update="TestCases\NpmPrivateRegistryApp\package.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
     <ItemGroup>

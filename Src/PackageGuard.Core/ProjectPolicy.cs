@@ -20,10 +20,10 @@ public class ProjectPolicy
     public DenyList DenyList { get; set; } = new();
 
     /// <summary>
-    /// One or more NuGet feeds that should be completely ignored during the analysis.
+    /// One or more NuGet or NPM feeds that should be completely ignored during the analysis.
     /// </summary>
     /// <value>
-    /// Each feed is wildcard string that can match the NuGet feed name or URL.
+    /// Each feed is wildcard string that can match the NPM or NuGet feed name or URL.
     /// </value>
     public string[] IgnoredFeeds { get; set; } = [];
 

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using PackageGuard.Core.Common;
 using Pathy;
 using static PackageGuard.Core.NpmPackageManager;
 
@@ -24,17 +25,24 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
             var loader = new LockFileLoader(logger);
             ChainablePath lockFile = loader.GetPackageLockFile(packageJsonPath, settings.NpmPackageManager!.Value, settings);
 
-            var metadataFetcher = new NpmRegistryMetadataFetcher(logger);
-            await CollectPackageMetadataFromLockFile(lockFile, settings, packages, metadataFetcher);
-
             ProjectPolicy policy = policyByProject(lockFile.Directory);
+
+            await CollectPackageMetadataFrom(lockFile, settings, packages, new NpmRegistryMetadataFetcher(logger)
+            {
+                IgnoredFeeds = policy.IgnoredFeeds
+            });
+
             violations.AddRange(VerifyAgainstPolicy(packages, policy));
+        }
+        else
+        {
+            logger.LogWarning("No package.json file found in {ProjectOrSolutionPath}", projectOrSolutionPath);
         }
 
         return violations.ToArray();
     }
 
-    private async Task CollectPackageMetadataFromLockFile(ChainablePath lockFile, AnalyzerSettings settings,
+    private async Task CollectPackageMetadataFrom(ChainablePath lockFile, AnalyzerSettings settings,
         PackageInfoCollection packages, NpmRegistryMetadataFetcher metadataFetcher)
     {
         if (settings.NpmPackageManager == NpmPackageManager.Npm)
@@ -87,10 +95,13 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
 
         foreach (PackageInfo package in packages)
         {
-            if (!policy.AllowList.Allows(package) || policy.DenyList.Denies(package))
+            if (!package.SourceUrl.MatchesAnyWildcard(policy.IgnoredFeeds))
             {
-                violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(),
-                    package.Source, package.SourceUrl));
+                if (!policy.AllowList.Allows(package) || policy.DenyList.Denies(package))
+                {
+                    violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(),
+                        package.Source, package.SourceUrl));
+                }
             }
         }
 

@@ -41,7 +41,13 @@ public class AnalyzerSettings
     /// </summary>
     public bool ScanNuGet { get; init; } = true;
 
+    /// <summary>
+    /// An optional path to a specific NPM package manager executable.
+    /// </summary>
     public string? NpmExePatch { get; init; }
 
+    /// <summary>
+    /// The NPM package manager to use.
+    /// </summary>
     public NpmPackageManager? NpmPackageManager { get; set; }
 }

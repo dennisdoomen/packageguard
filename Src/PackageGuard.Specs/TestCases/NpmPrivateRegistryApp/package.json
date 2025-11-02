@@ -1,0 +1,7 @@
+{
+    "name": "test-private-npm-app",
+    "version": "1.0.0",
+    "dependencies": {
+        "@mycompany/private-package": "^1.2.3"
+    }
+}
