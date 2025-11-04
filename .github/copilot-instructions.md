@@ -18,7 +18,7 @@ PackageGuard is a .NET tool that scans NuGet dependencies against allow/deny lis
 - **.NET 8.0** - Primary target framework
 - **C# 12** - Language version
 - **Nuke** - Build automation system
-- **XUnit** - Testing framework
+- **MSTest** - Testing framework
 - **FluentAssertions** - Assertion library for tests
 - **Verify** - Snapshot testing tool
 - **Spectre.Console** - Console UI library
@@ -49,6 +49,7 @@ dotnet test Src/PackageGuard.Specs/PackageGuard.Specs.csproj
 ```
 
 Tests should:
+- Use **MSTest** with `[TestClass]` and `[TestMethod]` attributes
 - Follow the **Arrange-Act-Assert** pattern
 - Use **FluentAssertions** for assertions
 - Use **Verify** for snapshot testing where appropriate
@@ -93,25 +94,32 @@ When changing public APIs:
 
 ### Unit Test Structure
 
-Tests should be named descriptively using the pattern:
+Tests should be named descriptively. Example from the codebase:
 ```csharp
-[Fact]
-public void When_condition_Then_expected_result()
-```
-
-Example from the codebase:
-```csharp
-[Fact]
-public async Task When_package_has_allowed_license_Then_should_not_report_violation()
+[TestMethod]
+public async Task Can_deny_an_entire_package()
 {
     // Arrange
-    var analyzer = new NuGetPackageAnalyzer(...);
-    
+    var analyzer = new CSharpProjectAnalyzer(cSharpProjectScanner, nuGetPackageAnalyzer)
+    {
+        ProjectPath = ProjectPath,
+    };
+
     // Act
-    var result = await analyzer.AnalyzeAsync(...);
-    
+    var violations = await analyzer.ExecuteAnalysis(_ => new ProjectPolicy
+    {
+        DenyList = new DenyList
+        {
+            Packages = [new PackageSelector("FluentAssertions")]
+        }
+    });
+
     // Assert
-    result.Should().NotContainViolations();
+    violations.Should().ContainEquivalentOf(new
+    {
+        PackageId = "FluentAssertions",
+        Version = Value.ThatSatisfies<string>(s => s.Should().StartWith("8."))
+    });
 }
 ```
 
@@ -119,7 +127,7 @@ public async Task When_package_has_allowed_license_Then_should_not_report_violat
 
 For testing complex output or data structures, use Verify:
 ```csharp
-[Fact]
+[TestMethod]
 public async Task TestName()
 {
     var result = GetComplexResult();
@@ -189,7 +197,7 @@ PackageGuard uses hierarchical JSON configuration:
 ## Resources
 
 - [C# Coding Guidelines](https://csharpcodingguidelines.com/)
-- [Contributing Guide](../CONTRIBUTING.md)
+- [Contributing Guide](CONTRIBUTING.md)
 - [Nuke Build Documentation](https://nuke.build/)
 - [FluentAssertions Documentation](https://fluentassertions.com/)
 - [Verify Documentation](https://github.com/VerifyTests/Verify)
