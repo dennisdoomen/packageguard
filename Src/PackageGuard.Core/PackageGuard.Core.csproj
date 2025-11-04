@@ -8,7 +8,7 @@
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
         <AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
         <EmbedUntrackedSources>true</EmbedUntrackedSources>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <AssemblyName>PackageGuard.Core</AssemblyName>
         <RootNamespace>PackageGuard.Core</RootNamespace>
         <Authors>Dennis Doomen</Authors>

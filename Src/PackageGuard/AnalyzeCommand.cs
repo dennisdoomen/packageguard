@@ -33,7 +33,8 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         };
 
         var licenseFetcher = new LicenseFetcher(logger, settings.GitHubApiKey);
-        var analyzer = new CSharpProjectAnalyzer(projectScanner, new NuGetPackageAnalyzer(logger, licenseFetcher))
+        var riskEvaluator = new RiskEvaluator(logger);
+        var analyzer = new CSharpProjectAnalyzer(projectScanner, new NuGetPackageAnalyzer(logger, licenseFetcher), riskEvaluator)
         {
             ProjectPath = settings.ProjectPath,
             InteractiveRestore = settings.Interactive,
@@ -53,7 +54,19 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             getPolicy = loader.GetEffectiveConfigurationForProject;
         }
 
-        PolicyViolation[] violations = await analyzer.ExecuteAnalysis(getPolicy);
+        PolicyViolation[] violations;
+        PackageInfo[] packages = Array.Empty<PackageInfo>();
+
+        if (settings.ShowRisk)
+        {
+            var result = await analyzer.ExecuteAnalysisWithRisk(getPolicy);
+            violations = result.Violations;
+            packages = result.Packages;
+        }
+        else
+        {
+            violations = await analyzer.ExecuteAnalysis(getPolicy);
+        }
 
         logger.LogHeader("Completing analysis");
 
@@ -84,8 +97,47 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             return settings.IgnoreViolations ? SuccessExitCode : FailureExitCode;
         }
 
-        AnsiConsole.MarkupLine("[green3_1]No policy violations found.[/]");
+        // Display risk metrics if requested
+        if (settings.ShowRisk && packages.Length > 0)
+        {
+            AnsiConsole.MarkupLine("[yellow1]Package Risk Analysis:[/]");
+            AnsiConsole.MarkupLine("");
+
+            foreach (var package in packages.OrderByDescending(p => p.RiskScore))
+            {
+                var riskColor = GetRiskColor(package.RiskScore);
+                logger.LogInformation("{Id} {Version}", package.Name, package.Version);
+                AnsiConsole.MarkupLine($"- Overall Risk: [{riskColor}]{package.RiskScore:F1}/100[/]");
+                AnsiConsole.MarkupLine($"- Legal: [{GetRiskColor(package.RiskDimensions.LegalRisk * 10)}]{package.RiskDimensions.LegalRisk:F1}/10[/]");
+                AnsiConsole.MarkupLine($"- Security: [{GetRiskColor(package.RiskDimensions.SecurityRisk * 10)}]{package.RiskDimensions.SecurityRisk:F1}/10[/]");
+                AnsiConsole.MarkupLine($"- Operational: [{GetRiskColor(package.RiskDimensions.OperationalRisk * 10)}]{package.RiskDimensions.OperationalRisk:F1}/10[/]");
+                logger.LogInformation("- License: {License}", package.License ?? "Unknown");
+                
+                if (!string.IsNullOrEmpty(package.RepositoryUrl))
+                {
+                    logger.LogInformation("- Repository: {RepositoryUrl}", package.RepositoryUrl);
+                }
+
+                AnsiConsole.MarkupLine("");
+            }
+        }
+
+        if (violations.Length == 0)
+        {
+            AnsiConsole.MarkupLine("[green3_1]No policy violations found.[/]");
+        }
 
         return SuccessExitCode;
+    }
+
+    private static string GetRiskColor(double score)
+    {
+        return score switch
+        {
+            >= 70 => "red1",        // High risk
+            >= 40 => "orange1",     // Medium risk
+            >= 20 => "yellow1",     // Low-Medium risk
+            _ => "green3_1"         // Low risk
+        };
     }
 }
