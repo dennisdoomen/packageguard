@@ -8,7 +8,7 @@ PackageGuard is a .NET tool that scans NuGet dependencies against allow/deny lis
 
 - **Src/PackageGuard** - Main CLI application (NuGet Tool package)
 - **Src/PackageGuard.Core** - Core library with analysis engine
-- **Src/PackageGuard.Specs** - Unit tests using XUnit
+- **Src/PackageGuard.Specs** - Unit tests using MSTest
 - **Src/PackageGuard.ApiVerificationTests** - API verification tests using Verify
 - **Build/** - Nuke build configuration
 - **.packageguard/** - Configuration files for self-scanning
