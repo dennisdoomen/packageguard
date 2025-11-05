@@ -79,7 +79,7 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
             }
         }
 
-        if (settings.NpmPackageManager is not null or None)
+        if (settings.NpmPackageManager is not null || settings.NpmPackageManager == NpmPackageManager.Npm)
         {
             logger.LogInformation("Using {PackageManager} as the NPM package manager", settings.NpmPackageManager);
         }

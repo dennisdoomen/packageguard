@@ -44,7 +44,7 @@ public class AnalyzerSettings
     /// <summary>
     /// An optional path to a specific NPM package manager executable.
     /// </summary>
-    public string? NpmExePatch { get; init; }
+    public string? NpmExePath { get; init; }
 
     /// <summary>
     /// The NPM package manager to use.

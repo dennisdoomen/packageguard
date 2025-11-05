@@ -2,7 +2,6 @@ using System.Reflection;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core;
-using PackageGuard.Core.CSharp;
 using Spectre.Console;
 using Spectre.Console.Cli;
 

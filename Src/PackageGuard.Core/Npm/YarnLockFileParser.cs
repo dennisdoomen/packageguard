@@ -120,7 +120,7 @@ internal class YarnLockFileParser
                 }
 
                 // Parse package descriptor like "express@npm:^4.18.2"
-                var (packageName, _) = ParseYarnV2PackageKey(key);
+                string packageName = ParseYarnV2PackageKey(key);
 
                 if (string.IsNullOrEmpty(packageName))
                 {
@@ -128,16 +128,15 @@ internal class YarnLockFileParser
                 }
 
                 string? version = null;
-                string? resolution = null;
 
                 if (packageData.TryGetValue("version", out object? versionObj))
                 {
-                    version = versionObj?.ToString();
+                    version = versionObj.ToString();
                 }
 
                 if (packageData.TryGetValue("resolution", out object? resolutionObj))
                 {
-                    resolution = resolutionObj?.ToString();
+                    string? resolution = resolutionObj.ToString();
 
                     // Extract version from resolution if not present
                     // Format: "package@npm:version"
@@ -176,7 +175,7 @@ internal class YarnLockFileParser
     /// Parses a Yarn v2 package key to extract the package name.
     /// Format: "package@npm:^version" or "@scope/package@npm:^version"
     /// </summary>
-    private (string packageName, string descriptor) ParseYarnV2PackageKey(string key)
+    private string ParseYarnV2PackageKey(string key)
     {
         // Remove quotes if present
         key = key.Trim('"', '\'');
@@ -189,8 +188,7 @@ internal class YarnLockFileParser
             if (secondAtIndex > 0)
             {
                 string packageName = key.Substring(0, secondAtIndex);
-                string descriptor = key.Substring(secondAtIndex + 1);
-                return (packageName, descriptor);
+                return packageName;
             }
         }
         else
@@ -200,12 +198,11 @@ internal class YarnLockFileParser
             if (atIndex > 0)
             {
                 string packageName = key.Substring(0, atIndex);
-                string descriptor = key.Substring(atIndex + 1);
-                return (packageName, descriptor);
+                return packageName;
             }
         }
 
-        return (string.Empty, string.Empty);
+        return string.Empty;
     }
 
     /// <summary>

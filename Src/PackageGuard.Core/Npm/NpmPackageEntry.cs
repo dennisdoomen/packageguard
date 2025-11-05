@@ -6,7 +6,7 @@ namespace PackageGuard.Core.Npm;
 /// <summary>
 /// Represents a single package entry in the npm package-lock.json file.
 /// </summary>
-[UsedImplicitly]
+[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 internal class NpmPackageEntry
 {
     [JsonPropertyName("version")]

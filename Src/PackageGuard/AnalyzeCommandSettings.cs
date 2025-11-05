@@ -6,13 +6,13 @@ using Spectre.Console.Cli;
 
 namespace PackageGuard;
 
-[UsedImplicitly]
+[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 internal class AnalyzeCommandSettings : CommandSettings
 {
     public const string DefaultConfigFileName = "config.json";
 
     [Description(
-        "The path to a directory containing a .sln/.slnx file, a specific .sln/.slnx file, or a specific .csproj file. Defaults to the current working directory")]
+        "The path to a directory containing a .sln/.slnx file and/or a package.json, a specific .sln/.slnx file, a specific .csproj file, or a specific package.json. Defaults to the current working directory")]
     [CommandArgument(0, "[path]")]
     public string ProjectPath { get; set; } = string.Empty;
 
@@ -23,19 +23,23 @@ internal class AnalyzeCommandSettings : CommandSettings
 
     [Description("Allow enabling or disabling an interactive mode of \"dotnet restore\". Defaults to true")]
     [CommandOption("-i|--restore-interactive|--restoreinteractive")]
+    [DefaultValue(true)]
     public bool Interactive { get; set; } = true;
 
     [Description("Don't fail the analysis if any violations are found. Defaults to false.")]
     [CommandOption("--ignore-violations|--ignoreviolations|--ignore")]
-    public bool IgnoreViolations { get; set; } = false;
+    [DefaultValue(false)]
+    public bool IgnoreViolations { get; set; }
 
     [Description("Force restoring the NuGet dependencies, even if the lockfile is up-to-date")]
     [CommandOption("-f|--force-restore|--forcerestore")]
-    public bool ForceRestore { get; set; } = false;
+    [DefaultValue(false)]
+    public bool ForceRestore { get; set; }
 
     [Description("Prevent the restore operation from running, even if the lock file is missing or out-of-date")]
     [CommandOption("-s|--skip-restore|--skiprestore")]
-    public bool SkipRestore { get; set; } = false;
+    [DefaultValue(false)]
+    public bool SkipRestore { get; set; }
 
     [Description(
         "GitHub API key to use for fetching package licenses. If not specified, you may run into GitHub's rate limiting issues.")]
@@ -44,25 +48,26 @@ internal class AnalyzeCommandSettings : CommandSettings
 
     [Description("Maintains a cache of the package information to speed up future analysis.")]
     [CommandOption("--use-caching|--usecaching")]
-    public bool UseCaching { get; set; } = false;
+    [DefaultValue(false)]
+    public bool UseCaching { get; set; }
 
     [Description(
         "Overrides the file path where analysis data is cached. Defaults to the \"<workingdirectory>/.packageguard/cache.bin\"")]
     [CommandOption("--cache-file-path|--cachefilepath")]
     public string CacheFilePath { get; set; } = ChainablePath.Current / ".packageguard" / "cache.bin";
 
-    [Description("Explicitly enable scanning for .csproj, .sln or .slnx files")]
+    [Description("Explicitly enable or disable scanning for .csproj, .sln or .slnx files")]
     [CommandOption("--nuget")]
     [DefaultValue(true)]
     public bool ScanNuGet { get; set; }
 
     [Description(
-        "Explicitly enable scanning for package.json files and optionally specify the package manager to use (npm, yarn, pnpm)")]
+        "Explicitly specify the package manager to use (npm, yarn, pnpm). If not specified, it will detect it automatically.")]
     [CommandOption("--npm")]
     public NpmPackageManager? NpmPackageManager { get; set; }
 
     [Description(
-        "The path to the npm, yarn or pnpm executable. If not specified, the tool will try to find it in the system PATH.")]
+        "The path to the npm, yarn or pnpm executable. If not specified, the system PATH is used.")]
     [CommandOption("--npm-exe-path|--npmexepath")]
     public string? NpmExePath { get; set; }
 
@@ -76,7 +81,7 @@ internal class AnalyzeCommandSettings : CommandSettings
             CacheFilePath = CacheFilePath,
             NpmPackageManager = NpmPackageManager,
             UseCaching = UseCaching,
-            NpmExePatch = NpmExePath,
+            NpmExePath = NpmExePath,
             ScanNuGet = ScanNuGet
         };
     }

@@ -71,7 +71,6 @@ public class PnpmLockFileParserSpecs
         var loggingProvider = new InMemoryLoggerProvider();
         var testProject = ChainablePath.Current / "TestCases" / "PnpmApp";
         var pnpmLockPath = (testProject / "pnpm-lock.yaml").ToString();
-        var projectPath = testProject.ToString();
 
         var loader = new PnpmLockFileParser(loggingProvider.CreateLogger(""));
 

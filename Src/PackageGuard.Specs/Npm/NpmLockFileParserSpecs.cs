@@ -2,7 +2,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Meziantou.Extensions.Logging.InMemory;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
@@ -18,7 +17,6 @@ public class NpmLockFileParserSpecs
     public async Task Can_collect_package_metadata_from_lock_file()
     {
         // Arrange
-        var loggingProvider = new InMemoryLoggerProvider();
         var testProject = ChainablePath.Current / "TestCases" / "NpmApp";
         var packageLockPath = (testProject / "package-lock.json").ToString();
         var projectPath = testProject.ToString();

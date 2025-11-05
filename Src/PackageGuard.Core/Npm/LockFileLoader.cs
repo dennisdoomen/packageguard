@@ -43,8 +43,8 @@ internal class LockFileLoader(ILogger logger)
         Dictionary<NpmPackageManager, (string windows, string linux)> exeByManager = new()
         {
             { NpmPackageManager.Npm, ("npm", "npm") },
-            { NpmPackageManager.Yarn, ("yarn.cmd", "yarn") },
-            { NpmPackageManager.Pnpm, ("pnpm.cmd", "pnpm") }
+            { NpmPackageManager.Yarn, ("yarn", "yarn") },
+            { NpmPackageManager.Pnpm, ("pnpm", "pnpm") }
         };
 
         string executable = Environment.OSVersion.Platform == PlatformID.Win32NT

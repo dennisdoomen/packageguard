@@ -1,3 +1,4 @@
+using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Pathy;
@@ -47,7 +48,7 @@ internal class PnpmLockFileParser
 
             var lockFile = deserializer.Deserialize<PnpmLockFile>(yamlContent);
 
-            if (lockFile?.Packages == null)
+            if (lockFile.Packages == null)
             {
                 logger.LogWarning("No packages found in pnpm-lock.yaml at {Path}", pnpmLockPath);
                 return;
@@ -151,16 +152,19 @@ internal class PnpmLockFileParser
         return (string.Empty, string.Empty);
     }
 
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     private class PnpmLockFile
     {
         public Dictionary<string, PnpmPackageData>? Packages { get; set; }
     }
 
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     private class PnpmPackageData
     {
         public PnpmResolution? Resolution { get; set; }
     }
 
+    [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     private class PnpmResolution
     {
         public string? Integrity { get; set; }

@@ -13,7 +13,7 @@ namespace PackageGuard.Core
         public string CacheFilePath { get; init; }
         public bool ForceRestore { get; init; }
         public bool InteractiveRestore { get; init; }
-        public string? NpmExePatch { get; init; }
+        public string? NpmExePath { get; init; }
         public PackageGuard.Core.NpmPackageManager? NpmPackageManager { get; set; }
         public bool ScanNuGet { get; init; }
         public bool SkipRestore { get; init; }

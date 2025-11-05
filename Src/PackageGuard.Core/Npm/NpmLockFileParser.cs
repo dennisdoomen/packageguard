@@ -126,7 +126,7 @@ internal class NpmLockFileParser
             }
 
             logger.LogInformation("Successfully loaded npm lock file with {PackageCount} packages",
-                lockFile.Packages?.Count ?? 0);
+                lockFile.Packages.Count);
 
             return lockFile;
         }
