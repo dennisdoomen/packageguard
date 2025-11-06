@@ -235,22 +235,19 @@ class Build : NukeBuild
             var publishDirectory = ArtifactsDirectory / "publish";
             publishDirectory.CreateOrCleanDirectory();
 
-            // Publish for win-x64 as a self-contained executable
+            // Publish as platform-agnostic framework-dependent deployment
             DotNetPublish(s => s
                 .SetProject(Solution.PackageGuard)
                 .SetConfiguration(Configuration)
-                .SetRuntime("win-x64")
-                .EnableSelfContained()
-                .EnablePublishSingleFile()
-                .SetOutput(publishDirectory / "win-x64")
+                .SetOutput(publishDirectory)
                 .SetVersion(SemVer));
 
             // Create ZIP file
-            var zipFileName = $"PackageGuard-{SemVer}-win-x64.zip";
+            var zipFileName = $"PackageGuard-{SemVer}.zip";
             var zipFilePath = ArtifactsDirectory / zipFileName;
             
             Information($"Creating ZIP file: {zipFilePath}");
-            ZipFile.CreateFromDirectory(publishDirectory / "win-x64", zipFilePath, CompressionLevel.Optimal, false);
+            ZipFile.CreateFromDirectory(publishDirectory, zipFilePath, CompressionLevel.Optimal, false);
 
             ReportSummary(s => s
                 .AddPair("Binary ZIP", zipFileName));

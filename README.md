@@ -59,14 +59,14 @@ Install as [a NuGet Tool package](https://www.nuget.org/packages/packageguard):
 
 Then use `packageguard --help` to see a list of options.
 
-### As a standalone executable (Windows only)
+### As a portable deployment
 
-Download the latest `PackageGuard-{version}-win-x64.zip` from the [releases page](https://github.com/dennisdoomen/packageguard/releases/latest), extract it, and run `PackageGuard.exe` directly. This is a self-contained Windows executable that does not require .NET to be installed.
+Download the latest `PackageGuard-{version}.zip` from the [releases page](https://github.com/dennisdoomen/packageguard/releases/latest), extract it, and run it using `dotnet PackageGuard.dll`. This requires .NET 9.0 or later to be installed but works on Windows, Linux, and macOS.
 
 ```
 USAGE:
-    packageguard [path] [OPTIONS]         # When installed as a global tool
-    PackageGuard.exe [path] [OPTIONS]     # When using the standalone executable
+    packageguard [path] [OPTIONS]           # When installed as a global tool
+    dotnet PackageGuard.dll [path] [OPTIONS] # When using the portable deployment
 
 ARGUMENTS:
     [path]    The path to a directory containing a .sln/.slnx file, a specific .sln/.slnx file, or a specific .csproj file. Defaults to the current working
