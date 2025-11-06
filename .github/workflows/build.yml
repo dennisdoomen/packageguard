@@ -26,6 +26,11 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10
+
     - name: Run NUKE
       run: ./build.ps1
       env:

@@ -36,7 +36,7 @@
 
 ### What's this?
 
-PackageGuard is a fully open-source tool to scan the NuGet dependencies of your .NET solutions against a deny- or allowlist to control the open-source licenses that you want to allow or certain versions of certain packages you want to enforce or avoid. 
+PackageGuard is a fully open-source tool to scan the NuGet, NPM, PNPM and Yarn dependencies of your codebase against a deny- or allowlist so to control the open-source licenses that you want to allow or certain versions of certain packages you want to enforce or avoid. 
 
 ### What's so special about that?
 
@@ -65,34 +65,47 @@ Download the latest `PackageGuard-{version}.zip` from the [releases page](https:
 
 ```
 USAGE:
-    packageguard [path] [OPTIONS]           # When installed as a global tool
+    PackageGuard [path] [OPTIONS]            # When installed as a global tool
     dotnet PackageGuard.dll [path] [OPTIONS] # When using the portable deployment
 
 ARGUMENTS:
-    [path]    The path to a directory containing a .sln/.slnx file, a specific .sln/.slnx file, or a specific .csproj file. Defaults to the current working
-              directory
+    [path]    The path to a directory containing a .sln/.slnx file and/or a package.json, a specific .sln/.slnx file, a
+              specific .csproj file, or a specific package.json. Defaults to the current working directory
 
 OPTIONS:
-    -h, --help                   Prints help information
-    -c, --config-path            The path to the configuration file. Defaults to the config.json in the current working directory
-    -i, --restore-interactive    Allow enabling or disabling an interactive mode of "dotnet restore". Defaults to true
-    -f, --force-restore          Force restoring the NuGet dependencies, even if the lockfile is up-to-date
-    -s, --skip-restore           Prevent the restore operation from running, even if the lock file is missing or out-of-date
-    -a, --github-api-key         GitHub API key to use for fetching package licenses. If not specified, you may run into GitHub's rate limiting issues
-        --use-caching            Maintains a cache of the package information to speed up future analysis
-        --cache-file-path        Overrides the file path where analysis data is cached. Defaults to the "<workingdirectory>/.packageguard/cache.bin"
+                                 DEFAULT
+    -h, --help                              Prints help information
+    -c, --config-path                       The path to the configuration file. Defaults to hierarchical discovery of
+                                            packageguard.config.json or .packageguard/config.json files starting from
+                                            the solution directory
+    -i, --restore-interactive    True       Allow enabling or disabling an interactive mode of "dotnet restore".
+                                            Defaults to true
+        --ignore-violations                 Don't fail the analysis if any violations are found. Defaults to false
+    -f, --force-restore                     Force restoring the NuGet dependencies, even if the lockfile is up-to-date
+    -s, --skip-restore                      Prevent the restore operation from running, even if the lock file is missing
+                                            or out-of-date
+    -a, --github-api-key                    GitHub API key to use for fetching package licenses. If not specified, you
+                                            may run into GitHub's rate limiting issues
+        --use-caching                       Maintains a cache of the package information to speed up future analysis
+        --cache-file-path        False      Overrides the file path where analysis data is cached. Defaults to the
+                                            "<workingdirectory>/.packageguard/cache.bin"
+        --nuget                  True       Explicitly enable or disable scanning for .csproj, .sln or .slnx files
+        --npm                               Explicitly specify the package manager to use (npm, yarn, pnpm). If not
+                                            specified, it will detect it automatically
+        --npm-exe-path                      The path to the npm, yarn or pnpm executable. If not specified, the system
+                                            PATH is used
 ```
 
 ## How do I configure it?
 
-PackageGuard supports hierarchical configuration files that are automatically discovered based on your solution and project structure. This allows you to define organization-wide policies at the solution level and add project-specific rules as needed.
+PackageGuard supports hierarchical configuration files that are automatically discovered based on your .NET solution and project structure. This allows you to define repository-wide policies at the solution level and add project-specific rules as needed. Since PackageGuard will scan a single `package.json` per run, it will use the configuration that is associated with that directy.  
 
 ### Hierarchical Configuration Discovery
 
 PackageGuard will automatically look for configuration files in the following order:
 
-1. **Solution level**: `packageguard.config.json` in the same folder as your `.sln` or `.slnx` file
-2. **Solution level**: `config.json` in a `.packageguard` subdirectory of your solution folder  
+1. **Solution level**: `packageguard.config.json` in the same folder as your `.sln`, `.slnx` or `package.json` file 
+2. **Solution level**: `config.json` in a `.packageguard` subdirectory of your solution or `package.json` folder  
 3. **Project level**: `packageguard.config.json` in individual project directories
 4. **Project level**: `config.json` in a `.packageguard` subdirectory of project directories
 
@@ -139,7 +152,7 @@ Each configuration file should follow this JSON format:
 }
 ```
 
-In this example, only NuGet packages with the MIT or Apache 2.0 licenses are allowed, the use of the package `ProhibitedPackage` and any pre-release packages (e.g. `0.1.2` or `1.0.2-beta.2`) are prohibited, and `MyPackage` should stick to version 7 only. Both the `allow` and `deny` sections support the `licenses` and `packages` properties. But licenses and packages listed under `allow` have precedence over those under the `deny` section.
+In this example, only NuGet and NPM packages with the MIT or Apache 2.0 licenses are allowed, the use of the package `ProhibitedPackage` and any pre-release packages (e.g. `0.1.2` or `1.0.2-beta.2`) are prohibited, and `MyPackage` should stick to version 7 only. Both the `allow` and `deny` sections support the `licenses` and `packages` properties. But licenses and packages listed under `allow` have precedence over those under the `deny` section.
 
 > [!IMPORTANT]
 > Deny rules always take precedence over allow rules. If a package is denied by the `deny` section, it will be blocked regardless of what the `allow` section specifies.
@@ -182,7 +195,7 @@ The effective configuration for `WebProject` will allow:
 
 License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions, but we have special support for certain proprietary Microsoft licenses such as used by the `Microsoft.AspNet.WebApi*` packages. For those, we support using the license name `Microsoft .NET Library License`.
 
-Package names can include just the NuGet ID but may also include a [NuGet-compatible version (range)](https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort) separated by `/`. Here's a summary of the possible notations:
+Package names can include just the NuGet or NPM ID but may also include a [NuGet-compatible version (range)](https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort) separated by `/`. Here's a summary of the possible notations:
 
 
 | Notation        | Valid versions     |
@@ -199,7 +212,7 @@ Package names can include just the NuGet ID but may also include a [NuGet-compat
 
 ### About feeds
 
-PackageGuard follows the same logic for getting the applicable NuGet feeds as `dotnet` or your IDE does. That also means that it will use the configured credential providers to access authenticated feeds. 
+PackageGuard follows the same logic for getting the applicable NuGet or NPM feeds as `dotnet`, NPM package managers or your IDE does. That also means that it will use the configured credential providers to access authenticated and private feeds. 
 
 You can tell PackageGuard to allow all packages from a particular feed, even if a package on that feed doesn't meet the licenses or packages listed under `allow`. Just add the element `feeds` under the `allow` element and specify a wildcard pattern that matches the name or URL of the feed.
 
@@ -221,7 +234,7 @@ With this configuration in place, simply invoke PackageGuard like this
 
 `packageguard --configpath <path-to-config-file> <path-to-solution-file-or-project>`
 
-If you pass a directory, PackageGuard will try to find the `.sln` or `.slnx` files there. But you can also specify a specific `.csproj` to scan. 
+If you pass a directory, PackageGuard will try to find the `.sln`, `.slnx` or `package.json` files there. But you can also specify a specific `.csproj` or `package.json` to scan. 
 
 If everything was configured correctly, you'll get something like:
 
@@ -253,9 +266,6 @@ After having generated such a token, pass it to PackageGuard through its `github
 
 This is a rough list of items from my personal backlog that I'll be working on the coming weeks.
 
-**Major features**
-- Add NPM support
-
 **Minor features**
 - Allow specifying the location of `dotnet.exe`
 - Allow ignoring certain .csproj files or folders using Globs or wildcards (e.g. build.csproj)
@@ -263,13 +273,13 @@ This is a rough list of items from my personal backlog that I'll be working on t
 - Allow marking individual violations as a warning
 - Expose the internal engine through the `PackageGuard.Core` NuGet package
 - Add direct support for [Nuke](https://nuke.build/)
-- Allow loading settings from the directory of the scanned project and move up if not found
 - Display the reason why a package was marked as a violation
 
 ## Building
 
 To build this repository locally, you need the following:
 * The [.NET SDK](https://dotnet.microsoft.com/en-us/download/visual-studio-sdks) for .NET 8.0.
+* NPM, PNPM and Yarn available in your PATH
 * Visual Studio, [JetBrains Rider](https://www.jetbrains.com/rider/) or [Visual Studio Code](https://code.visualstudio.com/) with the [C# DevKit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
 
 You can also build, run the unit tests and package the code using the following command-line:

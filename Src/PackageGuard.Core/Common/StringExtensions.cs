@@ -22,4 +22,12 @@ internal static class StringExtensions
 
         return Regex.IsMatch(text, regexPattern, RegexOptions.IgnoreCase);
     }
+
+    /// <summary>
+    /// Determines whether the specified text matches any of the given wildcard patterns.
+    /// </summary>
+    public static bool MatchesAnyWildcard(this string text, IEnumerable<string> wildcardPatterns)
+    {
+        return wildcardPatterns.Any(pattern => text.MatchesWildcard(pattern));
+    }
 }

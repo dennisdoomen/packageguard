@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NuGet.ProjectModel;
 using Pathy;
 
-namespace PackageGuard.Core;
+namespace PackageGuard.Core.CSharp;
 
 public class DotNetLockFileLoader
 {
