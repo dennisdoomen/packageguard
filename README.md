@@ -59,9 +59,9 @@ Install as [a NuGet Tool package](https://www.nuget.org/packages/packageguard):
 
 Then use `packageguard --help` to see a list of options.
 
-### As a standalone executable
+### As a standalone executable (Windows only)
 
-Download the latest `PackageGuard-{version}-win-x64.zip` from the [releases page](https://github.com/dennisdoomen/packageguard/releases/latest), extract it, and run `PackageGuard.exe` directly. This does not require .NET to be installed.
+Download the latest `PackageGuard-{version}-win-x64.zip` from the [releases page](https://github.com/dennisdoomen/packageguard/releases/latest), extract it, and run `PackageGuard.exe` directly. This is a self-contained Windows executable that does not require .NET to be installed.
 
 ```
 USAGE:
