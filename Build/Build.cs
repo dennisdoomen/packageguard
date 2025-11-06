@@ -229,6 +229,7 @@ class Build : NukeBuild
 
     Target PublishBinary => _ => _
         .DependsOn(CalculateNugetVersion)
+        .OnlyWhenDynamic(() => IsTag)
         .Executes(() =>
         {
             var publishDirectory = ArtifactsDirectory / "publish";
