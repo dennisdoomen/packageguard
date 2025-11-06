@@ -49,15 +49,24 @@ Contact me through [Email](mailto:dennis.doomen@avivasolutions.nl), [Bluesky](ht
 
 ## Download
 
-The tool is available as [a NuGet Tool package](https://www.nuget.org/packages/packageguard) and can be installed like this:
+The tool is available in two forms:
+
+### As a .NET Global Tool (recommended)
+
+Install as [a NuGet Tool package](https://www.nuget.org/packages/packageguard):
 
   `dotnet tool install PackageGuard --global`
 
 Then use `packageguard --help` to see a list of options.
 
+### As a portable deployment
+
+Download the latest `PackageGuard-{version}.zip` from the [releases page](https://github.com/dennisdoomen/packageguard/releases/latest), extract it, and run it using `dotnet PackageGuard.dll`. This requires .NET 9.0 or later to be installed but works on Windows, Linux, and macOS.
+
 ```
 USAGE:
-    PackageGuard [path] [OPTIONS]
+    PackageGuard [path] [OPTIONS]            # When installed as a global tool
+    dotnet PackageGuard.dll [path] [OPTIONS] # When using the portable deployment
 
 ARGUMENTS:
     [path]    The path to a directory containing a .sln/.slnx file and/or a package.json, a specific .sln/.slnx file, a

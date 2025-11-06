@@ -64,6 +64,15 @@ jobs:
           ./Artifacts/*
           ./TestResults/*.trx
 
+    - name: Upload ZIP to Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ./Artifacts/PackageGuard-*.zip
+        fail_on_unmatched_files: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   publish-test-results:
     name: "Publish Tests Results"
     needs: [ build ]
