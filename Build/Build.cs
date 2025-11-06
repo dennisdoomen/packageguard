@@ -228,7 +228,7 @@ class Build : NukeBuild
         });
 
     Target PublishBinary => _ => _
-        .DependsOn(CalculateNugetVersion)
+        .DependsOn(Pack)
         .OnlyWhenDynamic(() => IsTag)
         .Executes(() =>
         {
@@ -276,6 +276,7 @@ class Build : NukeBuild
         });
 
     Target Default => _ => _
+        .DependsOn(Pack)
         .DependsOn(Push)
         .DependsOn(PublishBinary);
 
