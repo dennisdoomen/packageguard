@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using PackageGuard.Core.Common;
 using Pathy;
 
-namespace PackageGuard.Core;
+namespace PackageGuard.Core.CSharp;
 
 public class CSharpProjectScanner(ILogger logger)
 {
@@ -51,20 +51,21 @@ public class CSharpProjectScanner(ILogger logger)
             }
         }
 
-        if (solution is null && projectFiles.Count == 0)
+        // If no path was specified, use the current directory
+        if (pathy == ChainablePath.Empty)
         {
-            if (pathy == ChainablePath.Empty)
-            {
-                pathy = ChainablePath.Current;
-            }
+            pathy = ChainablePath.Current;
+        }
 
+        if (solution is null && projectFiles.Count == 0 && pathy.IsDirectory)
+        {
             string[] solutions = Directory.GetFiles(pathy, "*.sln", SearchOption.TopDirectoryOnly)
                 .Concat(Directory.GetFiles(pathy, "*.slnx", SearchOption.TopDirectoryOnly))
                 .ToArray();
 
             if (solutions.Length == 0)
             {
-                logger.LogInformation("No solution found in {Path}", path);
+                logger.LogInformation("No .NET solution found in {Path}", path);
             }
             else if (solutions.Length == 1)
             {

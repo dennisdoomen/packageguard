@@ -1,4 +1,4 @@
-namespace PackageGuard.Core.FetchingStrategies;
+namespace PackageGuard.Core.CSharp.FetchingStrategies;
 
 /// <summary>
 /// A specialized license fetcher that corrects the metadata for packages that have historically used the wrong repository URL or missed license information.

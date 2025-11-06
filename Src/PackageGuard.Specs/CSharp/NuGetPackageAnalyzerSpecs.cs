@@ -5,9 +5,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NuGet.Versioning;
 using PackageGuard.Core;
+using PackageGuard.Core.CSharp;
 using Pathy;
 
-namespace PackageGuard.Specs;
+namespace PackageGuard.Specs.CSharp;
 
 [TestClass]
 public class NuGetPackageAnalyzerSpecs

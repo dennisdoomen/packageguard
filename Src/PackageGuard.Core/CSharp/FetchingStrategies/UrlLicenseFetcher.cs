@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace PackageGuard.Core.FetchingStrategies;
+namespace PackageGuard.Core.CSharp.FetchingStrategies;
 
 /// <summary>
 /// Tries to determine the license by downloading the license file from the URL provided in the package metadata

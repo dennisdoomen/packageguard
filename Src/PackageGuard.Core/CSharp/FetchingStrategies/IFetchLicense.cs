@@ -1,4 +1,4 @@
-namespace PackageGuard.Core.FetchingStrategies;
+namespace PackageGuard.Core.CSharp.FetchingStrategies;
 
 /// <summary>
 /// Represents a strategy for fetching a license for a package.

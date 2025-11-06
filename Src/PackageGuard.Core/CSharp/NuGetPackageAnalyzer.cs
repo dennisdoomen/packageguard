@@ -7,7 +7,7 @@ using NuGet.Versioning;
 using PackageGuard.Core.Common;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
-namespace PackageGuard.Core;
+namespace PackageGuard.Core.CSharp;
 
 /// <summary>
 /// Represents an analyzer for NuGet packages within a specified project.

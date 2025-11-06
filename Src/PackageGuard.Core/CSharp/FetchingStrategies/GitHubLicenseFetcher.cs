@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace PackageGuard.Core.FetchingStrategies;
+namespace PackageGuard.Core.CSharp.FetchingStrategies;
 
 /// <summary>
 /// Fetches licenses using GitHub metadata and an optional GitHub API key to prevent rate limiting.
