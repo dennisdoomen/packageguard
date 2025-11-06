@@ -49,15 +49,24 @@ Contact me through [Email](mailto:dennis.doomen@avivasolutions.nl), [Bluesky](ht
 
 ## Download
 
-The tool is available as [a NuGet Tool package](https://www.nuget.org/packages/packageguard) and can be installed like this:
+The tool is available in two forms:
+
+### As a .NET Global Tool (recommended)
+
+Install as [a NuGet Tool package](https://www.nuget.org/packages/packageguard):
 
   `dotnet tool install PackageGuard --global`
 
 Then use `packageguard --help` to see a list of options.
 
+### As a standalone executable
+
+Download the latest `PackageGuard-{version}-win-x64.zip` from the [releases page](https://github.com/dennisdoomen/packageguard/releases/latest), extract it, and run `PackageGuard.exe` directly. This does not require .NET to be installed.
+
 ```
 USAGE:
-    PackageGuard.dll [path] [OPTIONS]
+    packageguard [path] [OPTIONS]         # When installed as a global tool
+    PackageGuard.exe [path] [OPTIONS]     # When using the standalone executable
 
 ARGUMENTS:
     [path]    The path to a directory containing a .sln/.slnx file, a specific .sln/.slnx file, or a specific .csproj file. Defaults to the current working
