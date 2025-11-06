@@ -1,4 +1,5 @@
 using System;
+using System.IO.Compression;
 using System.Linq;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
@@ -61,14 +62,14 @@ class Build : NukeBuild
     Target CalculateNugetVersion => _ => _
         .Executes(() =>
         {
-            SemVer = GitVersion.SemVer;
+            SemVer = GitVersion?.SemVer ?? "0.0.0-dev";
             if (IsPullRequest)
             {
                 Information(
                     "Branch spec {branchspec} is a pull request. Adding build number {buildnumber}",
                     BranchSpec, BuildNumber);
 
-                SemVer = string.Join('.', GitVersion.SemVer.Split('.').Take(3).Union(new[]
+                SemVer = string.Join('.', SemVer.Split('.').Take(3).Union(new[]
                 {
                     BuildNumber
                 }));
@@ -89,9 +90,9 @@ class Build : NukeBuild
                 .SetProjectFile(Solution)
                 .SetConfiguration(Configuration)
                 .SetVersion(SemVer)
-                .SetAssemblyVersion(GitVersion.AssemblySemVer)
-                .SetFileVersion(GitVersion.AssemblySemFileVer)
-                .SetInformationalVersion(GitVersion.InformationalVersion));
+                .SetAssemblyVersion(GitVersion?.AssemblySemVer ?? SemVer)
+                .SetFileVersion(GitVersion?.AssemblySemFileVer ?? SemVer)
+                .SetInformationalVersion(GitVersion?.InformationalVersion ?? SemVer));
         });
 
     Target RunInspectCode => _ => _
@@ -226,6 +227,34 @@ class Build : NukeBuild
                 .SetVersion(SemVer));
         });
 
+    Target PublishBinary => _ => _
+        .DependsOn(CalculateNugetVersion)
+        .Executes(() =>
+        {
+            var publishDirectory = ArtifactsDirectory / "publish";
+            publishDirectory.CreateOrCleanDirectory();
+
+            // Publish for win-x64 as a self-contained executable
+            DotNetPublish(s => s
+                .SetProject(Solution.PackageGuard)
+                .SetConfiguration(Configuration)
+                .SetRuntime("win-x64")
+                .EnableSelfContained()
+                .EnablePublishSingleFile()
+                .SetOutput(publishDirectory / "win-x64")
+                .SetVersion(SemVer));
+
+            // Create ZIP file
+            var zipFileName = $"PackageGuard-{SemVer}-win-x64.zip";
+            var zipFilePath = ArtifactsDirectory / zipFileName;
+            
+            Information($"Creating ZIP file: {zipFilePath}");
+            ZipFile.CreateFromDirectory(publishDirectory / "win-x64", zipFilePath, CompressionLevel.Optimal, false);
+
+            ReportSummary(s => s
+                .AddPair("Binary ZIP", zipFileName));
+        });
+
     Target Push => _ => _
         .DependsOn(Pack)
         .OnlyWhenDynamic(() => IsTag)
@@ -246,7 +275,8 @@ class Build : NukeBuild
         });
 
     Target Default => _ => _
-        .DependsOn(Push);
+        .DependsOn(Push)
+        .DependsOn(PublishBinary);
 
     bool IsPullRequest => GitHubActions?.IsPullRequest ?? false;
 
