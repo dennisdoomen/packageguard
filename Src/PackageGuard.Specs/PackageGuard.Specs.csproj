@@ -15,15 +15,15 @@
       <PackageReference Include="coverlet.collector" Version="6.0.4" PrivateAssets="all">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="Meziantou.Extensions.Logging.InMemory" Version="1.3.5" />
-      <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="9.10.0" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.10" />
-      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
+      <PackageReference Include="Meziantou.Extensions.Logging.InMemory" Version="1.3.6" />
+      <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="10.0.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+      <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
       <PackageReference Include="Pathy.Globbing" Version="1.7.1">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="MSTest" Version="4.0.1" />
+      <PackageReference Include="MSTest" Version="4.0.2" />
       <PackageReference Include="Pathy" Version="1.7.1">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
