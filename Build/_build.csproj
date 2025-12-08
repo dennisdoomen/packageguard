@@ -17,7 +17,7 @@
     <PackageDownload Include="ReportGenerator" Version="[5.2.0]" />
     <PackageDownload Include="GitVersion.Tool" Version="[6.0.2]" />
     <PackageDownload Include="JetBrains.ReSharper.GlobalTools" Version="[2025.2.4]" />
-    <PackageReference Include="Nuke.Utilities.IO.Compression" Version="10.0.0" />
+    <PackageReference Include="Nuke.Utilities.IO.Compression" Version="10.1.0" />
     <PackageReference Include="SharpCompress" Version="0.42.0" />
   </ItemGroup>
 
