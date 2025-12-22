@@ -15,9 +15,9 @@
       <PackageReference Include="coverlet.collector" Version="6.0.4" PrivateAssets="all">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="Meziantou.Extensions.Logging.InMemory" Version="1.3.6" />
-      <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="10.0.0" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
+      <PackageReference Include="Meziantou.Extensions.Logging.InMemory" Version="1.3.7" />
+      <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" Version="10.1.0" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.1" />
       <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
       <PackageReference Include="Pathy.Globbing" Version="1.7.1">
         <PrivateAssets>all</PrivateAssets>
