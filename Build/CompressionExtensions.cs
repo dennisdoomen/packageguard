@@ -1,5 +1,4 @@
 using Nuke.Common.IO;
-using SharpCompress.Common;
 using SharpCompress.Readers;
 using System.IO;
 
@@ -9,7 +8,11 @@ public static class CompressionExtensions
     {
         using Stream stream = File.OpenRead(archive);
 
-        using var reader = ReaderFactory.Open(stream);
+        using var reader = ReaderFactory.OpenReader(stream, new ReaderOptions
+        {
+            ExtractFullPath = true,
+            Overwrite = true
+        });
 
         while (reader.MoveToNextEntry())
         {
@@ -18,11 +21,7 @@ public static class CompressionExtensions
                 continue;
             }
 
-            reader.WriteEntryToDirectory(directory, new ExtractionOptions
-            {
-                ExtractFullPath = true,
-                Overwrite = true
-            });
+            reader.WriteEntryToDirectory(directory);
         }
     }
 }
