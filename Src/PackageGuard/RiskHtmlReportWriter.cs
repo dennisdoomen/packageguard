@@ -228,7 +228,7 @@ internal static class RiskHtmlReportWriter
             _ => "risk-low"
         };
 
-        return $"<span class=\"score-pill {cssClass}\">{Encode(FormatDecimal(score))}/100 ({Encode(zone)})</span>";
+        return $"<span class=\"score-pill {cssClass}\">{Encode(FormatDecimal(score))}/100</span>";
     }
 
     private static string BuildDimensionScorePill(double score)
