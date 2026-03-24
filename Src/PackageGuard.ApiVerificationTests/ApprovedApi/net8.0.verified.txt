@@ -18,6 +18,7 @@ namespace PackageGuard.Core
         public AnalyzerSettings() { }
         public string CacheFilePath { get; init; }
         public bool ForceRestore { get; init; }
+        public string? GitHubApiKey { get; init; }
         public bool InteractiveRestore { get; init; }
         public string? NpmExePath { get; init; }
         public PackageGuard.Core.NpmPackageManager? NpmPackageManager { get; set; }
@@ -49,11 +50,51 @@ namespace PackageGuard.Core
     {
         public PackageInfo() { }
         [MemoryPack.MemoryPackIgnore]
+        public int? ContributorCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public int DependencyDepth { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public string[] DependencyKeys { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public long? DownloadCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool? HasContributingGuide { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool? HasDefaultReadme { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool HasPatchedVulnerabilityInLast90Days { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool HasPreOneZeroDependencies { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool? HasReadme { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool? HasSecurityPolicy { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool? HasValidLicenseUrl { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool? IsLicensePolicyCompatible { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool? IsPackageSigned { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public bool IsUsed { get; set; }
         public string? License { get; set; }
         public string? LicenseUrl { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public double MaxVulnerabilitySeverity { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public double? MedianIssueResponseDays { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public double? MedianPullRequestMergeDays { get; set; }
         public string Name { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public int? OpenBugIssueCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public System.DateTimeOffset? OwnerCreatedAt { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool OwnerIsOrganization { get; set; }
         public string[] Projects { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public System.DateTimeOffset? PublishedAt { get; set; }
         public string? RepositoryUrl { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public PackageGuard.Core.RiskDimensions RiskDimensions { get; set; }
@@ -61,7 +102,13 @@ namespace PackageGuard.Core
         public double RiskScore { get; set; }
         public string Source { get; set; }
         public string SourceUrl { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public int? StaleCriticalBugIssueCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public int TransitiveVulnerabilityCount { get; set; }
         public string Version { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public int VulnerabilityCount { get; set; }
         public void MarkAsUsed() { }
         public bool MatchesFeed(string feedWildcard) { }
         public bool SatisfiesRange(string name, string? versionRange = null) { }

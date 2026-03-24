@@ -57,6 +57,75 @@ public partial class PackageInfo
     [MemoryPackIgnore]
     public RiskDimensions RiskDimensions { get; set; } = new();
 
+    [MemoryPackIgnore]
+    public bool? HasValidLicenseUrl { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? IsLicensePolicyCompatible { get; set; }
+
+    [MemoryPackIgnore]
+    public int VulnerabilityCount { get; set; }
+
+    [MemoryPackIgnore]
+    public int TransitiveVulnerabilityCount { get; set; }
+
+    [MemoryPackIgnore]
+    public double MaxVulnerabilitySeverity { get; set; }
+
+    [MemoryPackIgnore]
+    public bool HasPatchedVulnerabilityInLast90Days { get; set; }
+
+    [MemoryPackIgnore]
+    public int DependencyDepth { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? IsPackageSigned { get; set; }
+
+    [MemoryPackIgnore]
+    public DateTimeOffset? PublishedAt { get; set; }
+
+    [MemoryPackIgnore]
+    public long? DownloadCount { get; set; }
+
+    [MemoryPackIgnore]
+    public bool OwnerIsOrganization { get; set; }
+
+    [MemoryPackIgnore]
+    public DateTimeOffset? OwnerCreatedAt { get; set; }
+
+    [MemoryPackIgnore]
+    public int? ContributorCount { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasReadme { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasDefaultReadme { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasContributingGuide { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasSecurityPolicy { get; set; }
+
+    [MemoryPackIgnore]
+    public int? OpenBugIssueCount { get; set; }
+
+    [MemoryPackIgnore]
+    public int? StaleCriticalBugIssueCount { get; set; }
+
+    [MemoryPackIgnore]
+    public double? MedianIssueResponseDays { get; set; }
+
+    [MemoryPackIgnore]
+    public double? MedianPullRequestMergeDays { get; set; }
+
+    [MemoryPackIgnore]
+    public bool HasPreOneZeroDependencies { get; set; }
+
+    [MemoryPackIgnore]
+    public string[] DependencyKeys { get; set; } = [];
+
     public bool SatisfiesRange(string name, string? versionRange = null)
     {
         if (!name.Equals(Name, StringComparison.OrdinalIgnoreCase))

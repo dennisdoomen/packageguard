@@ -49,6 +49,10 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         PackageInfo[] allPackages = packages.GetAllUsedPackages();
         if (settings.ShowRisk)
         {
+            var enricher = new PackageRiskEnricher(Logger, settings.GitHubApiKey);
+            await enricher.EnrichAsync(allPackages);
+            PopulateTransitiveVulnerabilityCounts(allPackages);
+
             RiskEvaluator evaluator = riskEvaluator ?? new RiskEvaluator(Logger);
             foreach (PackageInfo package in allPackages)
             {
@@ -62,4 +66,47 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
             Packages = allPackages
         };
     }
+
+    private static void PopulateTransitiveVulnerabilityCounts(PackageInfo[] packages)
+    {
+        Dictionary<string, PackageInfo> packagesByKey = packages.ToDictionary(CreatePackageKey, StringComparer.OrdinalIgnoreCase);
+
+        foreach (PackageInfo package in packages)
+        {
+            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            int count = CountVulnerableDependencies(package, packagesByKey, visited);
+            package.TransitiveVulnerabilityCount = count;
+        }
+    }
+
+    private static int CountVulnerableDependencies(PackageInfo package, IReadOnlyDictionary<string, PackageInfo> packagesByKey,
+        HashSet<string> visited)
+    {
+        int count = 0;
+
+        foreach (string dependencyKey in package.DependencyKeys)
+        {
+            if (!visited.Add(dependencyKey))
+            {
+                continue;
+            }
+
+            if (!packagesByKey.TryGetValue(dependencyKey, out PackageInfo? dependency))
+            {
+                continue;
+            }
+
+            if (dependency.VulnerabilityCount > 0)
+            {
+                count++;
+            }
+
+            count += CountVulnerableDependencies(dependency, packagesByKey, visited);
+        }
+
+        return count;
+    }
+
+    private static string CreatePackageKey(PackageInfo package) =>
+        $"{package.Source}|{package.Name}|{package.Version}";
 }

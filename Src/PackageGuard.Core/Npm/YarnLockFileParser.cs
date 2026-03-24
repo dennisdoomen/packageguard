@@ -67,7 +67,8 @@ internal class YarnLockFileParser
                     Version = packageData.Version,
                     License = null, // Yarn lock files typically don't include license info
                     Source = "npm",
-                    SourceUrl = packageData.Resolved ?? "https://registry.npmjs.org"
+                    SourceUrl = packageData.Resolved ?? "https://registry.npmjs.org",
+                    DependencyDepth = 1
                 };
 
                 packages.Add(packageInfo);

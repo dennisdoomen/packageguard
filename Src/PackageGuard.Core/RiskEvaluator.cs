@@ -36,28 +36,31 @@ public class RiskEvaluator(ILogger logger)
     {
         var risk = 0.0;
 
-        // License risk assessment
         if (string.IsNullOrEmpty(package.License) || package.License == "Unknown")
         {
-            risk += 8.0; // High risk for unknown licenses
+            risk += 6.0;
         }
         else if (IsRestrictiveLicense(package.License))
         {
-            risk += 6.0; // High risk for restrictive licenses
+            risk += 6.0;
+        }
+        else if (IsWeakCopyleftLicense(package.License))
+        {
+            risk += 3.0;
         }
         else if (IsPermissiveLicense(package.License))
         {
-            risk += 1.0; // Low risk for permissive licenses
-        }
-        else
-        {
-            risk += 4.0; // Medium risk for other licenses
+            risk += 0.0;
         }
 
-        // Missing license URL adds minor risk
-        if (string.IsNullOrEmpty(package.LicenseUrl))
+        if (package.HasValidLicenseUrl == false || string.IsNullOrEmpty(package.LicenseUrl))
         {
             risk += 1.0;
+        }
+
+        if (package.IsLicensePolicyCompatible == false)
+        {
+            risk += 3.0;
         }
 
         return Math.Min(risk, 10.0);
@@ -70,20 +73,56 @@ public class RiskEvaluator(ILogger logger)
     {
         var risk = 0.0;
 
-        // Source transparency risk
         if (string.IsNullOrEmpty(package.RepositoryUrl))
         {
-            risk += 5.0; // Higher risk when source is not available
+            risk += 4.0;
         }
 
-        // TODO: In a complete implementation, this would:
-        // - Query vulnerability databases (CVE, NVD, GitHub Security Advisories)
-        // - Check package signing status
-        // - Evaluate maintainer reputation
-        // - Assess dependency chain depth
+        double vulnerabilityRisk = 0;
+        if (package.VulnerabilityCount > 0)
+        {
+            vulnerabilityRisk += Math.Min(4.0, package.MaxVulnerabilitySeverity / 2.0);
+        }
 
-        // For now, assign a baseline security risk
-        risk += 2.0; // Base security risk
+        if (package.HasPatchedVulnerabilityInLast90Days)
+        {
+            vulnerabilityRisk += 1.0;
+        }
+
+        risk += Math.Min(6.0, vulnerabilityRisk);
+
+        if (package.DependencyDepth > 20)
+        {
+            risk += 3.0;
+        }
+        else if (package.DependencyDepth > 10)
+        {
+            risk += 2.0;
+        }
+
+        risk += Math.Min(2.0, package.TransitiveVulnerabilityCount * 0.5);
+
+        if (package.IsPackageSigned == false)
+        {
+            risk += 1.0;
+        }
+
+        if (package.OwnerCreatedAt is DateTimeOffset ownerCreatedAt &&
+            ownerCreatedAt > DateTimeOffset.UtcNow.AddYears(-1))
+        {
+            risk += 1.0;
+        }
+
+        if (!package.OwnerIsOrganization && package.ContributorCount is <= 1)
+        {
+            risk += 1.0;
+        }
+
+        if (package.PublishedAt is DateTimeOffset publishedAt &&
+            publishedAt < DateTimeOffset.UtcNow.AddMonths(-24))
+        {
+            risk += 2.0;
+        }
 
         return Math.Min(risk, 10.0);
     }
@@ -95,15 +134,79 @@ public class RiskEvaluator(ILogger logger)
     {
         var risk = 0.0;
 
-        // TODO: In a complete implementation, this would:
-        // - Check last release date and frequency
-        // - Evaluate download popularity
-        // - Assess maintainer responsiveness
-        // - Check for open critical issues
-        // - Evaluate dependency requirements
+        if (package.PublishedAt is DateTimeOffset publishedAt)
+        {
+            if (publishedAt < DateTimeOffset.UtcNow.AddMonths(-24))
+            {
+                risk += 4.0;
+            }
+            else if (publishedAt < DateTimeOffset.UtcNow.AddMonths(-12))
+            {
+                risk += 2.0;
+            }
+        }
 
-        // For now, assign a baseline operational risk
-        risk += 3.0; // Base operational risk
+        if (package.HasReadme != true || package.HasDefaultReadme == true)
+        {
+            risk += 1.0;
+        }
+
+        if (package.HasContributingGuide != true)
+        {
+            risk += 1.0;
+        }
+
+        if (package.HasSecurityPolicy != true)
+        {
+            risk += 1.0;
+        }
+
+        if (package.ContributorCount is < 2)
+        {
+            risk += 3.0;
+        }
+        else if (package.ContributorCount is < 5)
+        {
+            risk += 2.0;
+        }
+
+        if (package.OpenBugIssueCount > 25)
+        {
+            risk += 2.0;
+        }
+        else if (package.OpenBugIssueCount > 10)
+        {
+            risk += 1.0;
+        }
+
+        if (package.StaleCriticalBugIssueCount > 0)
+        {
+            risk += 2.0;
+        }
+
+        if (package.MedianIssueResponseDays > 30)
+        {
+            risk += 2.0;
+        }
+
+        if (package.MedianPullRequestMergeDays > 60)
+        {
+            risk += 1.0;
+        }
+
+        if (package.DownloadCount is < 1000)
+        {
+            risk += 3.0;
+        }
+        else if (package.DownloadCount is < 10000)
+        {
+            risk += 2.0;
+        }
+
+        if (package.HasPreOneZeroDependencies)
+        {
+            risk += 1.0;
+        }
 
         return Math.Min(risk, 10.0);
     }
@@ -115,11 +218,22 @@ public class RiskEvaluator(ILogger logger)
     {
         var restrictiveLicenses = new[]
         {
-            "GPL", "AGPL", "LGPL", "SSPL", "Commons Clause", "BUSL", "BCL"
+            "GPL", "AGPL", "SSPL", "Commons Clause", "BUSL", "BCL"
         };
 
         return restrictiveLicenses.Any(restrictive => 
             license.Contains(restrictive, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsWeakCopyleftLicense(string license)
+    {
+        var weakCopyleftLicenses = new[]
+        {
+            "LGPL", "MPL"
+        };
+
+        return weakCopyleftLicenses.Any(candidate =>
+            license.Contains(candidate, StringComparison.OrdinalIgnoreCase));
     }
 
     /// <summary>

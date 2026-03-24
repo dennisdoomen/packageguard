@@ -154,6 +154,8 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
                     RepositoryUrl = packageInfo.ProjectUrl?.ToString(),
                     License = packageInfo.LicenseMetadata?.License,
                     LicenseUrl = packageInfo.LicenseUrl?.ToString(),
+                    PublishedAt = packageInfo.Published,
+                    DownloadCount = packageInfo.DownloadCount,
                     Source = nuGetSource.PackageSource.Name,
                     SourceUrl = nuGetSource.PackageSource.Source
                 };

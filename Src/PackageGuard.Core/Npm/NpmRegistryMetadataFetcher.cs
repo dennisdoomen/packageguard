@@ -46,6 +46,14 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
             using JsonDocument doc = JsonDocument.Parse(jsonContent);
             JsonElement root = doc.RootElement;
 
+            if (root.TryGetProperty("time", out JsonElement timeElement) &&
+                timeElement.ValueKind == JsonValueKind.Object &&
+                timeElement.TryGetProperty(package.Version, out JsonElement publishedElement) &&
+                DateTimeOffset.TryParse(publishedElement.GetString(), out DateTimeOffset publishedAt))
+            {
+                package.PublishedAt = publishedAt;
+            }
+
             // Extract license if not already present
             if (package.License is null && root.TryGetProperty("license", out JsonElement licenseElement))
             {
@@ -89,6 +97,8 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
                     logger.LogDebug("Constructed license URL for {Name}: {Url}", package.Name, package.LicenseUrl);
                 }
             }
+
+            await FetchDownloadCountAsync(package);
         }
         catch (HttpRequestException ex)
         {
@@ -187,6 +197,28 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
 
             // Fallback to public npm registry
             return $"https://registry.npmjs.org/{package.Name}/{package.Version}";
+        }
+    }
+
+    private async Task FetchDownloadCountAsync(PackageInfo package)
+    {
+        try
+        {
+            string packageName = Uri.EscapeDataString(package.Name);
+            string downloadsUrl = $"https://api.npmjs.org/downloads/point/last-month/{packageName}";
+            string jsonContent = await HttpClient.GetStringAsync(downloadsUrl);
+            using JsonDocument doc = JsonDocument.Parse(jsonContent);
+
+            if (doc.RootElement.TryGetProperty("downloads", out JsonElement downloadsElement) &&
+                downloadsElement.TryGetInt64(out long downloadCount))
+            {
+                package.DownloadCount = downloadCount;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug("Failed to fetch download count for {Name} {Version}: {Error}",
+                package.Name, package.Version, ex.Message);
         }
     }
 }

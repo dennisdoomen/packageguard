@@ -94,10 +94,46 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
                 AnsiConsole.MarkupLine($"- Security: [{GetRiskColor(package.RiskDimensions.SecurityRisk * 10)}]{package.RiskDimensions.SecurityRisk:F1}/10[/]");
                 AnsiConsole.MarkupLine($"- Operational: [{GetRiskColor(package.RiskDimensions.OperationalRisk * 10)}]{package.RiskDimensions.OperationalRisk:F1}/10[/]");
                 logger.LogInformation("- License: {License}", package.License ?? "Unknown");
-                
+
+                if (package.HasValidLicenseUrl is not null)
+                {
+                    logger.LogInformation("- License URL: {Status}", package.HasValidLicenseUrl == true ? "Valid" : "Missing or invalid");
+                }
+
+                if (package.VulnerabilityCount > 0)
+                {
+                    logger.LogInformation("- Vulnerabilities: {Count} (max severity {Severity:F1})",
+                        package.VulnerabilityCount, package.MaxVulnerabilitySeverity);
+                }
+
+                if (package.DependencyDepth > 0)
+                {
+                    logger.LogInformation("- Dependency depth: {Depth}", package.DependencyDepth);
+                }
+
                 if (!string.IsNullOrEmpty(package.RepositoryUrl))
                 {
                     logger.LogInformation("- Repository: {RepositoryUrl}", package.RepositoryUrl);
+                }
+
+                if (package.PublishedAt is DateTimeOffset publishedAt)
+                {
+                    logger.LogInformation("- Published: {PublishedAt:yyyy-MM-dd}", publishedAt);
+                }
+
+                if (package.DownloadCount is long downloadCount)
+                {
+                    logger.LogInformation("- Downloads: {DownloadCount}", downloadCount);
+                }
+
+                if (package.ContributorCount is int contributorCount)
+                {
+                    logger.LogInformation("- Contributors: {ContributorCount}", contributorCount);
+                }
+
+                if (package.OpenBugIssueCount is int openBugIssueCount)
+                {
+                    logger.LogInformation("- Open bug issues: {OpenBugIssueCount}", openBugIssueCount);
                 }
 
                 AnsiConsole.MarkupLine("");

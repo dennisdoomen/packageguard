@@ -78,7 +78,8 @@ internal class PnpmLockFileParser
                     Version = version,
                     License = null, // Pnpm lock files typically don't include license info
                     Source = "npm",
-                    SourceUrl = resolvedUrl ?? "https://registry.npmjs.org"
+                    SourceUrl = resolvedUrl ?? "https://registry.npmjs.org",
+                    DependencyDepth = 1
                 };
 
                 packages.Add(packageInfo);

@@ -77,7 +77,8 @@ internal class NpmLockFileParser
                 Version = packageEntry.Version,
                 License = packageEntry.License,
                 Source = "npm",
-                SourceUrl = packageEntry.Resolved ?? "https://registry.npmjs.org"
+                SourceUrl = packageEntry.Resolved ?? "https://registry.npmjs.org",
+                DependencyDepth = Math.Max(1, packagePath.Split("node_modules/", StringSplitOptions.RemoveEmptyEntries).Length)
             };
 
             packages.Add(packageInfo);

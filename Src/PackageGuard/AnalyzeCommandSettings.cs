@@ -88,7 +88,8 @@ internal class AnalyzeCommandSettings : CommandSettings
             UseCaching = UseCaching,
             NpmExePath = NpmExePath,
             ScanNuGet = ScanNuGet,
-            ShowRisk = ShowRisk
+            ShowRisk = ShowRisk,
+            GitHubApiKey = GitHubApiKey
         };
     }
 }

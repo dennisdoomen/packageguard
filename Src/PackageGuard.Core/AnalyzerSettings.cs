@@ -55,4 +55,9 @@ public class AnalyzerSettings
     /// Indicates whether risk metrics should be included in the analysis result.
     /// </summary>
     public bool ShowRisk { get; init; }
+
+    /// <summary>
+    /// Optional GitHub API key used to enrich repository-based risk metadata and avoid rate limits.
+    /// </summary>
+    public string? GitHubApiKey { get; init; }
 }
