@@ -50,6 +50,7 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         int vulnerabilityCount = 0;
         double maxSeverity = 0;
         bool hasPatchedRecent = false;
+        bool hasAvailableFix = false;
 
         do
         {
@@ -74,6 +75,11 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
                     {
                         hasPatchedRecent = true;
                     }
+
+                    if (HasFix(vulnerability))
+                    {
+                        hasAvailableFix = true;
+                    }
                 }
             }
 
@@ -87,7 +93,8 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         {
             VulnerabilityCount = vulnerabilityCount,
             MaxSeverity = maxSeverity,
-            HasPatchedVulnerabilityInLast90Days = hasPatchedRecent
+            HasPatchedVulnerabilityInLast90Days = hasPatchedRecent,
+            HasAvailableSecurityFix = hasAvailableFix
         };
     }
 
@@ -112,6 +119,7 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         package.VulnerabilityCount = result.VulnerabilityCount;
         package.MaxVulnerabilitySeverity = result.MaxSeverity;
         package.HasPatchedVulnerabilityInLast90Days = result.HasPatchedVulnerabilityInLast90Days;
+        package.HasAvailableSecurityFix = result.HasAvailableSecurityFix;
     }
 
     private static bool HasFix(JsonElement vulnerability)
@@ -274,5 +282,7 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         public double MaxSeverity { get; init; }
 
         public bool HasPatchedVulnerabilityInLast90Days { get; init; }
+
+        public bool HasAvailableSecurityFix { get; init; }
     }
 }

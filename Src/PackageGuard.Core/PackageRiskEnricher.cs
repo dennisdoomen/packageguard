@@ -11,6 +11,7 @@ internal sealed class PackageRiskEnricher
         enrichers =
         [
             new LicenseUrlRiskEnricher(logger),
+            new NuGetPackageSigningRiskEnricher(logger),
             new OsvRiskEnricher(),
             new GitHubRepositoryRiskEnricher(logger, gitHubApiKey)
         ];

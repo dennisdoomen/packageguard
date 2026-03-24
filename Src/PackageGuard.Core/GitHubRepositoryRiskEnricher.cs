@@ -34,7 +34,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
         if (cached is null)
         {
-            cached = await LoadAsync(repositoryApiRoot);
+            cached = await LoadAsync(repositoryApiRoot, package.RepositoryUrl);
 
             lock (CacheLock)
             {
@@ -50,18 +50,28 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         package.OwnerIsOrganization = cached.OwnerIsOrganization;
         package.OwnerCreatedAt = cached.OwnerCreatedAt;
         package.ContributorCount = cached.ContributorCount;
+        package.TopContributorShare = cached.TopContributorShare;
+        package.TopTwoContributorShare = cached.TopTwoContributorShare;
         package.HasReadme = cached.HasReadme;
         package.HasDefaultReadme = cached.HasDefaultReadme;
         package.HasContributingGuide = cached.HasContributingGuide;
         package.HasSecurityPolicy = cached.HasSecurityPolicy;
+        package.HasChangelog = cached.HasChangelog;
+        package.HasDefaultChangelog = cached.HasDefaultChangelog;
         package.OpenBugIssueCount = cached.OpenBugIssueCount;
         package.StaleCriticalBugIssueCount = cached.StaleCriticalBugIssueCount;
         package.MedianIssueResponseDays = cached.MedianIssueResponseDays;
         package.MedianPullRequestMergeDays = cached.MedianPullRequestMergeDays;
+        package.RecentFailedWorkflowCount = cached.RecentFailedWorkflowCount;
+        package.HasRecentSuccessfulWorkflowRun = cached.HasRecentSuccessfulWorkflowRun;
+        package.OpenSsfScore = cached.OpenSsfScore;
+        package.HasBranchProtection = cached.HasBranchProtection;
+        package.HasProvenanceAttestation = cached.HasProvenanceAttestation;
+        package.HasRepositoryOwnershipOrRenameChurn = cached.HasRepositoryOwnershipOrRenameChurn;
         package.PublishedAt ??= cached.LastReleaseAt;
     }
 
-    private async Task<GitHubRepositoryRiskData?> LoadAsync(string repositoryApiRoot)
+    private async Task<GitHubRepositoryRiskData?> LoadAsync(string repositoryApiRoot, string? declaredRepositoryUrl)
     {
         try
         {
@@ -73,8 +83,12 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 : "main";
 
             string ownerLogin = repo.GetProperty("owner").GetProperty("login").GetString() ?? string.Empty;
+            string repositoryName = repo.GetProperty("name").GetString() ?? string.Empty;
             bool ownerIsOrganization = string.Equals(repo.GetProperty("owner").GetProperty("type").GetString(),
                 "Organization", StringComparison.OrdinalIgnoreCase);
+            string canonicalUrl = repo.TryGetProperty("html_url", out JsonElement htmlUrlElement)
+                ? htmlUrlElement.GetString() ?? string.Empty
+                : string.Empty;
 
             using JsonDocument ownerDocument = await GetJsonAsync(ownerIsOrganization
                 ? $"https://api.github.com/orgs/{ownerLogin}"
@@ -85,22 +99,39 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
             GitHubReadmeData readmeData = await TryGetReadmeDataAsync(repositoryApiRoot);
             string[] rootFiles = await GetRootFilesAsync(repositoryApiRoot, defaultBranch);
             GitHubIssueData issueData = await GetIssueDataAsync(repositoryApiRoot);
-            int contributorCount = await GetContributorCountAsync(repositoryApiRoot);
+            GitHubContributorData contributorData = await GetContributorDataAsync(repositoryApiRoot);
             double? medianPullRequestMergeDays = await GetMedianPullRequestMergeDaysAsync(repositoryApiRoot);
+            GitHubWorkflowData workflowData = await GetWorkflowDataAsync(repositoryApiRoot, defaultBranch);
+            bool? hasBranchProtection = await TryGetBranchProtectionAsync(repositoryApiRoot, defaultBranch);
+            GitHubChangelogData changelogData = await GetChangelogDataAsync(repositoryApiRoot, defaultBranch, rootFiles);
+            GitHubScorecardData scorecardData = await TryGetScorecardDataAsync(ownerLogin, repositoryName);
+            bool hasProvenanceAttestation = rootFiles.Contains(".github", StringComparer.OrdinalIgnoreCase) &&
+                                           await HasProvenanceAttestationAsync(repositoryApiRoot, defaultBranch);
+            bool hasRepositoryOwnershipOrRenameChurn = HasRepositoryOwnershipOrRenameChurn(declaredRepositoryUrl, canonicalUrl);
 
             return new GitHubRepositoryRiskData
             {
                 OwnerIsOrganization = ownerIsOrganization,
                 OwnerCreatedAt = ownerCreatedAt,
-                ContributorCount = contributorCount,
+                ContributorCount = contributorData.ContributorCount,
+                TopContributorShare = contributorData.TopContributorShare,
+                TopTwoContributorShare = contributorData.TopTwoContributorShare,
                 HasReadme = readmeData.Exists,
                 HasDefaultReadme = readmeData.IsDefault,
                 HasContributingGuide = rootFiles.Contains("CONTRIBUTING.md", StringComparer.OrdinalIgnoreCase),
                 HasSecurityPolicy = rootFiles.Contains("SECURITY.md", StringComparer.OrdinalIgnoreCase),
+                HasChangelog = changelogData.Exists,
+                HasDefaultChangelog = changelogData.IsDefault,
                 OpenBugIssueCount = issueData.OpenBugIssueCount,
                 StaleCriticalBugIssueCount = issueData.StaleCriticalBugIssueCount,
                 MedianIssueResponseDays = issueData.MedianIssueResponseDays,
                 MedianPullRequestMergeDays = medianPullRequestMergeDays,
+                RecentFailedWorkflowCount = workflowData.RecentFailedWorkflowCount,
+                HasRecentSuccessfulWorkflowRun = workflowData.HasRecentSuccessfulWorkflowRun,
+                OpenSsfScore = scorecardData.Score,
+                HasBranchProtection = hasBranchProtection ?? scorecardData.HasBranchProtection,
+                HasProvenanceAttestation = hasProvenanceAttestation,
+                HasRepositoryOwnershipOrRenameChurn = hasRepositoryOwnershipOrRenameChurn,
                 LastReleaseAt = lastReleaseAt
             };
         }
@@ -171,16 +202,16 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         }
     }
 
-    private async Task<int> GetContributorCountAsync(string repositoryApiRoot)
+    private async Task<GitHubContributorData> GetContributorDataAsync(string repositoryApiRoot)
     {
         using JsonDocument contributorsDoc = await GetJsonAsync($"{repositoryApiRoot}/contributors?per_page=100");
         if (contributorsDoc.RootElement.ValueKind != JsonValueKind.Array)
         {
-            return 0;
+            return new GitHubContributorData();
         }
 
-        return contributorsDoc.RootElement.EnumerateArray()
-            .Count(contributor =>
+        int[] contributionCounts = contributorsDoc.RootElement.EnumerateArray()
+            .Where(contributor =>
             {
                 string login = contributor.TryGetProperty("login", out JsonElement loginElement)
                     ? loginElement.GetString() ?? string.Empty
@@ -189,7 +220,21 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 return !login.EndsWith("[bot]", StringComparison.OrdinalIgnoreCase) &&
                        !login.Contains("dependabot", StringComparison.OrdinalIgnoreCase) &&
                        !login.Contains("copilot", StringComparison.OrdinalIgnoreCase);
-            });
+            })
+            .Select(contributor => contributor.TryGetProperty("contributions", out JsonElement contributionsElement) &&
+                                   contributionsElement.TryGetInt32(out int contributions)
+                ? contributions
+                : 0)
+            .OrderByDescending(contributions => contributions)
+            .ToArray();
+
+        double totalContributions = contributionCounts.Sum();
+        return new GitHubContributorData
+        {
+            ContributorCount = contributionCounts.Length,
+            TopContributorShare = totalContributions > 0 ? contributionCounts.FirstOrDefault() / totalContributions : null,
+            TopTwoContributorShare = totalContributions > 0 ? contributionCounts.Take(2).Sum() / totalContributions : null
+        };
     }
 
     private async Task<GitHubIssueData> GetIssueDataAsync(string repositoryApiRoot)
@@ -318,6 +363,168 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         }
     }
 
+    private async Task<GitHubWorkflowData> GetWorkflowDataAsync(string repositoryApiRoot, string defaultBranch)
+    {
+        try
+        {
+            using JsonDocument workflowsDoc = await GetJsonAsync(
+                $"{repositoryApiRoot}/actions/runs?branch={Uri.EscapeDataString(defaultBranch)}&per_page=10");
+
+            if (!workflowsDoc.RootElement.TryGetProperty("workflow_runs", out JsonElement runs) ||
+                runs.ValueKind != JsonValueKind.Array)
+            {
+                return new GitHubWorkflowData();
+            }
+
+            JsonElement[] workflowRuns = runs.EnumerateArray().ToArray();
+            return new GitHubWorkflowData
+            {
+                RecentFailedWorkflowCount = workflowRuns.Count(run =>
+                    string.Equals(run.TryGetProperty("conclusion", out JsonElement conclusion) ? conclusion.GetString() : null,
+                        "failure", StringComparison.OrdinalIgnoreCase)),
+                HasRecentSuccessfulWorkflowRun = workflowRuns.Any(run =>
+                    string.Equals(run.TryGetProperty("conclusion", out JsonElement conclusion) ? conclusion.GetString() : null,
+                        "success", StringComparison.OrdinalIgnoreCase))
+            };
+        }
+        catch
+        {
+            return new GitHubWorkflowData();
+        }
+    }
+
+    private async Task<bool?> TryGetBranchProtectionAsync(string repositoryApiRoot, string defaultBranch)
+    {
+        try
+        {
+            using JsonDocument branchDoc = await GetJsonAsync(
+                $"{repositoryApiRoot}/branches/{Uri.EscapeDataString(defaultBranch)}");
+
+            if (branchDoc.RootElement.TryGetProperty("protected", out JsonElement protectedElement) &&
+                protectedElement.ValueKind is JsonValueKind.True or JsonValueKind.False)
+            {
+                return protectedElement.GetBoolean();
+            }
+
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async Task<GitHubChangelogData> GetChangelogDataAsync(string repositoryApiRoot, string defaultBranch, string[] rootFiles)
+    {
+        string? changelogFile = rootFiles.FirstOrDefault(file =>
+            file.Equals("CHANGELOG.md", StringComparison.OrdinalIgnoreCase) ||
+            file.Equals("CHANGELOG", StringComparison.OrdinalIgnoreCase) ||
+            file.Equals("RELEASE_NOTES.md", StringComparison.OrdinalIgnoreCase) ||
+            file.Equals("NEWS.md", StringComparison.OrdinalIgnoreCase));
+
+        if (string.IsNullOrWhiteSpace(changelogFile))
+        {
+            return new GitHubChangelogData();
+        }
+
+        string content = await TryGetFileContentAsync(repositoryApiRoot, changelogFile, defaultBranch);
+        return new GitHubChangelogData
+        {
+            Exists = true,
+            IsDefault = LooksLikeBoilerplateChangelog(content)
+        };
+    }
+
+    private async Task<GitHubScorecardData> TryGetScorecardDataAsync(string owner, string repo)
+    {
+        try
+        {
+            using HttpResponseMessage response = await HttpClient.GetAsync(
+                $"https://api.securityscorecards.dev/projects/github.com/{owner}/{repo}");
+            response.EnsureSuccessStatusCode();
+
+            using JsonDocument scorecardDoc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            JsonElement root = scorecardDoc.RootElement;
+
+            bool? hasBranchProtection = null;
+            if (root.TryGetProperty("checks", out JsonElement checks) && checks.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement check in checks.EnumerateArray())
+                {
+                    string? name = check.TryGetProperty("name", out JsonElement nameElement) ? nameElement.GetString() : null;
+                    if (!string.Equals(name, "Branch-Protection", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    if (check.TryGetProperty("score", out JsonElement scoreElement) && scoreElement.TryGetDouble(out double branchScore))
+                    {
+                        hasBranchProtection = branchScore > 0;
+                    }
+                }
+            }
+
+            return new GitHubScorecardData
+            {
+                Score = root.TryGetProperty("score", out JsonElement score) && score.TryGetDouble(out double value) ? value : null,
+                HasBranchProtection = hasBranchProtection
+            };
+        }
+        catch
+        {
+            return new GitHubScorecardData();
+        }
+    }
+
+    private async Task<bool> HasProvenanceAttestationAsync(string repositoryApiRoot, string defaultBranch)
+    {
+        try
+        {
+            using JsonDocument workflowsDoc = await GetJsonAsync(
+                $"{repositoryApiRoot}/contents/.github/workflows?ref={Uri.EscapeDataString(defaultBranch)}");
+
+            if (workflowsDoc.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                return false;
+            }
+
+            return workflowsDoc.RootElement.EnumerateArray().Any(item =>
+            {
+                string name = item.TryGetProperty("name", out JsonElement nameElement) ? nameElement.GetString() ?? string.Empty : string.Empty;
+                string lowered = name.ToLowerInvariant();
+                return lowered.Contains("slsa") || lowered.Contains("provenance") || lowered.Contains("attest");
+            });
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private async Task<string> TryGetFileContentAsync(string repositoryApiRoot, string path, string defaultBranch)
+    {
+        try
+        {
+            using JsonDocument fileDoc = await GetJsonAsync(
+                $"{repositoryApiRoot}/contents/{Uri.EscapeDataString(path)}?ref={Uri.EscapeDataString(defaultBranch)}");
+
+            if (fileDoc.RootElement.TryGetProperty("content", out JsonElement contentElement))
+            {
+                string? encoded = contentElement.GetString();
+                if (!string.IsNullOrWhiteSpace(encoded))
+                {
+                    byte[] bytes = Convert.FromBase64String(encoded.Replace("\n", string.Empty));
+                    return Encoding.UTF8.GetString(bytes);
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return string.Empty;
+    }
+
     private static string? GetGitHubApiRoot(string? repositoryUrl)
     {
         if (string.IsNullOrWhiteSpace(repositoryUrl))
@@ -359,6 +566,46 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                normalized.Contains("add a description");
     }
 
+    private static bool LooksLikeBoilerplateChangelog(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return true;
+        }
+
+        string normalized = content.ToLowerInvariant();
+        return content.Length < 200 ||
+               normalized.Contains("coming soon") ||
+               normalized.Contains("todo");
+    }
+
+    private static bool HasRepositoryOwnershipOrRenameChurn(string? declaredRepositoryUrl, string canonicalUrl)
+    {
+        string? declaredIdentifier = TryGetGitHubIdentifier(declaredRepositoryUrl);
+        string? canonicalIdentifier = TryGetGitHubIdentifier(canonicalUrl);
+        return !string.IsNullOrWhiteSpace(canonicalIdentifier) &&
+               !string.IsNullOrWhiteSpace(declaredIdentifier) &&
+               !canonicalIdentifier.Equals(declaredIdentifier, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string? TryGetGitHubIdentifier(string? repositoryUrl)
+    {
+        if (string.IsNullOrWhiteSpace(repositoryUrl))
+        {
+            return null;
+        }
+
+        Match match = Regex.Match(repositoryUrl,
+            @"github\.com/(?<owner>[a-zA-Z0-9._-]+)/(?<repo>[a-zA-Z0-9._-]+)",
+            RegexOptions.IgnoreCase);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        return $"{match.Groups["owner"].Value}/{match.Groups["repo"].Value.TrimEnd('.').Replace(".git", string.Empty, StringComparison.OrdinalIgnoreCase)}";
+    }
+
     private static DateTimeOffset? TryReadDate(JsonElement element, string propertyName)
     {
         if (element.TryGetProperty(propertyName, out JsonElement property) &&
@@ -397,6 +644,10 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
         public int ContributorCount { get; init; }
 
+        public double? TopContributorShare { get; init; }
+
+        public double? TopTwoContributorShare { get; init; }
+
         public bool HasReadme { get; init; }
 
         public bool HasDefaultReadme { get; init; }
@@ -405,6 +656,10 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
         public bool HasSecurityPolicy { get; init; }
 
+        public bool HasChangelog { get; init; }
+
+        public bool HasDefaultChangelog { get; init; }
+
         public int OpenBugIssueCount { get; init; }
 
         public int StaleCriticalBugIssueCount { get; init; }
@@ -412,6 +667,18 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         public double? MedianIssueResponseDays { get; init; }
 
         public double? MedianPullRequestMergeDays { get; init; }
+
+        public int? RecentFailedWorkflowCount { get; init; }
+
+        public bool? HasRecentSuccessfulWorkflowRun { get; init; }
+
+        public double? OpenSsfScore { get; init; }
+
+        public bool? HasBranchProtection { get; init; }
+
+        public bool? HasProvenanceAttestation { get; init; }
+
+        public bool? HasRepositoryOwnershipOrRenameChurn { get; init; }
 
         public DateTimeOffset? LastReleaseAt { get; init; }
     }
@@ -430,5 +697,35 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         public bool Exists { get; init; }
 
         public bool IsDefault { get; init; }
+    }
+
+    private sealed class GitHubChangelogData
+    {
+        public bool Exists { get; init; }
+
+        public bool IsDefault { get; init; }
+    }
+
+    private sealed class GitHubContributorData
+    {
+        public int ContributorCount { get; init; }
+
+        public double? TopContributorShare { get; init; }
+
+        public double? TopTwoContributorShare { get; init; }
+    }
+
+    private sealed class GitHubWorkflowData
+    {
+        public int? RecentFailedWorkflowCount { get; init; }
+
+        public bool? HasRecentSuccessfulWorkflowRun { get; init; }
+    }
+
+    private sealed class GitHubScorecardData
+    {
+        public double? Score { get; init; }
+
+        public bool? HasBranchProtection { get; init; }
     }
 }

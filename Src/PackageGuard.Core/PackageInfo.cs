@@ -82,6 +82,9 @@ public partial class PackageInfo
     public bool? IsPackageSigned { get; set; }
 
     [MemoryPackIgnore]
+    public bool? HasTrustedPackageSignature { get; set; }
+
+    [MemoryPackIgnore]
     public DateTimeOffset? PublishedAt { get; set; }
 
     [MemoryPackIgnore]
@@ -97,6 +100,12 @@ public partial class PackageInfo
     public int? ContributorCount { get; set; }
 
     [MemoryPackIgnore]
+    public double? TopContributorShare { get; set; }
+
+    [MemoryPackIgnore]
+    public double? TopTwoContributorShare { get; set; }
+
+    [MemoryPackIgnore]
     public bool? HasReadme { get; set; }
 
     [MemoryPackIgnore]
@@ -107,6 +116,12 @@ public partial class PackageInfo
 
     [MemoryPackIgnore]
     public bool? HasSecurityPolicy { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasChangelog { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasDefaultChangelog { get; set; }
 
     [MemoryPackIgnore]
     public int? OpenBugIssueCount { get; set; }
@@ -125,6 +140,42 @@ public partial class PackageInfo
 
     [MemoryPackIgnore]
     public string[] DependencyKeys { get; set; } = [];
+
+    [MemoryPackIgnore]
+    public bool HasAvailableSecurityFix { get; set; }
+
+    [MemoryPackIgnore]
+    public string? LatestStableVersion { get; set; }
+
+    [MemoryPackIgnore]
+    public bool IsMajorVersionBehindLatest { get; set; }
+
+    [MemoryPackIgnore]
+    public bool IsMinorVersionBehindLatest { get; set; }
+
+    [MemoryPackIgnore]
+    public int? RecentFailedWorkflowCount { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasRecentSuccessfulWorkflowRun { get; set; }
+
+    [MemoryPackIgnore]
+    public double? OpenSsfScore { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasBranchProtection { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasProvenanceAttestation { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasRepositoryOwnershipOrRenameChurn { get; set; }
+
+    [MemoryPackIgnore]
+    public string[] SupportedTargetFrameworks { get; set; } = [];
+
+    [MemoryPackIgnore]
+    public bool? HasModernTargetFrameworkSupport { get; set; }
 
     public bool SatisfiesRange(string name, string? versionRange = null)
     {

@@ -14,14 +14,29 @@ public partial class RiskDimensions
     public double LegalRisk { get; set; }
 
     /// <summary>
+    /// Gets the rationale behind the legal risk score.
+    /// </summary>
+    public string[] LegalRiskRationale { get; set; } = [];
+
+    /// <summary>
     /// Security risk score (0-10): Known vulnerabilities, source code transparency.
     /// </summary>
     public double SecurityRisk { get; set; }
 
     /// <summary>
+    /// Gets the rationale behind the security risk score.
+    /// </summary>
+    public string[] SecurityRiskRationale { get; set; } = [];
+
+    /// <summary>
     /// Operational risk score (0-10): Version activity, maintenance status, known issues.
     /// </summary>
     public double OperationalRisk { get; set; }
+
+    /// <summary>
+    /// Gets the rationale behind the operational risk score.
+    /// </summary>
+    public string[] OperationalRiskRationale { get; set; } = [];
 
     /// <summary>
     /// Gets the overall risk score calculated from individual dimensions.

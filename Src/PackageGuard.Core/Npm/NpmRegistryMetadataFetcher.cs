@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core.Common;
+using NuGet.Versioning;
 
 namespace PackageGuard.Core.Npm;
 
@@ -52,6 +53,29 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
                 DateTimeOffset.TryParse(publishedElement.GetString(), out DateTimeOffset publishedAt))
             {
                 package.PublishedAt = publishedAt;
+            }
+
+            if (root.TryGetProperty("dist-tags", out JsonElement distTagsElement) &&
+                distTagsElement.ValueKind == JsonValueKind.Object &&
+                distTagsElement.TryGetProperty("latest", out JsonElement latestElement))
+            {
+                string? latestStableVersion = latestElement.GetString();
+                if (!string.IsNullOrWhiteSpace(latestStableVersion))
+                {
+                    package.LatestStableVersion = latestStableVersion;
+
+                    if (TryParseSemanticVersion(latestStableVersion, out NuGetVersion? latestVersion) &&
+                        TryParseSemanticVersion(package.Version, out NuGetVersion? currentVersion))
+                    {
+                        package.IsMajorVersionBehindLatest = latestVersion is not null &&
+                                                             currentVersion is not null &&
+                                                             latestVersion.Major > currentVersion.Major;
+                        package.IsMinorVersionBehindLatest = latestVersion is not null &&
+                                                             currentVersion is not null &&
+                                                             latestVersion.Major == currentVersion.Major &&
+                                                             latestVersion > currentVersion;
+                    }
+                }
             }
 
             // Extract license if not already present
@@ -220,5 +244,16 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
             logger.LogDebug("Failed to fetch download count for {Name} {Version}: {Error}",
                 package.Name, package.Version, ex.Message);
         }
+    }
+
+    private static bool TryParseSemanticVersion(string value, out NuGetVersion? version)
+    {
+        string normalized = value.Trim();
+        if (normalized.StartsWith("v", StringComparison.OrdinalIgnoreCase))
+        {
+            normalized = normalized[1..];
+        }
+
+        return NuGetVersion.TryParse(normalized, out version);
     }
 }

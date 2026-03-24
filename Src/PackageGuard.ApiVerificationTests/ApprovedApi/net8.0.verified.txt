@@ -58,25 +58,49 @@ namespace PackageGuard.Core
         [MemoryPack.MemoryPackIgnore]
         public long? DownloadCount { get; set; }
         [MemoryPack.MemoryPackIgnore]
+        public bool HasAvailableSecurityFix { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool? HasBranchProtection { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool? HasChangelog { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public bool? HasContributingGuide { get; set; }
         [MemoryPack.MemoryPackIgnore]
+        public bool? HasDefaultChangelog { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public bool? HasDefaultReadme { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool? HasModernTargetFrameworkSupport { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public bool HasPatchedVulnerabilityInLast90Days { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public bool HasPreOneZeroDependencies { get; set; }
         [MemoryPack.MemoryPackIgnore]
+        public bool? HasProvenanceAttestation { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public bool? HasReadme { get; set; }
         [MemoryPack.MemoryPackIgnore]
+        public bool? HasRecentSuccessfulWorkflowRun { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool? HasRepositoryOwnershipOrRenameChurn { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public bool? HasSecurityPolicy { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool? HasTrustedPackageSignature { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public bool? HasValidLicenseUrl { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public bool? IsLicensePolicyCompatible { get; set; }
         [MemoryPack.MemoryPackIgnore]
+        public bool IsMajorVersionBehindLatest { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool IsMinorVersionBehindLatest { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public bool? IsPackageSigned { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public bool IsUsed { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public string? LatestStableVersion { get; set; }
         public string? License { get; set; }
         public string? LicenseUrl { get; set; }
         [MemoryPack.MemoryPackIgnore]
@@ -89,12 +113,16 @@ namespace PackageGuard.Core
         [MemoryPack.MemoryPackIgnore]
         public int? OpenBugIssueCount { get; set; }
         [MemoryPack.MemoryPackIgnore]
+        public double? OpenSsfScore { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public System.DateTimeOffset? OwnerCreatedAt { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public bool OwnerIsOrganization { get; set; }
         public string[] Projects { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public System.DateTimeOffset? PublishedAt { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public int? RecentFailedWorkflowCount { get; set; }
         public string? RepositoryUrl { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public PackageGuard.Core.RiskDimensions RiskDimensions { get; set; }
@@ -104,6 +132,12 @@ namespace PackageGuard.Core
         public string SourceUrl { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public int? StaleCriticalBugIssueCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public string[] SupportedTargetFrameworks { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public double? TopContributorShare { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public double? TopTwoContributorShare { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public int TransitiveVulnerabilityCount { get; set; }
         public string Version { get; set; }
@@ -165,13 +199,16 @@ namespace PackageGuard.Core
         public void Validate() { }
     }
     [MemoryPack.MemoryPackable(MemoryPack.GenerateType.Object)]
-    public class RiskDimensions : MemoryPack.IFixedSizeMemoryPackable, MemoryPack.IMemoryPackFormatterRegister, MemoryPack.IMemoryPackable<PackageGuard.Core.RiskDimensions>
+    public class RiskDimensions : MemoryPack.IMemoryPackFormatterRegister, MemoryPack.IMemoryPackable<PackageGuard.Core.RiskDimensions>
     {
         public RiskDimensions() { }
         public double LegalRisk { get; set; }
+        public string[] LegalRiskRationale { get; set; }
         public double OperationalRisk { get; set; }
+        public string[] OperationalRiskRationale { get; set; }
         public double OverallRisk { get; }
         public double SecurityRisk { get; set; }
+        public string[] SecurityRiskRationale { get; set; }
     }
     public class RiskEvaluator
     {

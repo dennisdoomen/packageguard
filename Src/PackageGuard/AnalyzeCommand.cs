@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Globalization;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core;
@@ -89,10 +90,10 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             {
                 var riskColor = GetRiskColor(package.RiskScore);
                 logger.LogInformation("{Id} {Version}", package.Name, package.Version);
-                AnsiConsole.MarkupLine($"- Overall Risk: [{riskColor}]{package.RiskScore:F1}/100[/]");
-                AnsiConsole.MarkupLine($"- Legal: [{GetRiskColor(package.RiskDimensions.LegalRisk * 10)}]{package.RiskDimensions.LegalRisk:F1}/10[/]");
-                AnsiConsole.MarkupLine($"- Security: [{GetRiskColor(package.RiskDimensions.SecurityRisk * 10)}]{package.RiskDimensions.SecurityRisk:F1}/10[/]");
-                AnsiConsole.MarkupLine($"- Operational: [{GetRiskColor(package.RiskDimensions.OperationalRisk * 10)}]{package.RiskDimensions.OperationalRisk:F1}/10[/]");
+                AnsiConsole.MarkupLine($"- Overall Risk: [{riskColor}]{FormatDecimal(package.RiskScore)}/100[/]");
+                WriteRiskDimension("Legal", package.RiskDimensions.LegalRisk, package.RiskDimensions.LegalRiskRationale);
+                WriteRiskDimension("Security", package.RiskDimensions.SecurityRisk, package.RiskDimensions.SecurityRiskRationale);
+                WriteRiskDimension("Operational", package.RiskDimensions.OperationalRisk, package.RiskDimensions.OperationalRiskRationale);
                 logger.LogInformation("- License: {License}", package.License ?? "Unknown");
 
                 if (package.HasValidLicenseUrl is not null)
@@ -100,15 +101,31 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
                     logger.LogInformation("- License URL: {Status}", package.HasValidLicenseUrl == true ? "Valid" : "Missing or invalid");
                 }
 
+                if (package.IsPackageSigned is not null)
+                {
+                    logger.LogInformation("- Package signature: {Status}", package.IsPackageSigned == true ? "Signed" : "Unsigned");
+                }
+
+                if (package.HasTrustedPackageSignature is not null)
+                {
+                    logger.LogInformation("- Signature trust: {Status}",
+                        package.HasTrustedPackageSignature == true ? "Verified" : "Unverified");
+                }
+
                 if (package.VulnerabilityCount > 0)
                 {
-                    logger.LogInformation("- Vulnerabilities: {Count} (max severity {Severity:F1})",
-                        package.VulnerabilityCount, package.MaxVulnerabilitySeverity);
+                    logger.LogInformation("- Vulnerabilities: {Count} (max severity {Severity})",
+                        package.VulnerabilityCount, FormatDecimal(package.MaxVulnerabilitySeverity));
                 }
 
                 if (package.DependencyDepth > 0)
                 {
                     logger.LogInformation("- Dependency depth: {Depth}", package.DependencyDepth);
+                }
+
+                if (!string.IsNullOrWhiteSpace(package.LatestStableVersion))
+                {
+                    logger.LogInformation("- Latest stable version: {LatestStableVersion}", package.LatestStableVersion);
                 }
 
                 if (!string.IsNullOrEmpty(package.RepositoryUrl))
@@ -136,6 +153,28 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
                     logger.LogInformation("- Open bug issues: {OpenBugIssueCount}", openBugIssueCount);
                 }
 
+                if (package.TopContributorShare is double topContributorShare)
+                {
+                    logger.LogInformation("- Top contributor share: {Share}",
+                        topContributorShare.ToString("P0", CultureInfo.InvariantCulture));
+                }
+
+                if (package.RecentFailedWorkflowCount is int recentFailedWorkflowCount)
+                {
+                    logger.LogInformation("- Recent failed workflows: {RecentFailedWorkflowCount}", recentFailedWorkflowCount);
+                }
+
+                if (package.OpenSsfScore is double openSsfScore)
+                {
+                    logger.LogInformation("- OpenSSF Scorecard: {OpenSsfScore}", FormatDecimal(openSsfScore));
+                }
+
+                if (package.SupportedTargetFrameworks.Length > 0)
+                {
+                    logger.LogInformation("- Target frameworks: {SupportedTargetFrameworks}",
+                        string.Join(", ", package.SupportedTargetFrameworks));
+                }
+
                 AnsiConsole.MarkupLine("");
             }
         }
@@ -157,5 +196,20 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             >= 20 => "yellow1",     // Low-Medium risk
             _ => "green3_1"         // Low risk
         };
+    }
+
+    private static void WriteRiskDimension(string label, double score, string[] rationale)
+    {
+        AnsiConsole.MarkupLine($"- {label}: [{GetRiskColor(score * 10)}]{FormatDecimal(score)}/10[/]");
+
+        foreach (string reason in rationale)
+        {
+            AnsiConsole.MarkupLine($"  - {Markup.Escape(reason)}");
+        }
+    }
+
+    private static string FormatDecimal(double value)
+    {
+        return value.ToString("0.0", CultureInfo.InvariantCulture);
     }
 }

@@ -147,6 +147,12 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 
             if (packageInfo != null)
             {
+                NuGetVersion? latestStableVersion = packageMetadata?
+                    .Where(p => !p.Identity.Version.IsPrerelease)
+                    .Select(p => p.Identity.Version)
+                    .OrderByDescending(version => version)
+                    .FirstOrDefault();
+
                 return new PackageInfo
                 {
                     Name = packageInfo.Identity.Id,
@@ -156,6 +162,12 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
                     LicenseUrl = packageInfo.LicenseUrl?.ToString(),
                     PublishedAt = packageInfo.Published,
                     DownloadCount = packageInfo.DownloadCount,
+                    LatestStableVersion = latestStableVersion?.ToNormalizedString(),
+                    IsMajorVersionBehindLatest = latestStableVersion is not null &&
+                                                 latestStableVersion.Major > packageInfo.Identity.Version.Major,
+                    IsMinorVersionBehindLatest = latestStableVersion is not null &&
+                                                 latestStableVersion.Major == packageInfo.Identity.Version.Major &&
+                                                 latestStableVersion > packageInfo.Identity.Version,
                     Source = nuGetSource.PackageSource.Name,
                     SourceUrl = nuGetSource.PackageSource.Source
                 };
