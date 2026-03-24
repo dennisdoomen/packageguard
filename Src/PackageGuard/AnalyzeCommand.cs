@@ -90,7 +90,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             {
                 var riskColor = GetRiskColor(package.RiskScore);
                 logger.LogInformation("{Id} {Version}", package.Name, package.Version);
-                AnsiConsole.MarkupLine($"- Overall Risk: [{riskColor}]{FormatDecimal(package.RiskScore)}/100[/]");
+                AnsiConsole.MarkupLine($"- Overall Risk: [{riskColor}]{FormatDecimal(package.RiskScore)}/100 ({GetRiskZone(package.RiskScore)})[/]");
                 WriteRiskDimension("Legal", package.RiskDimensions.LegalRisk, package.RiskDimensions.LegalRiskRationale);
                 WriteRiskDimension("Security", package.RiskDimensions.SecurityRisk, package.RiskDimensions.SecurityRiskRationale);
                 WriteRiskDimension("Operational", package.RiskDimensions.OperationalRisk, package.RiskDimensions.OperationalRiskRationale);
@@ -191,10 +191,19 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
     {
         return score switch
         {
-            >= 70 => "red1",        // High risk
-            >= 40 => "orange1",     // Medium risk
-            >= 20 => "yellow1",     // Low-Medium risk
-            _ => "green3_1"         // Low risk
+            >= 60 => "red1",
+            >= 30 => "yellow1",
+            _ => "green3_1"
+        };
+    }
+
+    private static string GetRiskZone(double score)
+    {
+        return score switch
+        {
+            >= 60 => "High",
+            >= 30 => "Medium",
+            _ => "Low"
         };
     }
 

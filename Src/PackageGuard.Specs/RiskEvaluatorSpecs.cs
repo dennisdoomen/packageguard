@@ -114,9 +114,9 @@ public class RiskEvaluatorSpecs
         riskEvaluator.EvaluateRisk(package);
 
         // Assert
-        var expectedOverallRisk = (package.RiskDimensions.LegalRisk + 
-                                   package.RiskDimensions.SecurityRisk + 
-                                   package.RiskDimensions.OperationalRisk) / 3.0;
+        var expectedOverallRisk = (package.RiskDimensions.LegalRisk * 0.20) +
+                                   (package.RiskDimensions.SecurityRisk * 0.45) +
+                                   (package.RiskDimensions.OperationalRisk * 0.35);
         
         package.RiskDimensions.OverallRisk.Should().Be(expectedOverallRisk);
         package.RiskScore.Should().Be(expectedOverallRisk * 10); // Scaled to 0-100
@@ -164,12 +164,12 @@ public class RiskEvaluatorSpecs
 
         riskEvaluator.EvaluateRisk(package);
 
-        package.RiskDimensions.SecurityRisk.Should().Be(8.0);
+        package.RiskDimensions.SecurityRisk.Should().Be(7.5);
         package.RiskDimensions.SecurityRiskRationale.Should().Contain([
             "Public repository available (+0.0)",
             "Known vulnerabilities found (1, max severity 8.0) (+4.0)",
             "Package has a recent vulnerability fix window (<90 days) (+1.0)",
-            "Deep dependency chain (depth 11) (+2.0)",
+            "Deep dependency chain (depth 11) (+1.5)",
             "Vulnerable transitive dependencies (2) (+1.0)"
         ]);
     }
@@ -200,17 +200,17 @@ public class RiskEvaluatorSpecs
 
         package.RiskDimensions.OperationalRisk.Should().Be(10.0);
         package.RiskDimensions.OperationalRiskRationale.Should().Contain([
-            "Last release is older than 24 months (+4.0)",
-            "README is missing or appears to be boilerplate (+1.0)",
-            "CONTRIBUTING guide is missing (+1.0)",
-            "SECURITY policy is missing (+1.0)",
-            "Low contributor count (1) (+3.0)",
-            "High number of open bug issues (30) (+2.0)",
-            "Stale critical bug issues remain open (1) (+2.0)",
-            "Median issue response time is slow (45.0 days) (+2.0)",
-            "Median pull request merge time is slow (75.0 days) (+1.0)",
-            "Low package popularity (500 downloads) (+3.0)",
-            "Depends on pre-1.0 packages (+1.0)",
+            "Last release is older than 24 months (+3.0)",
+            "README is missing or appears to be boilerplate (+0.5)",
+            "CONTRIBUTING guide is missing (+0.5)",
+            "SECURITY policy is missing (+0.5)",
+            "Low contributor count (1) (+2.5)",
+            "High number of open bug issues (30) (+1.5)",
+            "Stale critical bug issues remain open (1) (+1.5)",
+            "Median issue response time is slow (45.0 days) (+1.0)",
+            "Median pull request merge time is slow (75.0 days) (+0.5)",
+            "Low package popularity (500 downloads) (+2.0)",
+            "Depends on pre-1.0 packages (+0.5)",
             "Dimension score capped at 10.0/10"
         ]);
     }
@@ -253,26 +253,25 @@ public class RiskEvaluatorSpecs
 
         riskEvaluator.EvaluateRisk(package);
 
-        package.RiskDimensions.SecurityRisk.Should().Be(5.0);
+        package.RiskDimensions.SecurityRisk.Should().Be(4.5);
         package.RiskDimensions.SecurityRiskRationale.Should().Contain([
             "Known vulnerabilities found (1, max severity 6.0) (+3.0)",
-            "A security fix is available for a known vulnerability (+1.0)",
+            "A security fix is available for a known vulnerability (+0.5)",
             "Package is signed but trust verification failed (+1.0)"
         ]);
 
-        package.RiskDimensions.OperationalRisk.Should().Be(10.0);
+        package.RiskDimensions.OperationalRisk.Should().Be(9.0);
         package.RiskDimensions.OperationalRiskRationale.Should().Contain([
-            "CHANGELOG or release notes are missing or low quality (+1.0)",
-            "Contribution concentration is high (top contributor owns 85 %) (+2.0)",
-            "Recent CI workflow failures are elevated (4) (+1.0)",
-            "No recent successful CI workflow run detected (+2.0)",
-            "Current package version is behind latest stable (2.0.0) (+2.0)",
-            "Target frameworks look dated (net472) (+1.0)",
-            "OpenSSF Scorecard score is low (4.5) (+2.0)",
-            "Default branch protection was not detected (+1.0)",
-            "No provenance or attestation workflow signal was detected (+1.0)",
-            "Repository ownership or rename churn was detected (+1.0)",
-            "Dimension score capped at 10.0/10"
+            "CHANGELOG or release notes are missing or low quality (+0.5)",
+            "Contribution concentration is high (top contributor owns 85 %) (+1.5)",
+            "Recent CI workflow failures are elevated (4) (+0.5)",
+            "No recent successful CI workflow run detected (+1.5)",
+            "Current package version is behind latest stable (2.0.0) (+1.5)",
+            "Target frameworks look dated (net472) (+0.5)",
+            "OpenSSF Scorecard score is low (4.5) (+1.5)",
+            "Default branch protection was not detected (+0.5)",
+            "No provenance or attestation workflow signal was detected (+0.5)",
+            "Repository ownership or rename churn was detected (+0.5)"
         ]);
     }
 }

@@ -108,8 +108,8 @@ public class RiskEvaluator(ILogger logger)
 
         if (string.IsNullOrEmpty(package.RepositoryUrl))
         {
-            risk += 4.0;
-            rationale.Add(CreateRationale("No public repository available", 4.0));
+            risk += 3.0;
+            rationale.Add(CreateRationale("No public repository available", 3.0));
         }
         else
         {
@@ -138,8 +138,8 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.VulnerabilityCount > 0 && package.HasAvailableSecurityFix)
         {
-            vulnerabilityRisk += 1.0;
-            rationale.Add(CreateRationale("A security fix is available for a known vulnerability", 1.0));
+            vulnerabilityRisk += 0.5;
+            rationale.Add(CreateRationale("A security fix is available for a known vulnerability", 0.5));
         }
 
         var cappedVulnerabilityRisk = Math.Min(6.0, vulnerabilityRisk);
@@ -152,20 +152,20 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.DependencyDepth > 20)
         {
-            risk += 3.0;
-            rationale.Add(CreateRationale($"Deep dependency chain (depth {package.DependencyDepth})", 3.0));
+            risk += 2.5;
+            rationale.Add(CreateRationale($"Deep dependency chain (depth {package.DependencyDepth})", 2.5));
         }
         else if (package.DependencyDepth > 10)
         {
-            risk += 2.0;
-            rationale.Add(CreateRationale($"Deep dependency chain (depth {package.DependencyDepth})", 2.0));
+            risk += 1.5;
+            rationale.Add(CreateRationale($"Deep dependency chain (depth {package.DependencyDepth})", 1.5));
         }
         else if (package.DependencyDepth > 0)
         {
             rationale.Add(CreateRationale($"Dependency depth {package.DependencyDepth} stays below the risk threshold", 0.0));
         }
 
-        var transitiveRisk = Math.Min(2.0, package.TransitiveVulnerabilityCount * 0.5);
+        var transitiveRisk = Math.Min(1.5, package.TransitiveVulnerabilityCount * 0.5);
         risk += transitiveRisk;
 
         if (package.TransitiveVulnerabilityCount > 0)
@@ -177,8 +177,8 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.IsPackageSigned == false)
         {
-            risk += 1.0;
-            rationale.Add(CreateRationale("Package signature is missing or invalid", 1.0));
+            risk += 0.5;
+            rationale.Add(CreateRationale("Package signature is missing or invalid", 0.5));
         }
         else if (package.IsPackageSigned == true)
         {
@@ -196,21 +196,21 @@ public class RiskEvaluator(ILogger logger)
         if (package.OwnerCreatedAt is DateTimeOffset ownerCreatedAt &&
             ownerCreatedAt > DateTimeOffset.UtcNow.AddYears(-1))
         {
-            risk += 1.0;
-            rationale.Add(CreateRationale("Repository owner account is less than one year old", 1.0));
+            risk += 0.5;
+            rationale.Add(CreateRationale("Repository owner account is less than one year old", 0.5));
         }
 
         if (!package.OwnerIsOrganization && package.ContributorCount is <= 1)
         {
-            risk += 1.0;
-            rationale.Add(CreateRationale("Single maintainer on a non-organization account", 1.0));
+            risk += 0.5;
+            rationale.Add(CreateRationale("Single maintainer on a non-organization account", 0.5));
         }
 
         if (package.PublishedAt is DateTimeOffset publishedAt &&
             publishedAt < DateTimeOffset.UtcNow.AddMonths(-24))
         {
-            risk += 2.0;
-            rationale.Add(CreateRationale("Last published release is older than 24 months", 2.0));
+            risk += 1.5;
+            rationale.Add(CreateRationale("Last published release is older than 24 months", 1.5));
         }
 
         return CreateEvaluation(risk, rationale);
@@ -228,13 +228,13 @@ public class RiskEvaluator(ILogger logger)
         {
             if (publishedAt < DateTimeOffset.UtcNow.AddMonths(-24))
             {
-                risk += 4.0;
-                rationale.Add(CreateRationale("Last release is older than 24 months", 4.0));
+                risk += 3.0;
+                rationale.Add(CreateRationale("Last release is older than 24 months", 3.0));
             }
             else if (publishedAt < DateTimeOffset.UtcNow.AddMonths(-12))
             {
-                risk += 2.0;
-                rationale.Add(CreateRationale("Last release is older than 12 months", 2.0));
+                risk += 1.5;
+                rationale.Add(CreateRationale("Last release is older than 12 months", 1.5));
             }
             else
             {
@@ -244,8 +244,8 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.HasReadme != true || package.HasDefaultReadme == true)
         {
-            risk += 1.0;
-            rationale.Add(CreateRationale("README is missing or appears to be boilerplate", 1.0));
+            risk += 0.5;
+            rationale.Add(CreateRationale("README is missing or appears to be boilerplate", 0.5));
         }
         else
         {
@@ -254,8 +254,8 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.HasContributingGuide != true)
         {
-            risk += 1.0;
-            rationale.Add(CreateRationale("CONTRIBUTING guide is missing", 1.0));
+            risk += 0.5;
+            rationale.Add(CreateRationale("CONTRIBUTING guide is missing", 0.5));
         }
         else
         {
@@ -264,8 +264,8 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.HasSecurityPolicy != true)
         {
-            risk += 1.0;
-            rationale.Add(CreateRationale("SECURITY policy is missing", 1.0));
+            risk += 0.5;
+            rationale.Add(CreateRationale("SECURITY policy is missing", 0.5));
         }
         else
         {
@@ -274,8 +274,8 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.HasChangelog != true || package.HasDefaultChangelog == true)
         {
-            risk += 1.0;
-            rationale.Add(CreateRationale("CHANGELOG or release notes are missing or low quality", 1.0));
+            risk += 0.5;
+            rationale.Add(CreateRationale("CHANGELOG or release notes are missing or low quality", 0.5));
         }
         else
         {
@@ -284,13 +284,13 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.ContributorCount is < 2)
         {
-            risk += 3.0;
-            rationale.Add(CreateRationale($"Low contributor count ({package.ContributorCount})", 3.0));
+            risk += 2.5;
+            rationale.Add(CreateRationale($"Low contributor count ({package.ContributorCount})", 2.5));
         }
         else if (package.ContributorCount is < 5)
         {
-            risk += 2.0;
-            rationale.Add(CreateRationale($"Low contributor count ({package.ContributorCount})", 2.0));
+            risk += 1.5;
+            rationale.Add(CreateRationale($"Low contributor count ({package.ContributorCount})", 1.5));
         }
         else if (package.ContributorCount is int contributorCount)
         {
@@ -299,66 +299,66 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.TopContributorShare is >= 0.8)
         {
-            risk += 2.0;
+            risk += 1.5;
             rationale.Add(CreateRationale(
                 $"Contribution concentration is high (top contributor owns {FormatPercentage(package.TopContributorShare.Value)})",
-                2.0));
+                1.5));
         }
         else if (package.TopTwoContributorShare is >= 0.95)
         {
-            risk += 1.0;
+            risk += 0.5;
             rationale.Add(CreateRationale(
                 $"Contribution concentration is high (top two contributors own {FormatPercentage(package.TopTwoContributorShare.Value)})",
-                1.0));
+                0.5));
         }
 
         if (package.OpenBugIssueCount > 25)
         {
-            risk += 2.0;
-            rationale.Add(CreateRationale($"High number of open bug issues ({package.OpenBugIssueCount})", 2.0));
+            risk += 1.5;
+            rationale.Add(CreateRationale($"High number of open bug issues ({package.OpenBugIssueCount})", 1.5));
         }
         else if (package.OpenBugIssueCount > 10)
         {
-            risk += 1.0;
-            rationale.Add(CreateRationale($"Elevated number of open bug issues ({package.OpenBugIssueCount})", 1.0));
+            risk += 0.5;
+            rationale.Add(CreateRationale($"Elevated number of open bug issues ({package.OpenBugIssueCount})", 0.5));
         }
 
         if (package.StaleCriticalBugIssueCount > 0)
         {
-            risk += 2.0;
+            risk += 1.5;
             rationale.Add(CreateRationale(
                 $"Stale critical bug issues remain open ({package.StaleCriticalBugIssueCount})",
-                2.0));
+                1.5));
         }
 
         if (package.MedianIssueResponseDays > 30)
         {
-            risk += 2.0;
+            risk += 1.0;
             rationale.Add(CreateRationale(
                 $"Median issue response time is slow ({FormatScore(package.MedianIssueResponseDays!.Value)} days)",
-                2.0));
+                1.0));
         }
 
         if (package.MedianPullRequestMergeDays > 60)
         {
-            risk += 1.0;
+            risk += 0.5;
             rationale.Add(CreateRationale(
                 $"Median pull request merge time is slow ({FormatScore(package.MedianPullRequestMergeDays!.Value)} days)",
-                1.0));
+                0.5));
         }
 
         if (package.RecentFailedWorkflowCount is >= 3)
         {
-            risk += 1.0;
+            risk += 0.5;
             rationale.Add(CreateRationale(
                 $"Recent CI workflow failures are elevated ({package.RecentFailedWorkflowCount})",
-                1.0));
+                0.5));
         }
 
         if (package.HasRecentSuccessfulWorkflowRun == false)
         {
-            risk += 2.0;
-            rationale.Add(CreateRationale("No recent successful CI workflow run detected", 2.0));
+            risk += 1.5;
+            rationale.Add(CreateRationale("No recent successful CI workflow run detected", 1.5));
         }
         else if (package.HasRecentSuccessfulWorkflowRun == true)
         {
@@ -367,13 +367,13 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.DownloadCount is < 1000)
         {
-            risk += 3.0;
-            rationale.Add(CreateRationale($"Low package popularity ({package.DownloadCount} downloads)", 3.0));
+            risk += 2.0;
+            rationale.Add(CreateRationale($"Low package popularity ({package.DownloadCount} downloads)", 2.0));
         }
         else if (package.DownloadCount is < 10000)
         {
-            risk += 2.0;
-            rationale.Add(CreateRationale($"Limited package popularity ({package.DownloadCount} downloads)", 2.0));
+            risk += 1.0;
+            rationale.Add(CreateRationale($"Limited package popularity ({package.DownloadCount} downloads)", 1.0));
         }
         else if (package.DownloadCount is long downloadCount)
         {
@@ -382,27 +382,27 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.HasPreOneZeroDependencies)
         {
-            risk += 1.0;
-            rationale.Add(CreateRationale("Depends on pre-1.0 packages", 1.0));
+            risk += 0.5;
+            rationale.Add(CreateRationale("Depends on pre-1.0 packages", 0.5));
         }
 
         if (package.IsMajorVersionBehindLatest)
         {
-            risk += 2.0;
-            rationale.Add(CreateRationale($"Current package version is behind latest stable ({package.LatestStableVersion})", 2.0));
+            risk += 1.5;
+            rationale.Add(CreateRationale($"Current package version is behind latest stable ({package.LatestStableVersion})", 1.5));
         }
         else if (package.IsMinorVersionBehindLatest)
         {
-            risk += 1.0;
-            rationale.Add(CreateRationale($"Current package version is behind latest stable ({package.LatestStableVersion})", 1.0));
+            risk += 0.5;
+            rationale.Add(CreateRationale($"Current package version is behind latest stable ({package.LatestStableVersion})", 0.5));
         }
 
         if (package.HasModernTargetFrameworkSupport == false && package.SupportedTargetFrameworks.Length > 0)
         {
-            risk += 1.0;
+            risk += 0.5;
             rationale.Add(CreateRationale(
                 $"Target frameworks look dated ({string.Join(", ", package.SupportedTargetFrameworks)})",
-                1.0));
+                0.5));
         }
         else if (package.HasModernTargetFrameworkSupport == true)
         {
@@ -413,13 +413,13 @@ public class RiskEvaluator(ILogger logger)
         {
             if (openSsfScore < 5.0)
             {
-                risk += 2.0;
-                rationale.Add(CreateRationale($"OpenSSF Scorecard score is low ({FormatScore(openSsfScore)})", 2.0));
+                risk += 1.5;
+                rationale.Add(CreateRationale($"OpenSSF Scorecard score is low ({FormatScore(openSsfScore)})", 1.5));
             }
             else if (openSsfScore < 7.0)
             {
-                risk += 1.0;
-                rationale.Add(CreateRationale($"OpenSSF Scorecard score is moderate ({FormatScore(openSsfScore)})", 1.0));
+                risk += 0.5;
+                rationale.Add(CreateRationale($"OpenSSF Scorecard score is moderate ({FormatScore(openSsfScore)})", 0.5));
             }
             else
             {
@@ -429,8 +429,8 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.HasBranchProtection == false)
         {
-            risk += 1.0;
-            rationale.Add(CreateRationale("Default branch protection was not detected", 1.0));
+            risk += 0.5;
+            rationale.Add(CreateRationale("Default branch protection was not detected", 0.5));
         }
         else if (package.HasBranchProtection == true)
         {
@@ -439,8 +439,8 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.HasProvenanceAttestation == false)
         {
-            risk += 1.0;
-            rationale.Add(CreateRationale("No provenance or attestation workflow signal was detected", 1.0));
+            risk += 0.5;
+            rationale.Add(CreateRationale("No provenance or attestation workflow signal was detected", 0.5));
         }
         else if (package.HasProvenanceAttestation == true)
         {
@@ -449,8 +449,8 @@ public class RiskEvaluator(ILogger logger)
 
         if (package.HasRepositoryOwnershipOrRenameChurn == true)
         {
-            risk += 1.0;
-            rationale.Add(CreateRationale("Repository ownership or rename churn was detected", 1.0));
+            risk += 0.5;
+            rationale.Add(CreateRationale("Repository ownership or rename churn was detected", 0.5));
         }
 
         return CreateEvaluation(risk, rationale);
