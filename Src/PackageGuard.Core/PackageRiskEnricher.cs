@@ -4,6 +4,7 @@ namespace PackageGuard.Core;
 
 internal sealed class PackageRiskEnricher
 {
+    private const int MaxConcurrentPackages = 6;
     private readonly IEnrichPackageRisk[] enrichers;
 
     public PackageRiskEnricher(ILogger logger, string? gitHubApiKey)
@@ -19,12 +20,23 @@ internal sealed class PackageRiskEnricher
 
     public async Task EnrichAsync(IEnumerable<PackageInfo> packages)
     {
-        foreach (PackageInfo package in packages)
+        PackageInfo[] packageArray = packages as PackageInfo[] ?? packages.ToArray();
+        if (packageArray.Length == 0)
         {
-            foreach (IEnrichPackageRisk enricher in enrichers)
-            {
-                await enricher.EnrichAsync(package);
-            }
+            return;
         }
+
+        await Parallel.ForEachAsync(packageArray,
+            new ParallelOptions
+            {
+                MaxDegreeOfParallelism = Math.Min(MaxConcurrentPackages, packageArray.Length)
+            },
+            async (package, _) =>
+            {
+                foreach (IEnrichPackageRisk enricher in enrichers)
+                {
+                    await enricher.EnrichAsync(package);
+                }
+            });
     }
 }

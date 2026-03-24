@@ -10,6 +10,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 {
     private static readonly HttpClient HttpClient = new();
     private static readonly Dictionary<string, GitHubRepositoryRiskData?> Cache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, Task<GitHubRepositoryRiskData?>> InFlightLoads = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Lock CacheLock = new();
 
     static GitHubRepositoryRiskEnricher()
@@ -25,23 +26,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
             return;
         }
 
-        GitHubRepositoryRiskData? cached;
-
-        lock (CacheLock)
-        {
-            Cache.TryGetValue(repositoryApiRoot, out cached);
-        }
-
-        if (cached is null)
-        {
-            cached = await LoadAsync(repositoryApiRoot, package.RepositoryUrl);
-
-            lock (CacheLock)
-            {
-                Cache[repositoryApiRoot] = cached;
-            }
-        }
-
+        GitHubRepositoryRiskData? cached = await GetRepositoryRiskDataAsync(repositoryApiRoot);
         if (cached is null)
         {
             return;
@@ -67,11 +52,45 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         package.OpenSsfScore = cached.OpenSsfScore;
         package.HasBranchProtection = cached.HasBranchProtection;
         package.HasProvenanceAttestation = cached.HasProvenanceAttestation;
-        package.HasRepositoryOwnershipOrRenameChurn = cached.HasRepositoryOwnershipOrRenameChurn;
+        package.HasRepositoryOwnershipOrRenameChurn =
+            HasRepositoryOwnershipOrRenameChurn(package.RepositoryUrl, cached.CanonicalUrl);
         package.PublishedAt ??= cached.LastReleaseAt;
     }
 
-    private async Task<GitHubRepositoryRiskData?> LoadAsync(string repositoryApiRoot, string? declaredRepositoryUrl)
+    private async Task<GitHubRepositoryRiskData?> GetRepositoryRiskDataAsync(string repositoryApiRoot)
+    {
+        Task<GitHubRepositoryRiskData?> loadTask;
+
+        lock (CacheLock)
+        {
+            if (Cache.TryGetValue(repositoryApiRoot, out GitHubRepositoryRiskData? cached) && cached is not null)
+            {
+                return cached;
+            }
+
+            if (!InFlightLoads.TryGetValue(repositoryApiRoot, out loadTask!))
+            {
+                loadTask = LoadAsync(repositoryApiRoot);
+                InFlightLoads[repositoryApiRoot] = loadTask;
+            }
+        }
+
+        GitHubRepositoryRiskData? loaded = await loadTask;
+
+        lock (CacheLock)
+        {
+            InFlightLoads.Remove(repositoryApiRoot);
+
+            if (loaded is not null)
+            {
+                Cache[repositoryApiRoot] = loaded;
+            }
+        }
+
+        return loaded;
+    }
+
+    private async Task<GitHubRepositoryRiskData?> LoadAsync(string repositoryApiRoot)
     {
         try
         {
@@ -95,22 +114,41 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 : $"https://api.github.com/users/{ownerLogin}");
 
             DateTimeOffset? ownerCreatedAt = TryReadDate(ownerDocument.RootElement, "created_at");
-            DateTimeOffset? lastReleaseAt = await TryGetLastReleaseDateAsync(repositoryApiRoot);
-            GitHubReadmeData readmeData = await TryGetReadmeDataAsync(repositoryApiRoot);
-            string[] rootFiles = await GetRootFilesAsync(repositoryApiRoot, defaultBranch);
-            GitHubIssueData issueData = await GetIssueDataAsync(repositoryApiRoot);
-            GitHubContributorData contributorData = await GetContributorDataAsync(repositoryApiRoot);
-            double? medianPullRequestMergeDays = await GetMedianPullRequestMergeDaysAsync(repositoryApiRoot);
-            GitHubWorkflowData workflowData = await GetWorkflowDataAsync(repositoryApiRoot, defaultBranch);
-            bool? hasBranchProtection = await TryGetBranchProtectionAsync(repositoryApiRoot, defaultBranch);
-            GitHubChangelogData changelogData = await GetChangelogDataAsync(repositoryApiRoot, defaultBranch, rootFiles);
-            GitHubScorecardData scorecardData = await TryGetScorecardDataAsync(ownerLogin, repositoryName);
-            bool hasProvenanceAttestation = rootFiles.Contains(".github", StringComparer.OrdinalIgnoreCase) &&
-                                           await HasProvenanceAttestationAsync(repositoryApiRoot, defaultBranch);
-            bool hasRepositoryOwnershipOrRenameChurn = HasRepositoryOwnershipOrRenameChurn(declaredRepositoryUrl, canonicalUrl);
+
+            Task<DateTimeOffset?> lastReleaseTask = TryGetLastReleaseDateAsync(repositoryApiRoot);
+            Task<GitHubReadmeData> readmeTask = TryGetReadmeDataAsync(repositoryApiRoot);
+            Task<string[]> rootFilesTask = GetRootFilesAsync(repositoryApiRoot, defaultBranch);
+            Task<GitHubIssueData> issueDataTask = GetIssueDataAsync(repositoryApiRoot);
+            Task<GitHubContributorData> contributorDataTask = GetContributorDataAsync(repositoryApiRoot);
+            Task<double?> medianPullRequestMergeDaysTask = GetMedianPullRequestMergeDaysAsync(repositoryApiRoot);
+            Task<GitHubWorkflowData> workflowDataTask = GetWorkflowDataAsync(repositoryApiRoot, defaultBranch);
+            Task<bool?> branchProtectionTask = TryGetBranchProtectionAsync(repositoryApiRoot, defaultBranch);
+            Task<GitHubScorecardData> scorecardTask = TryGetScorecardDataAsync(ownerLogin, repositoryName);
+
+            string[] rootFiles = await rootFilesTask;
+            Task<GitHubChangelogData> changelogTask = GetChangelogDataAsync(repositoryApiRoot, defaultBranch, rootFiles);
+            Task<bool> provenanceTask = rootFiles.Contains(".github", StringComparer.OrdinalIgnoreCase)
+                ? HasProvenanceAttestationAsync(repositoryApiRoot, defaultBranch)
+                : Task.FromResult(false);
+
+            await Task.WhenAll(lastReleaseTask, readmeTask, issueDataTask, contributorDataTask,
+                medianPullRequestMergeDaysTask, workflowDataTask, branchProtectionTask, scorecardTask, changelogTask,
+                provenanceTask);
+
+            DateTimeOffset? lastReleaseAt = await lastReleaseTask;
+            GitHubReadmeData readmeData = await readmeTask;
+            GitHubIssueData issueData = await issueDataTask;
+            GitHubContributorData contributorData = await contributorDataTask;
+            double? medianPullRequestMergeDays = await medianPullRequestMergeDaysTask;
+            GitHubWorkflowData workflowData = await workflowDataTask;
+            bool? hasBranchProtection = await branchProtectionTask;
+            GitHubChangelogData changelogData = await changelogTask;
+            GitHubScorecardData scorecardData = await scorecardTask;
+            bool hasProvenanceAttestation = await provenanceTask;
 
             return new GitHubRepositoryRiskData
             {
+                CanonicalUrl = canonicalUrl,
                 OwnerIsOrganization = ownerIsOrganization,
                 OwnerCreatedAt = ownerCreatedAt,
                 ContributorCount = contributorData.ContributorCount,
@@ -131,7 +169,6 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 OpenSsfScore = scorecardData.Score,
                 HasBranchProtection = hasBranchProtection ?? scorecardData.HasBranchProtection,
                 HasProvenanceAttestation = hasProvenanceAttestation,
-                HasRepositoryOwnershipOrRenameChurn = hasRepositoryOwnershipOrRenameChurn,
                 LastReleaseAt = lastReleaseAt
             };
         }
@@ -249,65 +286,48 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         int bugCount = 0;
         int staleCriticalBugCount = 0;
 
-        foreach (JsonElement issue in issuesDoc.RootElement.EnumerateArray())
-        {
-            if (issue.TryGetProperty("pull_request", out _))
+        GitHubIssueSnapshot[] issues = issuesDoc.RootElement.EnumerateArray()
+            .Where(issue => !issue.TryGetProperty("pull_request", out _))
+            .Select(issue => new GitHubIssueSnapshot
             {
-                continue;
-            }
+                CreatedAt = TryReadDate(issue, "created_at") ?? DateTimeOffset.UtcNow,
+                IsCritical = issue.TryGetProperty("labels", out JsonElement labels) &&
+                             labels.ValueKind == JsonValueKind.Array &&
+                             labels.EnumerateArray().Any(label =>
+                             {
+                                 string name = label.TryGetProperty("name", out JsonElement nameElement)
+                                     ? nameElement.GetString() ?? string.Empty
+                                     : string.Empty;
+                                 return name.Contains("critical", StringComparison.OrdinalIgnoreCase);
+                             }),
+                CommentsUrl = issue.TryGetProperty("comments_url", out JsonElement commentsElement)
+                    ? commentsElement.GetString()
+                    : null
+            })
+            .ToArray();
 
-            bugCount++;
-            DateTimeOffset createdAt = TryReadDate(issue, "created_at") ?? DateTimeOffset.UtcNow;
+        bugCount = issues.Length;
+        staleCriticalBugCount = issues.Count(issue => issue.IsCritical && issue.CreatedAt < DateTimeOffset.UtcNow.AddMonths(-6));
 
-            bool isCritical = issue.TryGetProperty("labels", out JsonElement labels) &&
-                              labels.ValueKind == JsonValueKind.Array &&
-                              labels.EnumerateArray().Any(label =>
-                              {
-                                  string name = label.TryGetProperty("name", out JsonElement nameElement)
-                                      ? nameElement.GetString() ?? string.Empty
-                                      : string.Empty;
-                                  return name.Contains("critical", StringComparison.OrdinalIgnoreCase);
-                              });
-
-            if (isCritical && createdAt < DateTimeOffset.UtcNow.AddMonths(-6))
+        using var throttler = new SemaphoreSlim(8);
+        Task<double?>[] responseTasks = issues
+            .Where(issue => !string.IsNullOrWhiteSpace(issue.CommentsUrl))
+            .Select(async issue =>
             {
-                staleCriticalBugCount++;
-            }
-
-            string commentsUrl = issue.TryGetProperty("comments_url", out JsonElement commentsElement)
-                ? commentsElement.GetString() ?? string.Empty
-                : string.Empty;
-
-            if (string.IsNullOrWhiteSpace(commentsUrl))
-            {
-                continue;
-            }
-
-            try
-            {
-                using JsonDocument commentsDoc = await GetJsonAsync(commentsUrl);
-                if (commentsDoc.RootElement.ValueKind != JsonValueKind.Array)
+                await throttler.WaitAsync();
+                try
                 {
-                    continue;
+                    return await TryGetIssueResponseDaysAsync(issue);
                 }
-
-                DateTimeOffset? firstMaintainerComment = commentsDoc.RootElement.EnumerateArray()
-                    .Where(comment => comment.TryGetProperty("author_association", out JsonElement associationElement) &&
-                                      IsMaintainerAssociation(associationElement.GetString()))
-                    .Select(comment => TryReadDate(comment, "created_at"))
-                    .Where(date => date is not null)
-                    .OrderBy(date => date)
-                    .FirstOrDefault();
-
-                if (firstMaintainerComment is DateTimeOffset firstResponse)
+                finally
                 {
-                    responseDays.Add((firstResponse - createdAt).TotalDays);
+                    throttler.Release();
                 }
-            }
-            catch
-            {
-            }
-        }
+            })
+            .ToArray();
+
+        double?[] responseResults = await Task.WhenAll(responseTasks);
+        responseDays.AddRange(responseResults.Where(days => days is not null).Select(days => days!.Value));
 
         return new GitHubIssueData
         {
@@ -315,6 +335,39 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
             StaleCriticalBugIssueCount = staleCriticalBugCount,
             MedianIssueResponseDays = ComputeMedian(responseDays)
         };
+    }
+
+    private async Task<double?> TryGetIssueResponseDaysAsync(GitHubIssueSnapshot issue)
+    {
+        if (string.IsNullOrWhiteSpace(issue.CommentsUrl))
+        {
+            return null;
+        }
+
+        try
+        {
+            using JsonDocument commentsDoc = await GetJsonAsync(issue.CommentsUrl);
+            if (commentsDoc.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            DateTimeOffset? firstMaintainerComment = commentsDoc.RootElement.EnumerateArray()
+                .Where(comment => comment.TryGetProperty("author_association", out JsonElement associationElement) &&
+                                  IsMaintainerAssociation(associationElement.GetString()))
+                .Select(comment => TryReadDate(comment, "created_at"))
+                .Where(date => date is not null)
+                .OrderBy(date => date)
+                .FirstOrDefault();
+
+            return firstMaintainerComment is DateTimeOffset firstResponse
+                ? (firstResponse - issue.CreatedAt).TotalDays
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private async Task<double?> GetMedianPullRequestMergeDaysAsync(string repositoryApiRoot)
@@ -638,6 +691,8 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
     private sealed class GitHubRepositoryRiskData
     {
+        public string CanonicalUrl { get; init; } = string.Empty;
+
         public bool OwnerIsOrganization { get; init; }
 
         public DateTimeOffset? OwnerCreatedAt { get; init; }
@@ -678,9 +733,16 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
         public bool? HasProvenanceAttestation { get; init; }
 
-        public bool? HasRepositoryOwnershipOrRenameChurn { get; init; }
-
         public DateTimeOffset? LastReleaseAt { get; init; }
+    }
+
+    private sealed class GitHubIssueSnapshot
+    {
+        public DateTimeOffset CreatedAt { get; init; }
+
+        public bool IsCritical { get; init; }
+
+        public string? CommentsUrl { get; init; }
     }
 
     private sealed class GitHubIssueData
