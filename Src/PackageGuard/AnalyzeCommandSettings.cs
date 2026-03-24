@@ -71,7 +71,7 @@ internal class AnalyzeCommandSettings : CommandSettings
     [CommandOption("--npm-exe-path|--npmexepath")]
     public string? NpmExePath { get; set; }
 
-    [Description("Show risk metrics for all packages in addition to policy violations. Defaults to false.")]
+    [Description("Show a colored risk summary in the console and generate a detailed HTML risk report. Defaults to false.")]
     [CommandOption("--show-risk|--showrisk")]
     [DefaultValue(false)]
     public bool ShowRisk { get; set; }
