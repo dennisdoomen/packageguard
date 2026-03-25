@@ -11,10 +11,13 @@ internal static class RiskHtmlReportWriter
     internal const string ReportDirectoryEnvironmentVariable = "PACKAGEGUARD_REPORT_DIRECTORY";
     private static readonly UTF8Encoding Utf8WithoutBom = new(false);
 
-    public static async Task<RiskReportPaths> WriteAsync(string projectPath, IEnumerable<PackageInfo> packages)
+    public static async Task<RiskReportPaths> WriteAsync(
+        string projectPath,
+        IEnumerable<PackageInfo> packages,
+        string? reportOutputPath = null)
     {
         PackageInfo[] orderedPackages = packages.OrderByDescending(package => package.RiskScore).ToArray();
-        RiskReportPaths reportPaths = GetReportPaths(projectPath);
+        RiskReportPaths reportPaths = GetReportPaths(projectPath, reportOutputPath);
         string html = BuildHtml(projectPath, orderedPackages);
         string sarif = RiskSarifReportWriter.BuildSarif(projectPath, orderedPackages);
 
@@ -24,15 +27,71 @@ internal static class RiskHtmlReportWriter
         return reportPaths;
     }
 
-    private static RiskReportPaths GetReportPaths(string projectPath)
+    private static RiskReportPaths GetReportPaths(string projectPath, string? configuredReportPath = null)
     {
-        string? configuredReportDirectory = Environment.GetEnvironmentVariable(ReportDirectoryEnvironmentVariable);
-        string reportDirectory = string.IsNullOrWhiteSpace(configuredReportDirectory)
-            ? Path.Combine(Path.GetTempPath(), "PackageGuard", "reports")
-            : configuredReportDirectory;
+        string? reportLocation = string.IsNullOrWhiteSpace(configuredReportPath)
+            ? Environment.GetEnvironmentVariable(ReportDirectoryEnvironmentVariable)
+            : configuredReportPath;
+
+        if (!string.IsNullOrWhiteSpace(reportLocation))
+        {
+            return ResolveConfiguredReportPaths(projectPath, reportLocation);
+        }
+
+        string reportDirectory = Path.Combine(Path.GetTempPath(), "PackageGuard", "reports");
 
         Directory.CreateDirectory(reportDirectory);
 
+        return CreateGeneratedReportPaths(projectPath, reportDirectory);
+    }
+
+    private static RiskReportPaths ResolveConfiguredReportPaths(string projectPath, string reportLocation)
+    {
+        if (LooksLikeDirectoryPath(reportLocation))
+        {
+            Directory.CreateDirectory(reportLocation);
+            return CreateGeneratedReportPaths(projectPath, reportLocation);
+        }
+
+        string fullPath = Path.GetFullPath(reportLocation);
+        string? parentDirectory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrWhiteSpace(parentDirectory))
+        {
+            Directory.CreateDirectory(parentDirectory);
+        }
+
+        string extension = Path.GetExtension(fullPath);
+        string fileStem = string.IsNullOrWhiteSpace(extension)
+            ? fullPath
+            : Path.Combine(Path.GetDirectoryName(fullPath) ?? string.Empty, Path.GetFileNameWithoutExtension(fullPath));
+
+        string htmlPath = extension.Equals(".sarif", StringComparison.OrdinalIgnoreCase)
+            ? $"{fileStem}.html"
+            : string.IsNullOrWhiteSpace(extension) || extension.Equals(".html", StringComparison.OrdinalIgnoreCase)
+                ? $"{fileStem}.html"
+                : fullPath;
+
+        string sarifPath = extension.Equals(".sarif", StringComparison.OrdinalIgnoreCase)
+            ? fullPath
+            : $"{fileStem}.sarif";
+
+        return new RiskReportPaths(htmlPath, sarifPath);
+    }
+
+    private static bool LooksLikeDirectoryPath(string reportLocation)
+    {
+        if (Directory.Exists(reportLocation))
+        {
+            return true;
+        }
+
+        return reportLocation.EndsWith(Path.DirectorySeparatorChar) ||
+               reportLocation.EndsWith(Path.AltDirectorySeparatorChar) ||
+               string.IsNullOrWhiteSpace(Path.GetExtension(reportLocation));
+    }
+
+    private static RiskReportPaths CreateGeneratedReportPaths(string projectPath, string reportDirectory)
+    {
         string projectName = Path.GetFileNameWithoutExtension(projectPath);
         if (string.IsNullOrWhiteSpace(projectName))
         {
@@ -90,9 +149,6 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine("    .rationale-list, .detail-list { margin: 12px 0 0; padding-left: 20px; }");
         builder.AppendLine("    .detail-list { list-style: none; padding-left: 0; }");
         builder.AppendLine("    .detail-list li { padding: 4px 0; }");
-        builder.AppendLine("    .link-list { list-style: none; padding-left: 0; margin: 12px 0 0; }");
-        builder.AppendLine("    .link-list li { padding: 4px 0; }");
-        builder.AppendLine("    .link-heading { margin: 16px 0 4px; color: #475569; font-weight: 600; }");
         builder.AppendLine("    .label { color: #475569; font-weight: 600; }");
         builder.AppendLine("    .meta { color: #64748b; }");
         builder.AppendLine("    code { font-family: Cascadia Code, Consolas, monospace; }");
@@ -164,9 +220,9 @@ internal static class RiskHtmlReportWriter
             builder.AppendLine($"    <p>{BuildOverallScorePill(package.RiskScore)}</p>");
             builder.AppendLine("    <p><a href=\"#top\">Back to report summary</a></p>");
             builder.AppendLine("    <div class=\"dimension-grid\">");
-            AppendDimension(builder, "Legal", package.RiskDimensions.LegalRisk, package.RiskDimensions.LegalRiskRationale, BuildLegalLinks(package));
-            AppendDimension(builder, "Security", package.RiskDimensions.SecurityRisk, package.RiskDimensions.SecurityRiskRationale, BuildSecurityLinks(package));
-            AppendDimension(builder, "Operational", package.RiskDimensions.OperationalRisk, package.RiskDimensions.OperationalRiskRationale, BuildOperationalLinks(package));
+            AppendDimension(builder, package, "Legal", package.RiskDimensions.LegalRisk, package.RiskDimensions.LegalRiskRationale);
+            AppendDimension(builder, package, "Security", package.RiskDimensions.SecurityRisk, package.RiskDimensions.SecurityRiskRationale);
+            AppendDimension(builder, package, "Operational", package.RiskDimensions.OperationalRisk, package.RiskDimensions.OperationalRiskRationale);
             builder.AppendLine("    </div>");
             builder.AppendLine("    <h3>Evidence</h3>");
             builder.AppendLine("    <ul class=\"detail-list\">");
@@ -188,10 +244,10 @@ internal static class RiskHtmlReportWriter
 
     private static void AppendDimension(
         StringBuilder builder,
+        PackageInfo package,
         string label,
         double score,
-        IReadOnlyCollection<string> rationale,
-        IReadOnlyCollection<(string Label, string Url)> relevantLinks)
+        IReadOnlyCollection<string> rationale)
     {
         builder.AppendLine("      <section class=\"dimension-card\">");
         builder.AppendLine($"        <h3>{Encode(label)}</h3>");
@@ -200,25 +256,10 @@ internal static class RiskHtmlReportWriter
 
         foreach (string reason in rationale)
         {
-            builder.AppendLine($"          <li>{Encode(reason)}</li>");
+            builder.AppendLine($"          <li>{BuildRationaleContent(package, reason)}</li>");
         }
 
         builder.AppendLine("        </ul>");
-
-        if (relevantLinks.Count > 0)
-        {
-            builder.AppendLine("        <p class=\"link-heading\">Relevant links</p>");
-            builder.AppendLine("        <ul class=\"link-list\">");
-
-            foreach ((string linkLabel, string url) in relevantLinks)
-            {
-                builder.AppendLine(
-                    $"          <li><a href=\"{Encode(url)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(linkLabel)}</a></li>");
-            }
-
-            builder.AppendLine("        </ul>");
-        }
-
         builder.AppendLine("      </section>");
     }
 
@@ -230,7 +271,7 @@ internal static class RiskHtmlReportWriter
             yield return ("Used by", string.Join(", ", displayProjectPaths));
         }
 
-        yield return ("License", package.License ?? "Unknown");
+        yield return ("License", FormatLicenseDisplay(package));
 
         if (package.IsPackageSigned != null)
         {
@@ -494,7 +535,7 @@ internal static class RiskHtmlReportWriter
 
         if (package.MajorReleaseRatio != null)
         {
-            yield return ("Major release ratio", package.MajorReleaseRatio.Value.ToString("P0", CultureInfo.InvariantCulture));
+            yield return ("Major-version jump ratio", package.MajorReleaseRatio.Value.ToString("P0", CultureInfo.InvariantCulture));
         }
 
         if (package.RapidReleaseCorrectionCount != null)
@@ -523,95 +564,140 @@ internal static class RiskHtmlReportWriter
         }
     }
 
-    private static IReadOnlyCollection<(string Label, string Url)> BuildLegalLinks(PackageInfo package)
+    private static string BuildRationaleContent(PackageInfo package, string rationale)
     {
-        var links = new List<(string Label, string Url)>();
-        AddLink(links, "License text", package.LicenseUrl);
-        return links;
+        if (rationale.StartsWith("Valid license URL", StringComparison.Ordinal))
+        {
+            string? licenseFileUrl = TryGetLicenseFileUrl(package);
+            if (licenseFileUrl is not null)
+            {
+                return $"<a href=\"{Encode(licenseFileUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(rationale)}</a>";
+            }
+        }
+
+        if (rationale.StartsWith("Public repository available", StringComparison.Ordinal))
+        {
+            string? repositoryUrl = TryGetRepositoryUrl(package);
+            if (repositoryUrl is not null)
+            {
+                return $"<a href=\"{Encode(repositoryUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(rationale)}</a>";
+            }
+        }
+
+        if (rationale.StartsWith("README looks present and non-default", StringComparison.Ordinal))
+        {
+            string? readmeUrl = TryGetReadmeUrl(package);
+            if (readmeUrl is not null)
+            {
+                return $"<a href=\"{Encode(readmeUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(rationale)}</a>";
+            }
+        }
+
+        if (rationale.StartsWith("CONTRIBUTING guide is present", StringComparison.Ordinal))
+        {
+            string? contributingGuideUrl = TryGetContributingGuideUrl(package);
+            if (contributingGuideUrl is not null)
+            {
+                return $"<a href=\"{Encode(contributingGuideUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(rationale)}</a>";
+            }
+        }
+
+        if (rationale.StartsWith("CHANGELOG or release notes are present", StringComparison.Ordinal))
+        {
+            string? releaseHistoryUrl = TryGetReleaseHistoryUrl(package);
+            if (releaseHistoryUrl is not null)
+            {
+                return $"<a href=\"{Encode(releaseHistoryUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(rationale)}</a>";
+            }
+        }
+
+        if (rationale.StartsWith("OpenSSF Scorecard score is low", StringComparison.Ordinal))
+        {
+            string? scorecardUrl = TryGetOpenSsfScorecardUrl(package);
+            if (scorecardUrl is not null)
+            {
+                return $"<a href=\"{Encode(scorecardUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(rationale)}</a>";
+            }
+        }
+
+        return Encode(rationale);
     }
 
-    private static IReadOnlyCollection<(string Label, string Url)> BuildSecurityLinks(PackageInfo package)
+    private static string? TryGetRepositoryUrl(PackageInfo package)
     {
-        var links = new List<(string Label, string Url)>();
+        if (Uri.TryCreate(package.RepositoryUrl, UriKind.Absolute, out Uri? repositoryUri))
+        {
+            return repositoryUri.ToString();
+        }
+
+        return null;
+    }
+
+    private static string? TryGetLicenseFileUrl(PackageInfo package)
+    {
         string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
-
-        if (repositoryRoot is not null && package.OpenSsfScore != null)
+        if (repositoryRoot is not null)
         {
-            string repositoryIdentifier = repositoryRoot.Replace("https://github.com/", "github.com/", StringComparison.OrdinalIgnoreCase);
-            AddLink(links, "OpenSSF Scorecard", $"https://securityscorecards.dev/viewer/?uri={repositoryIdentifier}");
+            return $"{repositoryRoot}/blob/HEAD/LICENSE";
         }
 
-        if (repositoryRoot is not null && package.HasSecurityPolicy == true)
+        if (Uri.TryCreate(package.LicenseUrl, UriKind.Absolute, out Uri? licenseUri))
         {
-            AddLink(links, "Security policy", $"{repositoryRoot}/security");
+            return licenseUri.ToString();
         }
 
-        return links;
-    }
-
-    private static IReadOnlyCollection<(string Label, string Url)> BuildOperationalLinks(PackageInfo package)
-    {
-        var links = new List<(string Label, string Url)>();
-        AddLink(links, "Repository", package.RepositoryUrl);
-
-        string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
-        if (repositoryRoot is null)
-        {
-            return links;
-        }
-
-        if (package.HasContributingGuide == true)
-        {
-            AddLink(links, "Contributing guide", $"{repositoryRoot}/blob/HEAD/CONTRIBUTING.md");
-        }
-
-        if (package.HasReleaseNotes == true)
-        {
-            AddLink(links, "Release notes", $"{repositoryRoot}/releases");
-        }
-
-        if (package.HasChangelog == true && package.HasDefaultChangelog != true)
-        {
-            AddLink(links, "CHANGELOG", $"{repositoryRoot}/blob/HEAD/CHANGELOG.md");
-        }
-
-        if (package.HasRecentSuccessfulWorkflowRun != null ||
-            package.RecentFailedWorkflowCount != null ||
-            package.WorkflowFailureRate != null ||
-            package.RequiredStatusCheckCount != null)
-        {
-            AddLink(links, "Workflow runs", $"{repositoryRoot}/actions");
-        }
-
-        if (package.ReadmeUpdatedAt != null)
-        {
-            AddLink(links, "README", $"{repositoryRoot}#readme");
-        }
-
-        return links;
-    }
-
-    private static void AddLink(ICollection<(string Label, string Url)> links, string label, string? url)
-    {
-        if (string.IsNullOrWhiteSpace(url) ||
-            !Uri.TryCreate(url, UriKind.Absolute, out Uri? absoluteUri))
-        {
-            return;
-        }
-
-        string normalizedUrl = absoluteUri.ToString();
-        if (links.Any(existing => existing.Url.Equals(normalizedUrl, StringComparison.OrdinalIgnoreCase)))
-        {
-            return;
-        }
-
-        links.Add((label, normalizedUrl));
+        return null;
     }
 
     private static string? TryGetGitHubRepositoryRoot(string? repositoryUrl)
     {
         string? identifier = TryGetGitHubIdentifier(repositoryUrl);
         return identifier is null ? null : $"https://github.com/{identifier}";
+    }
+
+    private static string? TryGetReadmeUrl(PackageInfo package)
+    {
+        string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
+        return repositoryRoot is null ? null : $"{repositoryRoot}#readme";
+    }
+
+    private static string? TryGetContributingGuideUrl(PackageInfo package)
+    {
+        string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
+        return repositoryRoot is null ? null : $"{repositoryRoot}/blob/HEAD/CONTRIBUTING.md";
+    }
+
+    private static string? TryGetReleaseHistoryUrl(PackageInfo package)
+    {
+        string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
+        if (repositoryRoot is null)
+        {
+            return null;
+        }
+
+        if (package.HasReleaseNotes == true)
+        {
+            return $"{repositoryRoot}/releases";
+        }
+
+        if (package.HasChangelog == true && package.HasDefaultChangelog != true)
+        {
+            return $"{repositoryRoot}/blob/HEAD/CHANGELOG.md";
+        }
+
+        return null;
+    }
+
+    private static string? TryGetOpenSsfScorecardUrl(PackageInfo package)
+    {
+        string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
+        if (repositoryRoot is null)
+        {
+            return null;
+        }
+
+        string repositoryIdentifier = repositoryRoot.Replace("https://github.com/", "github.com/", StringComparison.OrdinalIgnoreCase);
+        return $"https://securityscorecards.dev/viewer/?uri={repositoryIdentifier}";
     }
 
     private static string? TryGetGitHubIdentifier(string? repositoryUrl)
@@ -696,6 +782,35 @@ internal static class RiskHtmlReportWriter
     }
 
     private static string FormatDecimal(double value) => value.ToString("0.0", CultureInfo.InvariantCulture);
+
+    private static string FormatLicenseDisplay(PackageInfo package)
+    {
+        if (string.IsNullOrWhiteSpace(package.License) ||
+            package.License.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Missing or undetermined";
+        }
+
+        if (!IsWellKnownLicense(package.License))
+        {
+            return $"Present, but not one of PackageGuard's well-known license IDs: {package.License}";
+        }
+
+        return package.License;
+    }
+
+    private static bool IsWellKnownLicense(string license)
+    {
+        string[] knownLicenseMarkers =
+        [
+            "MIT", "Apache", "BSD", "ISC", "Unlicense", "WTFPL", "CC0",
+            "LGPL", "MPL",
+            "GPL", "AGPL", "SSPL", "Commons Clause", "BUSL", "BCL"
+        ];
+
+        return knownLicenseMarkers.Any(marker =>
+            license.Contains(marker, StringComparison.OrdinalIgnoreCase));
+    }
 
     private static string Encode(string value) => WebUtility.HtmlEncode(value);
 

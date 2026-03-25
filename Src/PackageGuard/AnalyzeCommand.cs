@@ -83,7 +83,15 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         // Display risk metrics if requested
         if (settings.ReportRisk && packages.Length > 0)
         {
-            RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(settings.ProjectPath, packages);
+            logger.LogHeader("Writing risk reports");
+            logger.LogInformation(
+                "Writing detailed HTML and SARIF risk reports for {PackageCount} packages.",
+                packages.Length);
+
+            RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
+                settings.ProjectPath,
+                packages,
+                settings.GetReportRiskPath());
 
             AnsiConsole.MarkupLine("[yellow1]Package Risk Summary:[/]");
             AnsiConsole.MarkupLine("");

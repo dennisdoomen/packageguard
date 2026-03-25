@@ -415,7 +415,7 @@ public class RiskEvaluator(ILogger logger)
         {
             risk += 0.5;
             rationale.Add(CreateRationale(
-                $"Major release ratio is elevated ({FormatPercentage(package.MajorReleaseRatio.Value)})",
+                $"A high share of semver release transitions were major-version jumps ({FormatPercentage(package.MajorReleaseRatio.Value)})",
                 0.5));
         }
 

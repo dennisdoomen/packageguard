@@ -10,6 +10,7 @@ namespace PackageGuard;
 internal class AnalyzeCommandSettings : CommandSettings
 {
     public const string DefaultConfigFileName = "config.json";
+    internal const string ReportRiskPathOverrideEnvironmentVariable = "PACKAGEGUARD_REPORT_RISK_PATH_OVERRIDE";
 
     [Description(
         "The path to a directory containing a .sln/.slnx file and/or a package.json, a specific .sln/.slnx file, a specific .csproj file, or a specific package.json. Defaults to the current working directory")]
@@ -81,10 +82,21 @@ internal class AnalyzeCommandSettings : CommandSettings
     [CommandOption("--npm-exe-path|--npmexepath")]
     public string? NpmExePath { get; set; }
 
-    [Description("Show a colored risk summary in the console and generate a detailed HTML risk report. Defaults to false.")]
+    [Description(
+        "Show a colored risk summary in the console and generate detailed HTML/SARIF risk reports. Optionally provide a directory or file path. Directories receive generated file names; explicit filenames are used directly and may overwrite prior files.")]
     [CommandOption("--report-risk|--reportrisk")]
-    [DefaultValue(false)]
     public bool ReportRisk { get; set; }
+
+    public string? GetReportRiskPath()
+    {
+        string? reportRiskPath = Environment.GetEnvironmentVariable(ReportRiskPathOverrideEnvironmentVariable);
+        if (string.IsNullOrWhiteSpace(reportRiskPath))
+        {
+            return null;
+        }
+
+        return reportRiskPath;
+    }
 
     public AnalyzerSettings ToCoreSettings()
     {

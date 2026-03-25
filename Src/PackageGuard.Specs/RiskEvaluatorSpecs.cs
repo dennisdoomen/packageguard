@@ -369,6 +369,7 @@ internal class RiskEvaluatorSpecs
 
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Mean release interval is long"));
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Recent release tags do not consistently follow semantic versioning"));
+        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("A high share of semver release transitions were major-version jumps (50 %)"));
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Median maintainer inactivity is elevated"));
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Issue triage within 7 days is low"));
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("No dependency update automation signal was detected"));
@@ -400,7 +401,7 @@ internal class RiskEvaluatorSpecs
         riskEvaluator.EvaluateRisk(package);
 
         package.RiskDimensions.OperationalRiskRationale.Should()
-            .NotContain(item => item.Contains("Major release ratio is elevated"));
+            .NotContain(item => item.Contains("major-version jumps"));
     }
 
     [TestMethod]

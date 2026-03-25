@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using PackageGuard.Core.Common;
 using PackageGuard.Core.CSharp;
 using PackageGuard.Core.Npm;
 
@@ -44,16 +45,25 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         PackageInfo[] allPackages = packages.GetAllUsedPackages();
         if (settings.ReportRisk)
         {
+            Logger.LogHeader("Collecting risk metadata");
+            Logger.LogInformation(
+                "Building risk report data for {PackageCount} packages. This can take a while while repository, release, and security signals are refreshed.",
+                allPackages.Length);
+
             var enricher = new PackageRiskEnricher(Logger, settings.GitHubApiKey);
             await enricher.EnrichAsync(allPackages);
             PopulateTransitiveVulnerabilityCounts(allPackages);
             PopulateDependencyHealthCounts(allPackages);
+
+            Logger.LogInformation("Risk metadata collection complete. Calculating package risk scores.");
 
             RiskEvaluator evaluator = riskEvaluator ?? new RiskEvaluator(Logger);
             foreach (PackageInfo package in allPackages)
             {
                 evaluator.EvaluateRisk(package);
             }
+
+            Logger.LogInformation("Risk scoring complete for {PackageCount} packages.", allPackages.Length);
         }
 
         if (settings.UseCaching)
