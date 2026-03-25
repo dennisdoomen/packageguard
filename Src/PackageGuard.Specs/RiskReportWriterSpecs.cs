@@ -61,6 +61,8 @@ internal sealed class RiskReportWriterSpecs
                 OperationalRiskRationale = ["Contributor count is healthy (5) (+0.0)"]
             }
         };
+        package.TrackAsUsedInProject(@"src\Contoso.App\Contoso.App.csproj");
+        package.TrackAsUsedInProject(@"frontend\package.json");
 
         RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
             Path.Combine(reportDirectory, "PackageGuard.sln"),
@@ -77,12 +79,19 @@ internal sealed class RiskReportWriterSpecs
         string html = await File.ReadAllTextAsync(reportPaths.HtmlPath);
         html.Should().Contain("PackageGuard Risk Report");
         html.Should().Contain("Contoso.Security");
+        html.Should().Contain(@"src\Contoso.App\Contoso.App.csproj");
+        html.Should().Contain(@"frontend\package.json");
+        html.Should().Contain("<span class=\"label\">Used by:</span>");
+        html.Should().NotContain("<th>Used by</th>");
 
         using JsonDocument sarif = JsonDocument.Parse(await File.ReadAllTextAsync(reportPaths.SarifPath));
         sarif.RootElement.GetProperty("version").GetString().Should().Be("2.1.0");
         JsonElement result = sarif.RootElement.GetProperty("runs")[0].GetProperty("results")[0];
         result.GetProperty("ruleId").GetString().Should().Be("packageguard/risk-medium");
         result.GetProperty("message").GetProperty("text").GetString().Should().Contain("Contoso.Security 2.4.0 scored 47.5/100");
+        result.GetProperty("message").GetProperty("text").GetString().Should().Contain(@"Used by: frontend\package.json, src\Contoso.App\Contoso.App.csproj.");
+        result.GetProperty("properties").GetProperty("usedBy")[0].GetString().Should().Be(@"frontend\package.json");
+        result.GetProperty("properties").GetProperty("usedBy")[1].GetString().Should().Be(@"src\Contoso.App\Contoso.App.csproj");
         result.GetProperty("locations")[0]
             .GetProperty("physicalLocation")
             .GetProperty("artifactLocation")

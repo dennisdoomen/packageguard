@@ -200,6 +200,12 @@ internal static class RiskHtmlReportWriter
 
     private static IEnumerable<(string Label, string Value)> BuildDetails(PackageInfo package)
     {
+        string[] displayProjectPaths = GetDisplayProjectPaths(package);
+        if (displayProjectPaths.Length > 0)
+        {
+            yield return ("Used by", string.Join(", ", displayProjectPaths));
+        }
+
         yield return ("License", package.License ?? "Unknown");
 
         if (package.HasValidLicenseUrl != null)
@@ -571,4 +577,34 @@ internal static class RiskHtmlReportWriter
     private static string FormatDecimal(double value) => value.ToString("0.0", CultureInfo.InvariantCulture);
 
     private static string Encode(string value) => WebUtility.HtmlEncode(value);
+
+    private static string[] GetDisplayProjectPaths(PackageInfo package)
+    {
+        return package.Projects
+            .Select(path => ToDisplayProjectPath(package, path))
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static string ToDisplayProjectPath(PackageInfo package, string projectPath)
+    {
+        if (string.IsNullOrWhiteSpace(projectPath))
+        {
+            return string.Empty;
+        }
+
+        if (!package.Source.Equals("npm", StringComparison.OrdinalIgnoreCase))
+        {
+            return projectPath;
+        }
+
+        if (projectPath.EndsWith("package.json", StringComparison.OrdinalIgnoreCase))
+        {
+            return projectPath;
+        }
+
+        return Path.Combine(projectPath, "package.json");
+    }
 }

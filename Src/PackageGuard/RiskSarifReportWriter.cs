@@ -86,7 +86,8 @@ internal static class RiskSarifReportWriter
                     $"{package.Name} {package.Version} scored {package.RiskScore.ToString("0.0", CultureInfo.InvariantCulture)}/100 ({riskZone}). " +
                     $"Legal {package.RiskDimensions.LegalRisk.ToString("0.0", CultureInfo.InvariantCulture)}/10, " +
                     $"Security {package.RiskDimensions.SecurityRisk.ToString("0.0", CultureInfo.InvariantCulture)}/10, " +
-                    $"Operational {package.RiskDimensions.OperationalRisk.ToString("0.0", CultureInfo.InvariantCulture)}/10."
+                    $"Operational {package.RiskDimensions.OperationalRisk.ToString("0.0", CultureInfo.InvariantCulture)}/10. " +
+                    $"Used by: {string.Join(", ", GetDisplayProjectPaths(package))}."
             },
             PartialFingerprints = new Dictionary<string, string>
             {
@@ -97,6 +98,7 @@ internal static class RiskSarifReportWriter
                 ["packageName"] = package.Name,
                 ["packageVersion"] = package.Version,
                 ["source"] = package.Source,
+                ["usedBy"] = GetDisplayProjectPaths(package),
                 ["riskScore"] = package.RiskScore,
                 ["riskZone"] = riskZone,
                 ["legalRisk"] = package.RiskDimensions.LegalRisk,
@@ -191,6 +193,36 @@ internal static class RiskSarifReportWriter
 
         relativeUri = relativePath.Replace(Path.DirectorySeparatorChar, '/');
         return true;
+    }
+
+    private static string[] GetDisplayProjectPaths(PackageInfo package)
+    {
+        return package.Projects
+            .Select(path => ToDisplayProjectPath(package, path))
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static string ToDisplayProjectPath(PackageInfo package, string projectPath)
+    {
+        if (string.IsNullOrWhiteSpace(projectPath))
+        {
+            return string.Empty;
+        }
+
+        if (!package.Source.Equals("npm", StringComparison.OrdinalIgnoreCase))
+        {
+            return projectPath;
+        }
+
+        if (projectPath.EndsWith("package.json", StringComparison.OrdinalIgnoreCase))
+        {
+            return projectPath;
+        }
+
+        return Path.Combine(projectPath, "package.json");
     }
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
