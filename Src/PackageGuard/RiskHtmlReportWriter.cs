@@ -8,6 +8,7 @@ namespace PackageGuard;
 internal static class RiskHtmlReportWriter
 {
     internal const string ReportDirectoryEnvironmentVariable = "PACKAGEGUARD_REPORT_DIRECTORY";
+    private static readonly UTF8Encoding Utf8WithoutBom = new(false);
 
     public static async Task<RiskReportPaths> WriteAsync(string projectPath, IEnumerable<PackageInfo> packages)
     {
@@ -16,8 +17,8 @@ internal static class RiskHtmlReportWriter
         string html = BuildHtml(projectPath, orderedPackages);
         string sarif = RiskSarifReportWriter.BuildSarif(projectPath, orderedPackages);
 
-        await File.WriteAllTextAsync(reportPaths.HtmlPath, html, Encoding.UTF8);
-        await File.WriteAllTextAsync(reportPaths.SarifPath, sarif, Encoding.UTF8);
+        await File.WriteAllTextAsync(reportPaths.HtmlPath, html, Utf8WithoutBom);
+        await File.WriteAllTextAsync(reportPaths.SarifPath, sarif, Utf8WithoutBom);
 
         return reportPaths;
     }
