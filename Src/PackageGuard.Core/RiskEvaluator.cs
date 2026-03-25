@@ -51,7 +51,7 @@ public class RiskEvaluator(ILogger logger)
         var risk = 0.0;
         var rationale = new List<string>();
 
-        if (string.IsNullOrEmpty(package.License) || package.License == "Unknown")
+        if (string.IsNullOrEmpty(package.License) || package.License.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
         {
             risk += 6.0;
             rationale.Add(CreateRationale("Unknown or missing license", 6.0));
