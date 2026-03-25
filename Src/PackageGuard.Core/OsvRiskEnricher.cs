@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 namespace PackageGuard.Core;
@@ -271,13 +272,13 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
             return 0;
         }
 
-        if (double.TryParse(score, out double numericScore))
+        if (double.TryParse(score, NumberStyles.Number, CultureInfo.InvariantCulture, out double numericScore))
         {
             return numericScore;
         }
 
         string[] parts = score.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return parts.Select(part => double.TryParse(part, out double value) ? value : 0).FirstOrDefault(value => value > 0);
+        return parts.Select(part => double.TryParse(part, NumberStyles.Number, CultureInfo.InvariantCulture, out double value) ? value : 0).FirstOrDefault(value => value > 0);
     }
 
     private static double? TryGetDaysToFix(JsonElement vulnerability)
