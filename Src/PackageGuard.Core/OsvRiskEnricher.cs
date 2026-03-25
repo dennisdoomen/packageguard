@@ -76,9 +76,9 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
                     }
 
                     double? daysToFix = TryGetDaysToFix(vulnerability);
-                    if (daysToFix is double value)
+                    if (daysToFix != null)
                     {
-                        fixDays.Add(value);
+                        fixDays.Add(daysToFix.Value);
                     }
                 }
             }

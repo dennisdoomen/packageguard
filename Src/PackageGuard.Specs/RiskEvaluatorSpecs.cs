@@ -1,5 +1,6 @@
 using System;
 using FluentAssertions;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
@@ -7,6 +8,7 @@ using PackageGuard.Core;
 namespace PackageGuard.Specs;
 
 [TestClass]
+[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 internal class RiskEvaluatorSpecs
 {
     [TestMethod]

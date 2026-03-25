@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 
 namespace PackageGuard.Core;
@@ -385,7 +386,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 CreatedAt = TryReadDate(issue, "created_at") ?? now,
                 IsCritical = issue.TryGetProperty("labels", out JsonElement labels) &&
                              labels.ValueKind == JsonValueKind.Array &&
-                             labels.EnumerateArray().Any(label => IsCriticalLabel(label)),
+                             labels.EnumerateArray().Any(IsCriticalLabel),
                 CommentsUrl = issue.TryGetProperty("comments_url", out JsonElement commentsElement)
                     ? commentsElement.GetString()
                     : null
@@ -462,11 +463,11 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 .OrderBy(date => date)
                 .FirstOrDefault();
 
-            return firstMaintainerComment is DateTimeOffset firstResponse
+            return firstMaintainerComment != null
                 ? new GitHubIssueResponseData
                 {
                     HasMaintainerResponse = true,
-                    ResponseDays = (firstResponse - issue.CreatedAt).TotalDays
+                    ResponseDays = (firstMaintainerComment.Value - issue.CreatedAt).TotalDays
                 }
                 : new GitHubIssueResponseData();
         }
@@ -724,8 +725,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
     private async Task<GitHubChangelogData> GetChangelogDataAsync(string repositoryApiRoot, string defaultBranch, string[] rootFiles)
     {
-        string? changelogFile = rootFiles.FirstOrDefault(file =>
-            IsChangelogFile(file));
+        string? changelogFile = rootFiles.FirstOrDefault(IsChangelogFile);
 
         if (string.IsNullOrWhiteSpace(changelogFile))
         {
@@ -809,18 +809,20 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                     ? TryReadDate(commitAuthor, "date")
                     : null;
 
-                if (committedAt is DateTimeOffset activityAt)
+                if (committedAt != null)
                 {
+                    DateTimeOffset activityAt = committedAt.Value;
                     if (!lastActivityByMaintainer.TryGetValue(identity, out DateTimeOffset existing) || activityAt > existing)
                     {
                         lastActivityByMaintainer[identity] = activityAt;
                     }
                 }
 
-                if (TryReadCommitVerification(commit) is bool verified)
+                bool? verified = TryReadCommitVerification(commit);
+                if (verified != null)
                 {
                     signedCommitSampleCount++;
-                    if (verified)
+                    if (verified.Value)
                     {
                         verifiedCommitCount++;
                     }
@@ -1103,7 +1105,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 }
             }
         }
-        catch
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or FormatException)
         {
         }
 
@@ -1436,6 +1438,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
     private sealed class GitHubIssueSnapshot
     {
+        [UsedImplicitly]
         public int Number { get; init; }
 
         public DateTimeOffset CreatedAt { get; init; }
@@ -1447,6 +1450,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
     private sealed class GitHubClosedIssueSnapshot
     {
+        [UsedImplicitly]
         public int Number { get; init; }
 
         public DateTimeOffset? ClosedAt { get; init; }

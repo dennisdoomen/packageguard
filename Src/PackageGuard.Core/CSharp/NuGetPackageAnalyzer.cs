@@ -17,7 +17,7 @@ namespace PackageGuard.Core.CSharp;
 public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 {
     private readonly Dictionary<string, SourceRepository[]> nuGetSourcesByProject = new();
-    private static bool credentialProvidersConfigured = false;
+    private static bool credentialProvidersConfigured;
     private static readonly Lock CredentialProviderLock = new();
 
     /// <summary>
@@ -114,16 +114,13 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
     /// </summary>
     private void EnsureCredentialProvidersConfigured()
     {
-        if (!credentialProvidersConfigured)
+        lock (CredentialProviderLock)
         {
-            lock (CredentialProviderLock)
+            if (!credentialProvidersConfigured)
             {
-                if (!credentialProvidersConfigured)
-                {
-                    DefaultCredentialServiceUtility.SetupDefaultCredentialService(NullLogger.Instance, nonInteractive: !InteractiveRestore);
+                DefaultCredentialServiceUtility.SetupDefaultCredentialService(NullLogger.Instance, nonInteractive: !InteractiveRestore);
 
-                    credentialProvidersConfigured = true;
-                }
+                credentialProvidersConfigured = true;
             }
         }
     }
@@ -160,10 +157,10 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
                     ? null
                     : packageMetadata.FirstOrDefault(p => p.Identity.Version == latestStableVersion);
 
-                double? versionUpdateLagDays = packageInfo.Published is DateTimeOffset currentPublished &&
-                                               latestStableMetadata?.Published is DateTimeOffset latestStablePublished &&
-                                               latestStablePublished > currentPublished
-                    ? (latestStablePublished - currentPublished).TotalDays
+                double? versionUpdateLagDays = packageInfo.Published != null &&
+                                               latestStableMetadata?.Published != null &&
+                                               latestStableMetadata.Published.Value > packageInfo.Published.Value
+                    ? (latestStableMetadata.Published.Value - packageInfo.Published.Value).TotalDays
                     : null;
 
                 return new PackageInfo

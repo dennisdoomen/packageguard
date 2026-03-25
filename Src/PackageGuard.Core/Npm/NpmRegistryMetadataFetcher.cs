@@ -88,11 +88,10 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
                                                               latestVersion > currentVersion;
                     }
 
-                    if (package.PublishedAt is DateTimeOffset currentPublishedAt &&
-                        package.LatestStablePublishedAt is DateTimeOffset latestPublishedAt &&
-                        latestPublishedAt > currentPublishedAt)
+                    if (package is { PublishedAt: not null, LatestStablePublishedAt: not null } &&
+                        package.LatestStablePublishedAt.Value > package.PublishedAt.Value)
                     {
-                        package.VersionUpdateLagDays = (latestPublishedAt - currentPublishedAt).TotalDays;
+                        package.VersionUpdateLagDays = (package.LatestStablePublishedAt.Value - package.PublishedAt.Value).TotalDays;
                     }
                 }
             }

@@ -188,34 +188,34 @@ internal static class RiskHtmlReportWriter
     {
         yield return ("License", package.License ?? "Unknown");
 
-        if (package.HasValidLicenseUrl is bool hasValidLicenseUrl)
+        if (package.HasValidLicenseUrl != null)
         {
-            yield return ("License URL", hasValidLicenseUrl ? "Valid" : "Missing or invalid");
+            yield return ("License URL", package.HasValidLicenseUrl.Value ? "Valid" : "Missing or invalid");
         }
 
-        if (package.IsPackageSigned is bool isPackageSigned)
+        if (package.IsPackageSigned != null)
         {
-            yield return ("Package signature", isPackageSigned ? "Signed" : "Unsigned");
+            yield return ("Package signature", package.IsPackageSigned.Value ? "Signed" : "Unsigned");
         }
 
-        if (package.HasTrustedPackageSignature is bool hasTrustedPackageSignature)
+        if (package.HasTrustedPackageSignature != null)
         {
-            yield return ("Signature trust", hasTrustedPackageSignature ? "Verified" : "Unverified");
+            yield return ("Signature trust", package.HasTrustedPackageSignature.Value ? "Verified" : "Unverified");
         }
 
-        if (package.HasVerifiedPublisher is bool hasVerifiedPublisher)
+        if (package.HasVerifiedPublisher != null)
         {
-            yield return ("Verified publisher", hasVerifiedPublisher ? "Detected" : "Not detected");
+            yield return ("Verified publisher", package.HasVerifiedPublisher.Value ? "Detected" : "Not detected");
         }
 
-        if (package.HasVerifiedReleaseSignature is bool hasVerifiedReleaseSignature)
+        if (package.HasVerifiedReleaseSignature != null)
         {
-            yield return ("Verified release signature", hasVerifiedReleaseSignature ? "Detected" : "Not detected");
+            yield return ("Verified release signature", package.HasVerifiedReleaseSignature.Value ? "Detected" : "Not detected");
         }
 
-        if (package.VerifiedCommitRatio is double verifiedCommitRatio)
+        if (package.VerifiedCommitRatio != null)
         {
-            yield return ("Verified commit coverage", verifiedCommitRatio.ToString("P0", CultureInfo.InvariantCulture));
+            yield return ("Verified commit coverage", package.VerifiedCommitRatio.Value.ToString("P0", CultureInfo.InvariantCulture));
         }
 
         if (package.VulnerabilityCount > 0)
@@ -223,9 +223,9 @@ internal static class RiskHtmlReportWriter
             yield return ("Vulnerabilities", $"{package.VulnerabilityCount} (max severity {FormatDecimal(package.MaxVulnerabilitySeverity)})");
         }
 
-        if (package.MedianVulnerabilityFixDays is double vulnerabilityFixDays)
+        if (package.MedianVulnerabilityFixDays != null)
         {
-            yield return ("Median vulnerability fix time", $"{FormatDecimal(vulnerabilityFixDays)} days");
+            yield return ("Median vulnerability fix time", $"{FormatDecimal(package.MedianVulnerabilityFixDays.Value)} days");
         }
 
         if (package.DependencyDepth > 0)
@@ -238,34 +238,34 @@ internal static class RiskHtmlReportWriter
             yield return ("Transitive vulnerabilities", package.TransitiveVulnerabilityCount.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.StaleTransitiveDependencyCount is int staleTransitiveDependencyCount)
+        if (package.StaleTransitiveDependencyCount != null)
         {
-            yield return ("Stale transitive dependencies", staleTransitiveDependencyCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Stale transitive dependencies", package.StaleTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.AbandonedTransitiveDependencyCount is int abandonedTransitiveDependencyCount)
+        if (package.AbandonedTransitiveDependencyCount != null)
         {
-            yield return ("Potentially abandoned transitive dependencies", abandonedTransitiveDependencyCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Potentially abandoned transitive dependencies", package.AbandonedTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.DeprecatedTransitiveDependencyCount is int deprecatedDependencyCount)
+        if (package.DeprecatedTransitiveDependencyCount != null)
         {
-            yield return ("Deprecated transitive dependencies", deprecatedDependencyCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Deprecated transitive dependencies", package.DeprecatedTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.UnmaintainedCriticalTransitiveDependencyCount is int criticalDependencyCount)
+        if (package.UnmaintainedCriticalTransitiveDependencyCount != null)
         {
-            yield return ("Unmaintained critical transitives", criticalDependencyCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Unmaintained critical transitives", package.UnmaintainedCriticalTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.HasNativeBinaryAssets is bool hasNativeBinaryAssets)
+        if (package.HasNativeBinaryAssets != null)
         {
-            yield return ("Native/binary assets", hasNativeBinaryAssets ? "Detected" : "Not detected");
+            yield return ("Native/binary assets", package.HasNativeBinaryAssets.Value ? "Detected" : "Not detected");
         }
 
-        if (package.IsDeprecated is bool isDeprecated)
+        if (package.IsDeprecated != null)
         {
-            yield return ("Deprecated package version", isDeprecated ? "Yes" : "No");
+            yield return ("Deprecated package version", package.IsDeprecated.Value ? "Yes" : "No");
         }
 
         if (!string.IsNullOrWhiteSpace(package.LatestStableVersion))
@@ -273,14 +273,14 @@ internal static class RiskHtmlReportWriter
             yield return ("Latest stable version", package.LatestStableVersion);
         }
 
-        if (package.LatestStablePublishedAt is DateTimeOffset latestStablePublishedAt)
+        if (package.LatestStablePublishedAt != null)
         {
-            yield return ("Latest stable published", latestStablePublishedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            yield return ("Latest stable published", package.LatestStablePublishedAt.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         }
 
-        if (package.VersionUpdateLagDays is double versionUpdateLagDays)
+        if (package.VersionUpdateLagDays != null)
         {
-            yield return ("Version update lag", $"{FormatDecimal(versionUpdateLagDays)} days");
+            yield return ("Version update lag", $"{FormatDecimal(package.VersionUpdateLagDays.Value)} days");
         }
 
         if (!string.IsNullOrWhiteSpace(package.RepositoryUrl))
@@ -288,84 +288,84 @@ internal static class RiskHtmlReportWriter
             yield return ("Repository", package.RepositoryUrl);
         }
 
-        if (package.PublishedAt is DateTimeOffset publishedAt)
+        if (package.PublishedAt != null)
         {
-            yield return ("Published", publishedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            yield return ("Published", package.PublishedAt.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         }
 
-        if (package.DownloadCount is long downloadCount)
+        if (package.DownloadCount != null)
         {
-            yield return ("Downloads", downloadCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Downloads", package.DownloadCount.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.ContributorCount is int contributorCount)
+        if (package.ContributorCount != null)
         {
-            yield return ("Contributors", contributorCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Contributors", package.ContributorCount.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.RecentMaintainerCount is int recentMaintainerCount)
+        if (package.RecentMaintainerCount != null)
         {
-            yield return ("Active maintainers (6 months)", recentMaintainerCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Active maintainers (6 months)", package.RecentMaintainerCount.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.MedianMaintainerActivityDays is double medianMaintainerActivityDays)
+        if (package.MedianMaintainerActivityDays != null)
         {
-            yield return ("Median maintainer inactivity", $"{FormatDecimal(medianMaintainerActivityDays)} days");
+            yield return ("Median maintainer inactivity", $"{FormatDecimal(package.MedianMaintainerActivityDays.Value)} days");
         }
 
-        if (package.OpenBugIssueCount is int openBugIssueCount)
+        if (package.OpenBugIssueCount != null)
         {
-            yield return ("Open bug issues", openBugIssueCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Open bug issues", package.OpenBugIssueCount.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.ClosedBugIssueCountLast90Days is int closedBugIssueCount)
+        if (package.ClosedBugIssueCountLast90Days != null)
         {
-            yield return ("Closed bug issues (90 days)", closedBugIssueCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Closed bug issues (90 days)", package.ClosedBugIssueCountLast90Days.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.ReopenedBugIssueCountLast90Days is int reopenedBugIssueCount)
+        if (package.ReopenedBugIssueCountLast90Days != null)
         {
-            yield return ("Reopened bug issues (90 days)", reopenedBugIssueCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Reopened bug issues (90 days)", package.ReopenedBugIssueCountLast90Days.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.MedianIssueResponseDays is double medianIssueResponseDays)
+        if (package.MedianIssueResponseDays != null)
         {
-            yield return ("Median issue response", $"{FormatDecimal(medianIssueResponseDays)} days");
+            yield return ("Median issue response", $"{FormatDecimal(package.MedianIssueResponseDays.Value)} days");
         }
 
-        if (package.MedianCriticalIssueResponseDays is double medianCriticalIssueResponseDays)
+        if (package.MedianCriticalIssueResponseDays != null)
         {
-            yield return ("Median critical issue response", $"{FormatDecimal(medianCriticalIssueResponseDays)} days");
+            yield return ("Median critical issue response", $"{FormatDecimal(package.MedianCriticalIssueResponseDays.Value)} days");
         }
 
-        if (package.IssueResponseCoverage is double responseCoverage)
+        if (package.IssueResponseCoverage != null)
         {
-            yield return ("Issue response coverage", responseCoverage.ToString("P0", CultureInfo.InvariantCulture));
+            yield return ("Issue response coverage", package.IssueResponseCoverage.Value.ToString("P0", CultureInfo.InvariantCulture));
         }
 
-        if (package.IssueTriageWithinSevenDaysRate is double triageRate)
+        if (package.IssueTriageWithinSevenDaysRate != null)
         {
-            yield return ("Issue triage within 7 days", triageRate.ToString("P0", CultureInfo.InvariantCulture));
+            yield return ("Issue triage within 7 days", package.IssueTriageWithinSevenDaysRate.Value.ToString("P0", CultureInfo.InvariantCulture));
         }
 
-        if (package.MedianOpenBugAgeDays is double medianOpenBugAgeDays)
+        if (package.MedianOpenBugAgeDays != null)
         {
-            yield return ("Median open bug age", $"{FormatDecimal(medianOpenBugAgeDays)} days");
+            yield return ("Median open bug age", $"{FormatDecimal(package.MedianOpenBugAgeDays.Value)} days");
         }
 
-        if (package.TopContributorShare is double topContributorShare)
+        if (package.TopContributorShare != null)
         {
-            yield return ("Top contributor share", topContributorShare.ToString("P0", CultureInfo.InvariantCulture));
+            yield return ("Top contributor share", package.TopContributorShare.Value.ToString("P0", CultureInfo.InvariantCulture));
         }
 
-        if (package.RecentFailedWorkflowCount is int recentFailedWorkflowCount)
+        if (package.RecentFailedWorkflowCount != null)
         {
-            yield return ("Recent failed workflows", recentFailedWorkflowCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Recent failed workflows", package.RecentFailedWorkflowCount.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.WorkflowFailureRate is double workflowFailureRate)
+        if (package.WorkflowFailureRate != null)
         {
-            yield return ("Workflow failure rate", workflowFailureRate.ToString("P0", CultureInfo.InvariantCulture));
+            yield return ("Workflow failure rate", package.WorkflowFailureRate.Value.ToString("P0", CultureInfo.InvariantCulture));
         }
 
         if (package.HasFlakyWorkflowPattern != null)
@@ -373,14 +373,14 @@ internal static class RiskHtmlReportWriter
             yield return ("Flaky workflow pattern", package.HasFlakyWorkflowPattern == true ? "Detected" : "Not detected");
         }
 
-        if (package.RequiredStatusCheckCount is int requiredStatusCheckCount)
+        if (package.RequiredStatusCheckCount != null)
         {
-            yield return ("Required status checks", requiredStatusCheckCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Required status checks", package.RequiredStatusCheckCount.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.WorkflowPlatformCount is int workflowPlatformCount)
+        if (package.WorkflowPlatformCount != null)
         {
-            yield return ("Workflow platform count", workflowPlatformCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Workflow platform count", package.WorkflowPlatformCount.Value.ToString(CultureInfo.InvariantCulture));
         }
 
         if (package.HasCoverageWorkflowSignal != null)
@@ -403,9 +403,9 @@ internal static class RiskHtmlReportWriter
             yield return ("Test execution signal", package.HasTestSignal == true ? "Detected" : "Not detected");
         }
 
-        if (package.OpenSsfScore is double openSsfScore)
+        if (package.OpenSsfScore != null)
         {
-            yield return ("OpenSSF Scorecard", FormatDecimal(openSsfScore));
+            yield return ("OpenSSF Scorecard", FormatDecimal(package.OpenSsfScore.Value));
         }
 
         if (package.HasBranchProtection != null)
@@ -433,24 +433,24 @@ internal static class RiskHtmlReportWriter
             yield return ("Coordinated disclosure guidance", package.HasCoordinatedDisclosure == true ? "Detected" : "Not detected");
         }
 
-        if (package.ReadmeUpdatedAt is DateTimeOffset readmeUpdatedAt)
+        if (package.ReadmeUpdatedAt != null)
         {
-            yield return ("README updated", readmeUpdatedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            yield return ("README updated", package.ReadmeUpdatedAt.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         }
 
-        if (package.ChangelogUpdatedAt is DateTimeOffset changelogUpdatedAt)
+        if (package.ChangelogUpdatedAt != null)
         {
-            yield return ("CHANGELOG updated", changelogUpdatedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            yield return ("CHANGELOG updated", package.ChangelogUpdatedAt.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
         }
 
-        if (package.PrereleaseRatio is double prereleaseRatio)
+        if (package.PrereleaseRatio != null)
         {
-            yield return ("Prerelease ratio", prereleaseRatio.ToString("P0", CultureInfo.InvariantCulture));
+            yield return ("Prerelease ratio", package.PrereleaseRatio.Value.ToString("P0", CultureInfo.InvariantCulture));
         }
 
-        if (package.MeanReleaseIntervalDays is double meanReleaseIntervalDays)
+        if (package.MeanReleaseIntervalDays != null)
         {
-            yield return ("Mean release interval", $"{FormatDecimal(meanReleaseIntervalDays)} days");
+            yield return ("Mean release interval", $"{FormatDecimal(package.MeanReleaseIntervalDays.Value)} days");
         }
 
         if (package.HasReleaseNotes != null)
@@ -463,29 +463,29 @@ internal static class RiskHtmlReportWriter
             yield return ("Semantic version release tags", package.HasSemVerReleaseTags == true ? "Consistent" : "Inconsistent");
         }
 
-        if (package.MajorReleaseRatio is double majorReleaseRatio)
+        if (package.MajorReleaseRatio != null)
         {
-            yield return ("Major release ratio", majorReleaseRatio.ToString("P0", CultureInfo.InvariantCulture));
+            yield return ("Major release ratio", package.MajorReleaseRatio.Value.ToString("P0", CultureInfo.InvariantCulture));
         }
 
-        if (package.RapidReleaseCorrectionCount is int rapidReleaseCorrectionCount)
+        if (package.RapidReleaseCorrectionCount != null)
         {
-            yield return ("Rapid release corrections", rapidReleaseCorrectionCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Rapid release corrections", package.RapidReleaseCorrectionCount.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.ExternalContributionRate is double externalContributionRate)
+        if (package.ExternalContributionRate != null)
         {
-            yield return ("External contribution rate", externalContributionRate.ToString("P0", CultureInfo.InvariantCulture));
+            yield return ("External contribution rate", package.ExternalContributionRate.Value.ToString("P0", CultureInfo.InvariantCulture));
         }
 
-        if (package.UniqueReviewerCount is int uniqueReviewerCount)
+        if (package.UniqueReviewerCount != null)
         {
-            yield return ("Unique reviewers", uniqueReviewerCount.ToString(CultureInfo.InvariantCulture));
+            yield return ("Unique reviewers", package.UniqueReviewerCount.Value.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.ReviewerDiversityRatio is double reviewerDiversityRatio)
+        if (package.ReviewerDiversityRatio != null)
         {
-            yield return ("Reviewer diversity ratio", reviewerDiversityRatio.ToString("P0", CultureInfo.InvariantCulture));
+            yield return ("Reviewer diversity ratio", package.ReviewerDiversityRatio.Value.ToString("P0", CultureInfo.InvariantCulture));
         }
 
         if (package.SupportedTargetFrameworks.Length > 0)

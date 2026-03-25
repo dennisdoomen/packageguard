@@ -30,7 +30,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         List<PolicyViolation> violations = new();
 
         PackageInfoCollection packages = new(Logger);
-        if (settings.UseCaching && settings.CacheFilePath.Length > 0)
+        if (settings is { UseCaching: true, CacheFilePath.Length: > 0 })
         {
             Logger.LogInformation("Try loading package cache from {CacheFilePath}", settings.CacheFilePath);
             await packages.TryInitializeFromCache(settings.CacheFilePath);
@@ -176,7 +176,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
     }
 
     private static bool IsStaleDependency(PackageInfo dependency) =>
-        dependency.PublishedAt is DateTimeOffset publishedAt && publishedAt < DateTimeOffset.UtcNow.AddMonths(-24);
+        dependency.PublishedAt != null && dependency.PublishedAt.Value < DateTimeOffset.UtcNow.AddMonths(-24);
 
     private static bool LooksAbandonedAndRisky(PackageInfo dependency)
     {
@@ -192,8 +192,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
 
     private static bool LooksUnmaintainedAndCritical(PackageInfo dependency) =>
         IsStaleDependency(dependency) &&
-        dependency.MaxVulnerabilitySeverity >= 7.0 &&
-        dependency.VulnerabilityCount > 0;
+        dependency is { MaxVulnerabilitySeverity: >= 7.0, VulnerabilityCount: > 0 };
 
     private static string CreatePackageKey(PackageInfo package) =>
         $"{package.Source}|{package.Name}|{package.Version}";
