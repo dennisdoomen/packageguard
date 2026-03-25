@@ -80,14 +80,27 @@ internal class NuGetPackageSigningRiskEnricherSpecs
         package.HasNativeBinaryAssets.Should().BeTrue();
     }
 
-    private string CreatePackageArchive(string packageId, string version, bool signed, bool includeNativeBinary = false)
+    [TestMethod]
+    internal async Task Should_treat_net10_target_frameworks_as_modern()
+    {
+        var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
+        var package = new PackageInfo { Name = "Modern.Package", Version = "1.0.0", Source = "nuget" };
+
+        CreatePackageArchive("Modern.Package", "1.0.0", signed: false, targetFramework: "net10.0");
+        await enricher.EnrichAsync(package);
+
+        package.SupportedTargetFrameworks.Should().Contain("net10.0");
+        package.HasModernTargetFrameworkSupport.Should().BeTrue();
+    }
+
+    private string CreatePackageArchive(string packageId, string version, bool signed, bool includeNativeBinary = false, string targetFramework = "net9.0")
     {
         string folder = Path.Combine(testDirectory, packageId.ToLowerInvariant(), version.ToLowerInvariant());
         Directory.CreateDirectory(folder);
 
         string packagePath = Path.Combine(folder, $"{packageId.ToLowerInvariant()}.{version.ToLowerInvariant()}.nupkg");
         using ZipArchive archive = ZipFile.Open(packagePath, ZipArchiveMode.Create);
-        archive.CreateEntry("lib/net9.0/_._");
+        archive.CreateEntry($"lib/{targetFramework}/_._");
 
         if (includeNativeBinary)
         {

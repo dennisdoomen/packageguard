@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Diagnostics;
 using System.ComponentModel;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using NuGet.Configuration;
 using NuGet.Versioning;
@@ -181,13 +182,23 @@ internal sealed class NuGetPackageSigningRiskEnricher(ILogger logger, string? gl
     private static bool IsModernTargetFramework(string framework)
     {
         string normalized = framework.ToLowerInvariant();
-        return normalized.StartsWith("net8") ||
-               normalized.StartsWith("net9") ||
-               normalized.StartsWith("net7") ||
-               normalized.StartsWith("net6") ||
-               normalized.StartsWith("net5") ||
-               normalized.StartsWith("netstandard2.0") ||
-               normalized.StartsWith("netstandard2.1");
+        if (normalized.StartsWith("netstandard2.0") || normalized.StartsWith("netstandard2.1"))
+        {
+            return true;
+        }
+
+        Match match = Regex.Match(normalized, @"^net(?<major>\d+)\.(?<minor>\d+)");
+        if (!match.Success)
+        {
+            return false;
+        }
+
+        if (!int.TryParse(match.Groups["major"].Value, out int majorVersion))
+        {
+            return false;
+        }
+
+        return majorVersion >= 5;
     }
 
     private static bool IsNativeBinaryAsset(ZipArchiveEntry entry)
