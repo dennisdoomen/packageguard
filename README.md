@@ -244,20 +244,76 @@ The exit code indicates either 0 for success or 1 for failure.
 
 ### Risk Metrics
 
-PackageGuard also includes a comprehensive risk assessment system to help you evaluate the risk associated with each package in your project. Use the `--report-risk` flag to display risk metrics alongside policy violations:
+PackageGuard also includes a risk and quality assessment system to help you evaluate the health of every package in your project. Use the `--report-risk` flag to generate a compact console summary plus a detailed HTML report:
 
 `packageguard --report-risk <path-to-project>`
 
-This will analyze each package across three key risk dimensions:
+The console output shows every package with an overall score and three color zones:
 
-- **Legal Risk** (0-10): Based on license compatibility and compliance factors
-- **Security Risk** (0-10): Based on source code transparency and known vulnerabilities  
-- **Operational Risk** (0-10): Based on maintenance status and project activity
+- 🟢 Green (`0.0` - `29.9`) - low risk
+- 🟡 Yellow (`30.0` - `59.9`) - medium risk
+- 🔴 Red (`60.0` - `100.0`) - high risk
 
-The overall risk score is calculated as the average of these dimensions and scaled to 0-100 for easy interpretation. Results are color-coded:
-- 🟢 Green (0-19): Low risk
-- 🟡 Yellow (20-39): Low-medium risk  
-- 🟠 Orange (40-69): Medium risk
+The overall score is weighted instead of averaged:
+
+- **Legal Risk** (`20%`)
+- **Security Risk** (`45%`)
+- **Operational Risk** (`35%`)
+
+Each dimension is scored from `0` to `10`, and the weighted total is scaled to `0` to `100`.
+
+#### What gets measured?
+
+PackageGuard combines package metadata, repository evidence, workflow signals, dependency-graph data, signing checks and OSV vulnerability intelligence.
+
+**Legal risk**
+
+- Missing or unknown licenses
+- Restrictive or weak-copyleft licenses
+- Missing or invalid license URLs
+- Incompatibility with your configured allow/deny policy
+
+**Security risk**
+
+- Direct and transitive vulnerabilities from OSV
+- Maximum vulnerability severity
+- Availability of fixes and recent patch activity
+- Median time to fix known vulnerabilities
+- Package signing and trusted signature verification
+- Verified publisher and verified release signals
+- Verified commit coverage
+- Provenance / attestation and reproducible-build signals
+- Dependency-chain depth
+- Stale or potentially abandoned transitive dependencies
+- Unmaintained critical transitive dependencies
+- Deprecated package and dependency signals
+- Native or binary package assets that increase supply-chain exposure
+- Security-policy quality and coordinated disclosure guidance
+
+**Operational risk**
+
+- Release recency and release hygiene
+- Mean time between releases
+- Release notes coverage
+- Semantic versioning discipline of release tags
+- Major-release ratio as a proxy for compatibility churn
+- Prerelease ratio and rapid release-correction patterns
+- README, changelog and documentation freshness
+- CONTRIBUTING and SECURITY guidance
+- Contributor count, active maintainer count and contributor concentration
+- Median maintainer inactivity
+- External contribution rate and reviewer diversity
+- Open bugs, stale critical issues, bug closure rate and reopen rate
+- Maintainer response time, critical issue response time, response coverage and 7-day triage rate
+- Pull-request merge time
+- CI health, workflow failure rate, flaky patterns and required status checks
+- CI matrix breadth, test execution signals and coverage workflow signals
+- Dependency update automation signals
+- Popularity/download signals
+- Version freshness, release lag and target framework freshness
+- OpenSSF Scorecard, branch protection and repository ownership churn
+
+The generated HTML report includes the per-package rationale behind every score and a clickable summary that jumps directly to the package details section.
 - 🔴 Red (70-100): High risk
 
 Example output:

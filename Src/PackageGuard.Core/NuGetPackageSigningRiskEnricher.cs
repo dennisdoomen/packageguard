@@ -47,8 +47,10 @@ internal sealed class NuGetPackageSigningRiskEnricher(ILogger logger, string? gl
 
         package.IsPackageSigned = archiveRiskData.IsSigned;
         package.HasTrustedPackageSignature = archiveRiskData.HasTrustedSignature;
+        package.HasVerifiedPublisher ??= archiveRiskData.HasTrustedSignature;
         package.SupportedTargetFrameworks = archiveRiskData.SupportedTargetFrameworks;
         package.HasModernTargetFrameworkSupport = archiveRiskData.HasModernTargetFrameworkSupport;
+        package.HasNativeBinaryAssets = archiveRiskData.HasNativeBinaryAssets;
         return Task.CompletedTask;
     }
 
@@ -99,7 +101,8 @@ internal sealed class NuGetPackageSigningRiskEnricher(ILogger logger, string? gl
                 IsSigned = isSigned,
                 HasTrustedSignature = isSigned ? VerifyTrustedSignature(packagePath) : false,
                 SupportedTargetFrameworks = targetFrameworks,
-                HasModernTargetFrameworkSupport = targetFrameworks.Length == 0 ? null : targetFrameworks.Any(IsModernTargetFramework)
+                HasModernTargetFrameworkSupport = targetFrameworks.Length == 0 ? null : targetFrameworks.Any(IsModernTargetFramework),
+                HasNativeBinaryAssets = archive.Entries.Any(IsNativeBinaryAsset)
             };
         }
         catch (IOException ex)
@@ -184,6 +187,17 @@ internal sealed class NuGetPackageSigningRiskEnricher(ILogger logger, string? gl
                normalized.StartsWith("netstandard2.1");
     }
 
+    private static bool IsNativeBinaryAsset(ZipArchiveEntry entry)
+    {
+        string path = entry.FullName.Replace('\\', '/');
+        return path.Contains("/native/", StringComparison.OrdinalIgnoreCase) ||
+               path.EndsWith(".so", StringComparison.OrdinalIgnoreCase) ||
+               path.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase) ||
+               path.EndsWith(".a", StringComparison.OrdinalIgnoreCase) ||
+               path.EndsWith(".lib", StringComparison.OrdinalIgnoreCase) ||
+               path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
+    }
+
     private sealed class ArchiveRiskData
     {
         public bool? IsSigned { get; init; }
@@ -193,5 +207,7 @@ internal sealed class NuGetPackageSigningRiskEnricher(ILogger logger, string? gl
         public string[] SupportedTargetFrameworks { get; init; } = [];
 
         public bool? HasModernTargetFrameworkSupport { get; init; }
+
+        public bool HasNativeBinaryAssets { get; init; }
     }
 }

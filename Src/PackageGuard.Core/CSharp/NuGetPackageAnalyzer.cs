@@ -153,6 +153,16 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
                     .OrderByDescending(version => version)
                     .FirstOrDefault();
 
+                IPackageSearchMetadata? latestStableMetadata = latestStableVersion is null
+                    ? null
+                    : packageMetadata?.FirstOrDefault(p => p.Identity.Version == latestStableVersion);
+
+                double? versionUpdateLagDays = packageInfo.Published is DateTimeOffset currentPublished &&
+                                               latestStableMetadata?.Published is DateTimeOffset latestStablePublished &&
+                                               latestStablePublished > currentPublished
+                    ? (latestStablePublished - currentPublished).TotalDays
+                    : null;
+
                 return new PackageInfo
                 {
                     Name = packageInfo.Identity.Id,
@@ -160,9 +170,12 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
                     RepositoryUrl = packageInfo.ProjectUrl?.ToString(),
                     License = packageInfo.LicenseMetadata?.License,
                     LicenseUrl = packageInfo.LicenseUrl?.ToString(),
+                    IsDeprecated = LooksDeprecated(packageInfo),
                     PublishedAt = packageInfo.Published,
                     DownloadCount = packageInfo.DownloadCount,
                     LatestStableVersion = latestStableVersion?.ToNormalizedString(),
+                    LatestStablePublishedAt = latestStableMetadata?.Published,
+                    VersionUpdateLagDays = versionUpdateLagDays,
                     IsMajorVersionBehindLatest = latestStableVersion is not null &&
                                                  latestStableVersion.Major > packageInfo.Identity.Version.Major,
                     IsMinorVersionBehindLatest = latestStableVersion is not null &&
@@ -175,5 +188,13 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         }
 
         return null;
+    }
+
+    private static bool LooksDeprecated(IPackageSearchMetadata packageInfo)
+    {
+        string text = $"{packageInfo.Tags} {packageInfo.Summary} {packageInfo.Description}";
+        return text.Contains("deprecated", StringComparison.OrdinalIgnoreCase) ||
+               text.Contains("deprecation", StringComparison.OrdinalIgnoreCase) ||
+               text.Contains("obsolete", StringComparison.OrdinalIgnoreCase);
     }
 }

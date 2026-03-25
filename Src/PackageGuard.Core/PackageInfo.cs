@@ -85,6 +85,9 @@ public partial class PackageInfo
     public bool? HasTrustedPackageSignature { get; set; }
 
     [MemoryPackIgnore]
+    public bool? IsDeprecated { get; set; }
+
+    [MemoryPackIgnore]
     public DateTimeOffset? PublishedAt { get; set; }
 
     [MemoryPackIgnore]
@@ -106,10 +109,16 @@ public partial class PackageInfo
     public double? TopTwoContributorShare { get; set; }
 
     [MemoryPackIgnore]
+    public int? RecentMaintainerCount { get; set; }
+
+    [MemoryPackIgnore]
     public bool? HasReadme { get; set; }
 
     [MemoryPackIgnore]
     public bool? HasDefaultReadme { get; set; }
+
+    [MemoryPackIgnore]
+    public DateTimeOffset? ReadmeUpdatedAt { get; set; }
 
     [MemoryPackIgnore]
     public bool? HasContributingGuide { get; set; }
@@ -118,10 +127,19 @@ public partial class PackageInfo
     public bool? HasSecurityPolicy { get; set; }
 
     [MemoryPackIgnore]
+    public bool? HasDetailedSecurityPolicy { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasCoordinatedDisclosure { get; set; }
+
+    [MemoryPackIgnore]
     public bool? HasChangelog { get; set; }
 
     [MemoryPackIgnore]
     public bool? HasDefaultChangelog { get; set; }
+
+    [MemoryPackIgnore]
+    public DateTimeOffset? ChangelogUpdatedAt { get; set; }
 
     [MemoryPackIgnore]
     public int? OpenBugIssueCount { get; set; }
@@ -131,6 +149,21 @@ public partial class PackageInfo
 
     [MemoryPackIgnore]
     public double? MedianIssueResponseDays { get; set; }
+
+    [MemoryPackIgnore]
+    public double? MedianCriticalIssueResponseDays { get; set; }
+
+    [MemoryPackIgnore]
+    public double? IssueResponseCoverage { get; set; }
+
+    [MemoryPackIgnore]
+    public double? MedianOpenBugAgeDays { get; set; }
+
+    [MemoryPackIgnore]
+    public int? ClosedBugIssueCountLast90Days { get; set; }
+
+    [MemoryPackIgnore]
+    public int? ReopenedBugIssueCountLast90Days { get; set; }
 
     [MemoryPackIgnore]
     public double? MedianPullRequestMergeDays { get; set; }
@@ -145,7 +178,16 @@ public partial class PackageInfo
     public bool HasAvailableSecurityFix { get; set; }
 
     [MemoryPackIgnore]
+    public double? MedianVulnerabilityFixDays { get; set; }
+
+    [MemoryPackIgnore]
     public string? LatestStableVersion { get; set; }
+
+    [MemoryPackIgnore]
+    public DateTimeOffset? LatestStablePublishedAt { get; set; }
+
+    [MemoryPackIgnore]
+    public double? VersionUpdateLagDays { get; set; }
 
     [MemoryPackIgnore]
     public bool IsMajorVersionBehindLatest { get; set; }
@@ -160,6 +202,30 @@ public partial class PackageInfo
     public bool? HasRecentSuccessfulWorkflowRun { get; set; }
 
     [MemoryPackIgnore]
+    public double? WorkflowFailureRate { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasFlakyWorkflowPattern { get; set; }
+
+    [MemoryPackIgnore]
+    public int? RequiredStatusCheckCount { get; set; }
+
+    [MemoryPackIgnore]
+    public int? WorkflowPlatformCount { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasCoverageWorkflowSignal { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasReproducibleBuildSignal { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasDependencyUpdateAutomation { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasTestSignal { get; set; }
+
+    [MemoryPackIgnore]
     public double? OpenSsfScore { get; set; }
 
     [MemoryPackIgnore]
@@ -172,10 +238,67 @@ public partial class PackageInfo
     public bool? HasRepositoryOwnershipOrRenameChurn { get; set; }
 
     [MemoryPackIgnore]
+    public bool? HasVerifiedReleaseSignature { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasVerifiedPublisher { get; set; }
+
+    [MemoryPackIgnore]
+    public double? PrereleaseRatio { get; set; }
+
+    [MemoryPackIgnore]
+    public int? RapidReleaseCorrectionCount { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasReleaseNotes { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasSemVerReleaseTags { get; set; }
+
+    [MemoryPackIgnore]
+    public double? MeanReleaseIntervalDays { get; set; }
+
+    [MemoryPackIgnore]
+    public double? MajorReleaseRatio { get; set; }
+
+    [MemoryPackIgnore]
+    public double? ExternalContributionRate { get; set; }
+
+    [MemoryPackIgnore]
+    public int? UniqueReviewerCount { get; set; }
+
+    [MemoryPackIgnore]
+    public double? ReviewerDiversityRatio { get; set; }
+
+    [MemoryPackIgnore]
+    public double? VerifiedCommitRatio { get; set; }
+
+    [MemoryPackIgnore]
+    public double? MedianMaintainerActivityDays { get; set; }
+
+    [MemoryPackIgnore]
+    public double? IssueTriageWithinSevenDaysRate { get; set; }
+
+    [MemoryPackIgnore]
     public string[] SupportedTargetFrameworks { get; set; } = [];
 
     [MemoryPackIgnore]
     public bool? HasModernTargetFrameworkSupport { get; set; }
+
+    [MemoryPackIgnore]
+    public bool? HasNativeBinaryAssets { get; set; }
+
+    [MemoryPackIgnore]
+    public int? StaleTransitiveDependencyCount { get; set; }
+
+    [MemoryPackIgnore]
+    public int? AbandonedTransitiveDependencyCount { get; set; }
+
+    [MemoryPackIgnore]
+    public int? DeprecatedTransitiveDependencyCount { get; set; }
+
+    [MemoryPackIgnore]
+    public int? UnmaintainedCriticalTransitiveDependencyCount { get; set; }
 
     public bool SatisfiesRange(string name, string? versionRange = null)
     {

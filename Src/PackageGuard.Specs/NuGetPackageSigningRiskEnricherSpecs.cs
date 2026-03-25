@@ -66,7 +66,19 @@ public class NuGetPackageSigningRiskEnricherSpecs
         package.IsPackageSigned.Should().BeNull();
     }
 
-    private string CreatePackageArchive(string packageId, string version, bool signed)
+    [TestMethod]
+    public async Task Should_detect_native_binary_assets()
+    {
+        var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
+        var package = new PackageInfo { Name = "Native.Package", Version = "1.0.0", Source = "nuget" };
+
+        CreatePackageArchive("Native.Package", "1.0.0", signed: false, includeNativeBinary: true);
+        await enricher.EnrichAsync(package);
+
+        package.HasNativeBinaryAssets.Should().BeTrue();
+    }
+
+    private string CreatePackageArchive(string packageId, string version, bool signed, bool includeNativeBinary = false)
     {
         string folder = Path.Combine(testDirectory, packageId.ToLowerInvariant(), version.ToLowerInvariant());
         Directory.CreateDirectory(folder);
@@ -74,6 +86,11 @@ public class NuGetPackageSigningRiskEnricherSpecs
         string packagePath = Path.Combine(folder, $"{packageId.ToLowerInvariant()}.{version.ToLowerInvariant()}.nupkg");
         using ZipArchive archive = ZipFile.Open(packagePath, ZipArchiveMode.Create);
         archive.CreateEntry("lib/net9.0/_._");
+
+        if (includeNativeBinary)
+        {
+            archive.CreateEntry("runtimes/win-x64/native/native.dll");
+        }
 
         if (signed)
         {

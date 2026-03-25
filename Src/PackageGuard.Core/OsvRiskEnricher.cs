@@ -51,6 +51,7 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         double maxSeverity = 0;
         bool hasPatchedRecent = false;
         bool hasAvailableFix = false;
+        List<double> fixDays = [];
 
         do
         {
@@ -80,6 +81,12 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
                     {
                         hasAvailableFix = true;
                     }
+
+                    double? daysToFix = TryGetDaysToFix(vulnerability);
+                    if (daysToFix is double value)
+                    {
+                        fixDays.Add(value);
+                    }
                 }
             }
 
@@ -94,7 +101,8 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
             VulnerabilityCount = vulnerabilityCount,
             MaxSeverity = maxSeverity,
             HasPatchedVulnerabilityInLast90Days = hasPatchedRecent,
-            HasAvailableSecurityFix = hasAvailableFix
+            HasAvailableSecurityFix = hasAvailableFix,
+            MedianVulnerabilityFixDays = ComputeMedian(fixDays)
         };
     }
 
@@ -120,6 +128,7 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         package.MaxVulnerabilitySeverity = result.MaxSeverity;
         package.HasPatchedVulnerabilityInLast90Days = result.HasPatchedVulnerabilityInLast90Days;
         package.HasAvailableSecurityFix = result.HasAvailableSecurityFix;
+        package.MedianVulnerabilityFixDays = result.MedianVulnerabilityFixDays;
     }
 
     private static bool HasFix(JsonElement vulnerability)
@@ -275,6 +284,45 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         return parts.Select(part => double.TryParse(part, out double value) ? value : 0).FirstOrDefault(value => value > 0);
     }
 
+    private static double? TryGetDaysToFix(JsonElement vulnerability)
+    {
+        if (!HasFix(vulnerability))
+        {
+            return null;
+        }
+
+        DateTimeOffset? publishedAt = TryReadDate(vulnerability, "published");
+        DateTimeOffset? modifiedAt = TryReadDate(vulnerability, "modified");
+        if (publishedAt is null || modifiedAt is null || modifiedAt < publishedAt)
+        {
+            return null;
+        }
+
+        return (modifiedAt.Value - publishedAt.Value).TotalDays;
+    }
+
+    private static DateTimeOffset? TryReadDate(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out JsonElement property) &&
+               DateTimeOffset.TryParse(property.GetString(), out DateTimeOffset value)
+            ? value
+            : null;
+    }
+
+    private static double? ComputeMedian(List<double> values)
+    {
+        if (values.Count == 0)
+        {
+            return null;
+        }
+
+        values.Sort();
+        int middle = values.Count / 2;
+        return values.Count % 2 == 0
+            ? (values[middle - 1] + values[middle]) / 2.0
+            : values[middle];
+    }
+
     private sealed class OsvPackageRiskResult
     {
         public int VulnerabilityCount { get; init; }
@@ -284,5 +332,7 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         public bool HasPatchedVulnerabilityInLast90Days { get; init; }
 
         public bool HasAvailableSecurityFix { get; init; }
+
+        public double? MedianVulnerabilityFixDays { get; init; }
     }
 }
