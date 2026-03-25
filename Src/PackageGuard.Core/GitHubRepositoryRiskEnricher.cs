@@ -95,7 +95,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
         lock (CacheLock)
         {
-            if (Cache.TryGetValue(repositoryApiRoot, out GitHubRepositoryRiskData? cached) && cached is not null)
+            if (Cache.TryGetValue(repositoryApiRoot, out GitHubRepositoryRiskData? cached) && cached != null)
             {
                 return cached;
             }
@@ -113,7 +113,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         {
             InFlightLoads.Remove(repositoryApiRoot);
 
-            if (loaded is not null)
+            if (loaded != null)
             {
                 Cache[repositoryApiRoot] = loaded;
             }
@@ -284,7 +284,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         }
 
         return contents.RootElement.EnumerateArray()
-            .Select(item => item.TryGetProperty("name", out JsonElement name) ? name.GetString() : null)
+            .Select(item => TryReadString(item, "name"))
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Select(name => name!)
             .ToArray();
@@ -313,7 +313,15 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 IsDefault = LooksLikeBoilerplateReadme(content)
             };
         }
-        catch
+        catch (HttpRequestException)
+        {
+            return new GitHubReadmeData { Exists = false };
+        }
+        catch (FormatException)
+        {
+            return new GitHubReadmeData { Exists = false };
+        }
+        catch (DecoderFallbackException)
         {
             return new GitHubReadmeData { Exists = false };
         }
@@ -450,7 +458,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 .Where(comment => comment.TryGetProperty("author_association", out JsonElement associationElement) &&
                                   IsMaintainerAssociation(associationElement.GetString()))
                 .Select(comment => TryReadDate(comment, "created_at"))
-                .Where(date => date is not null)
+                .Where(date => date.HasValue)
                 .OrderBy(date => date)
                 .FirstOrDefault();
 
@@ -483,9 +491,9 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
             {
                 DateTimeOffset? createdAt = TryReadDate(pr, "created_at");
                 DateTimeOffset? mergedAt = TryReadDate(pr, "merged_at");
-                return createdAt is not null && mergedAt is not null ? (mergedAt.Value - createdAt.Value).TotalDays : (double?)null;
+                return createdAt.HasValue && mergedAt.HasValue ? (mergedAt.Value - createdAt.Value).TotalDays : (double?)null;
             })
-            .Where(days => days is not null)
+            .Where(days => days.HasValue)
             .Select(days => days!.Value)
             .ToList();
 
@@ -512,7 +520,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
             DateTimeOffset? lastReleaseAt = releases
                 .Select(release => TryReadDate(release, "published_at") ?? TryReadDate(release, "created_at"))
-                .Where(date => date is not null)
+                .Where(date => date.HasValue)
                 .OrderByDescending(date => date)
                 .FirstOrDefault();
 
@@ -523,7 +531,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
             List<DateTimeOffset> publishedDates = releases
                 .Select(release => TryReadDate(release, "published_at") ?? TryReadDate(release, "created_at"))
-                .Where(date => date is not null)
+                .Where(date => date.HasValue)
                 .Select(date => date!.Value)
                 .OrderBy(date => date)
                 .ToList();
@@ -557,7 +565,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
             bool? hasVerifiedReleaseSignature = releases
                 .Select(TryReadVerifiedReleaseSignature)
-                .FirstOrDefault(value => value is not null);
+                .FirstOrDefault();
 
             return new GitHubReleaseData
             {
@@ -571,7 +579,11 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 HasVerifiedReleaseSignature = hasVerifiedReleaseSignature
             };
         }
-        catch
+        catch (HttpRequestException)
+        {
+            return new GitHubReleaseData();
+        }
+        catch (JsonException)
         {
             return new GitHubReleaseData();
         }
@@ -855,7 +867,8 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                         : 0,
                     ClosedAt = TryReadDate(issue, "closed_at")
                 })
-                .Where(issue => issue.ClosedAt is not null && issue.Number > 0 && issue.ClosedAt >= DateTimeOffset.UtcNow.AddDays(-90))
+                .Where(issue => issue is { Number: > 0, ClosedAt: not null } &&
+                                issue.ClosedAt >= DateTimeOffset.UtcNow.AddDays(-90))
                 .ToArray();
         }
         catch
@@ -935,7 +948,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
             }
 
             string[] paths = workflowsDoc.RootElement.EnumerateArray()
-                .Select(item => item.TryGetProperty("path", out JsonElement pathElement) ? pathElement.GetString() : null)
+                .Select(item => TryReadString(item, "path"))
                 .Where(path => !string.IsNullOrWhiteSpace(path))
                 .Select(path => path!)
                 .ToArray();
@@ -1276,6 +1289,16 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
             DateTimeOffset.TryParse(property.GetString(), out DateTimeOffset parsed))
         {
             return parsed;
+        }
+
+        return null;
+    }
+
+    private static string? TryReadString(JsonElement element, string propertyName)
+    {
+        if (element.TryGetProperty(propertyName, out JsonElement property) && property.ValueKind == JsonValueKind.String)
+        {
+            return property.GetString();
         }
 
         return null;

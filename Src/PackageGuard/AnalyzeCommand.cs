@@ -37,7 +37,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         }
 
         PolicyViolation[] violations;
-        PackageInfo[] packages = Array.Empty<PackageInfo>();
+        PackageInfo[] packages = [];
         AnalyzerSettings analyzerSettings = settings.ToCoreSettings();
 
         if (settings.ReportRisk)

@@ -82,7 +82,7 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
                     package.DependencyDepth = Math.Max(package.DependencyDepth, depth);
                 }
 
-                if (dependencyKeys.TryGetValue(key, out string[]? dependencies) && dependencies is not null)
+                if (dependencyKeys.TryGetValue(key, out string[]? dependencies))
                 {
                     package.DependencyKeys = dependencies;
                 }
@@ -207,8 +207,8 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
             string[] dependencyKeys = library.Dependencies
                 .Select(dependency => target.Libraries.FirstOrDefault(l =>
                     string.Equals(l.Name, dependency.Id, StringComparison.OrdinalIgnoreCase)))
-                .Where(library => library is not null)
-                .Select(library => CreatePackageKey(library!.Name!, library.Version!.ToNormalizedString()))
+                .Where(dependencyLibrary => dependencyLibrary is not null)
+                .Select(dependencyLibrary => CreatePackageKey(dependencyLibrary!.Name!, dependencyLibrary.Version!.ToNormalizedString()))
                 .ToArray();
 
             if (library.Version is not null && !string.IsNullOrWhiteSpace(library.Name))

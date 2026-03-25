@@ -10,7 +10,7 @@ using PackageGuard.Core;
 namespace PackageGuard.Specs;
 
 [TestClass]
-public class NuGetPackageSigningRiskEnricherSpecs
+internal class NuGetPackageSigningRiskEnricherSpecs
 {
     private string testDirectory = null!;
 
@@ -31,7 +31,7 @@ public class NuGetPackageSigningRiskEnricherSpecs
     }
 
     [TestMethod]
-    public async Task Should_mark_package_as_signed_when_signature_file_exists()
+    internal async Task Should_mark_package_as_signed_when_signature_file_exists()
     {
         string packagePath = CreatePackageArchive("Test.Package", "1.0.0", signed: true);
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
@@ -44,7 +44,7 @@ public class NuGetPackageSigningRiskEnricherSpecs
     }
 
     [TestMethod]
-    public async Task Should_mark_package_as_unsigned_when_signature_file_is_missing()
+    internal async Task Should_mark_package_as_unsigned_when_signature_file_is_missing()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
         var package = new PackageInfo { Name = "Test.Package", Version = "1.0.0", Source = "nuget" };
@@ -56,7 +56,7 @@ public class NuGetPackageSigningRiskEnricherSpecs
     }
 
     [TestMethod]
-    public async Task Should_leave_signing_status_unknown_when_package_archive_is_missing()
+    internal async Task Should_leave_signing_status_unknown_when_package_archive_is_missing()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
         var package = new PackageInfo { Name = "Missing.Package", Version = "1.0.0", Source = "nuget" };
@@ -67,7 +67,7 @@ public class NuGetPackageSigningRiskEnricherSpecs
     }
 
     [TestMethod]
-    public async Task Should_detect_native_binary_assets()
+    internal async Task Should_detect_native_binary_assets()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
         var package = new PackageInfo { Name = "Native.Package", Version = "1.0.0", Source = "nuget" };

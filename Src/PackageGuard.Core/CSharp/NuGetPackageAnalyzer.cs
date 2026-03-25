@@ -18,7 +18,7 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 {
     private readonly Dictionary<string, SourceRepository[]> nuGetSourcesByProject = new();
     private static bool credentialProvidersConfigured = false;
-    private static readonly object CredentialProviderLock = new();
+    private static readonly Lock CredentialProviderLock = new();
 
     /// <summary>
     /// One or more NuGet feeds that should be completely ignored during the analysis.
@@ -75,9 +75,12 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 
             var settings = Settings.LoadDefaultSettings(projectDirectory);
             var sourceProvider = new PackageSourceProvider(settings);
+            PackageSource[] configuredSources = sourceProvider.LoadPackageSources()
+                .Where(source => source.IsEnabled)
+                .ToArray();
 
             var packageSources = new List<PackageSource>();
-            foreach (PackageSource source in sourceProvider.LoadPackageSources().Where(s => s.IsEnabled))
+            foreach (PackageSource source in configuredSources)
             {
                 if (IgnoredFeeds.Any(pattern => source.Name.MatchesWildcard(pattern) ||
                                                 source.Source.MatchesWildcard(pattern)))
@@ -134,20 +137,20 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         {
             var metadataResource = await nuGetSource.GetResourceAsync<PackageMetadataResource>();
 
-            var packageMetadata = await metadataResource.GetMetadataAsync(
+            IPackageSearchMetadata[] packageMetadata = (await metadataResource.GetMetadataAsync(
                 packageName,
                 includePrerelease: true,
                 includeUnlisted: true,
                 sourceCacheContext: new SourceCacheContext(), NullLogger.Instance,
-                token: CancellationToken.None);
+                token: CancellationToken.None))?.ToArray() ?? [];
 
             IPackageSearchMetadata? packageInfo =
-                packageMetadata?.FirstOrDefault(p =>
+                packageMetadata.FirstOrDefault(p =>
                     p.Identity.Version.ToNormalizedString() == packageVersion.ToNormalizedString());
 
             if (packageInfo != null)
             {
-                NuGetVersion? latestStableVersion = packageMetadata?
+                NuGetVersion? latestStableVersion = packageMetadata
                     .Where(p => !p.Identity.Version.IsPrerelease)
                     .Select(p => p.Identity.Version)
                     .OrderByDescending(version => version)
@@ -155,7 +158,7 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 
                 IPackageSearchMetadata? latestStableMetadata = latestStableVersion is null
                     ? null
-                    : packageMetadata?.FirstOrDefault(p => p.Identity.Version == latestStableVersion);
+                    : packageMetadata.FirstOrDefault(p => p.Identity.Version == latestStableVersion);
 
                 double? versionUpdateLagDays = packageInfo.Published is DateTimeOffset currentPublished &&
                                                latestStableMetadata?.Published is DateTimeOffset latestStablePublished &&

@@ -188,29 +188,29 @@ internal static class RiskHtmlReportWriter
     {
         yield return ("License", package.License ?? "Unknown");
 
-        if (package.HasValidLicenseUrl is not null)
+        if (package.HasValidLicenseUrl is bool hasValidLicenseUrl)
         {
-            yield return ("License URL", package.HasValidLicenseUrl == true ? "Valid" : "Missing or invalid");
+            yield return ("License URL", hasValidLicenseUrl ? "Valid" : "Missing or invalid");
         }
 
-        if (package.IsPackageSigned is not null)
+        if (package.IsPackageSigned is bool isPackageSigned)
         {
-            yield return ("Package signature", package.IsPackageSigned == true ? "Signed" : "Unsigned");
+            yield return ("Package signature", isPackageSigned ? "Signed" : "Unsigned");
         }
 
-        if (package.HasTrustedPackageSignature != null)
+        if (package.HasTrustedPackageSignature is bool hasTrustedPackageSignature)
         {
-            yield return ("Signature trust", package.HasTrustedPackageSignature == true ? "Verified" : "Unverified");
+            yield return ("Signature trust", hasTrustedPackageSignature ? "Verified" : "Unverified");
         }
 
-        if (package.HasVerifiedPublisher != null)
+        if (package.HasVerifiedPublisher is bool hasVerifiedPublisher)
         {
-            yield return ("Verified publisher", package.HasVerifiedPublisher == true ? "Detected" : "Not detected");
+            yield return ("Verified publisher", hasVerifiedPublisher ? "Detected" : "Not detected");
         }
 
-        if (package.HasVerifiedReleaseSignature != null)
+        if (package.HasVerifiedReleaseSignature is bool hasVerifiedReleaseSignature)
         {
-            yield return ("Verified release signature", package.HasVerifiedReleaseSignature == true ? "Detected" : "Not detected");
+            yield return ("Verified release signature", hasVerifiedReleaseSignature ? "Detected" : "Not detected");
         }
 
         if (package.VerifiedCommitRatio is double verifiedCommitRatio)
@@ -238,14 +238,14 @@ internal static class RiskHtmlReportWriter
             yield return ("Transitive vulnerabilities", package.TransitiveVulnerabilityCount.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.StaleTransitiveDependencyCount != null)
+        if (package.StaleTransitiveDependencyCount is int staleTransitiveDependencyCount)
         {
-            yield return ("Stale transitive dependencies", package.StaleTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture));
+            yield return ("Stale transitive dependencies", staleTransitiveDependencyCount.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.AbandonedTransitiveDependencyCount != null)
+        if (package.AbandonedTransitiveDependencyCount is int abandonedTransitiveDependencyCount)
         {
-            yield return ("Potentially abandoned transitive dependencies", package.AbandonedTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture));
+            yield return ("Potentially abandoned transitive dependencies", abandonedTransitiveDependencyCount.ToString(CultureInfo.InvariantCulture));
         }
 
         if (package.DeprecatedTransitiveDependencyCount is int deprecatedDependencyCount)
@@ -258,14 +258,14 @@ internal static class RiskHtmlReportWriter
             yield return ("Unmaintained critical transitives", criticalDependencyCount.ToString(CultureInfo.InvariantCulture));
         }
 
-        if (package.HasNativeBinaryAssets != null)
+        if (package.HasNativeBinaryAssets is bool hasNativeBinaryAssets)
         {
-            yield return ("Native/binary assets", package.HasNativeBinaryAssets == true ? "Detected" : "Not detected");
+            yield return ("Native/binary assets", hasNativeBinaryAssets ? "Detected" : "Not detected");
         }
 
-        if (package.IsDeprecated != null)
+        if (package.IsDeprecated is bool isDeprecated)
         {
-            yield return ("Deprecated package version", package.IsDeprecated == true ? "Yes" : "No");
+            yield return ("Deprecated package version", isDeprecated ? "Yes" : "No");
         }
 
         if (!string.IsNullOrWhiteSpace(package.LatestStableVersion))

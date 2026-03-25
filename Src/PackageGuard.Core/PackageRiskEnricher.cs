@@ -2,21 +2,16 @@ using Microsoft.Extensions.Logging;
 
 namespace PackageGuard.Core;
 
-internal sealed class PackageRiskEnricher
+internal sealed class PackageRiskEnricher(ILogger logger, string? gitHubApiKey)
 {
     private const int MaxConcurrentPackages = 6;
-    private readonly IEnrichPackageRisk[] enrichers;
-
-    public PackageRiskEnricher(ILogger logger, string? gitHubApiKey)
-    {
-        enrichers =
-        [
-            new LicenseUrlRiskEnricher(logger),
-            new NuGetPackageSigningRiskEnricher(logger),
-            new OsvRiskEnricher(),
-            new GitHubRepositoryRiskEnricher(logger, gitHubApiKey)
-        ];
-    }
+    private readonly IEnrichPackageRisk[] enrichers =
+    [
+        new LicenseUrlRiskEnricher(logger),
+        new NuGetPackageSigningRiskEnricher(logger),
+        new OsvRiskEnricher(),
+        new GitHubRepositoryRiskEnricher(logger, gitHubApiKey)
+    ];
 
     public async Task EnrichAsync(IEnumerable<PackageInfo> packages)
     {

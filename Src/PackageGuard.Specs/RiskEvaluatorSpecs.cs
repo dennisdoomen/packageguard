@@ -7,10 +7,10 @@ using PackageGuard.Core;
 namespace PackageGuard.Specs;
 
 [TestClass]
-public class RiskEvaluatorSpecs
+internal class RiskEvaluatorSpecs
 {
     [TestMethod]
-    public void Should_evaluate_legal_risk_for_unknown_license()
+    internal void Should_evaluate_legal_risk_for_unknown_license()
     {
         // Arrange
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
@@ -30,7 +30,7 @@ public class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    public void Should_evaluate_legal_risk_for_permissive_license()
+    internal void Should_evaluate_legal_risk_for_permissive_license()
     {
         // Arrange
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
@@ -51,7 +51,7 @@ public class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    public void Should_evaluate_legal_risk_for_restrictive_license()
+    internal void Should_evaluate_legal_risk_for_restrictive_license()
     {
         // Arrange
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
@@ -71,7 +71,7 @@ public class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    public void Should_evaluate_security_risk_based_on_repository_url()
+    internal void Should_evaluate_security_risk_based_on_repository_url()
     {
         // Arrange
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
@@ -99,7 +99,7 @@ public class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    public void Should_calculate_overall_risk_score()
+    internal void Should_calculate_overall_risk_score()
     {
         // Arrange
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
@@ -123,7 +123,7 @@ public class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    public void Should_add_legal_risk_for_invalid_license_url_and_policy_incompatibility()
+    internal void Should_add_legal_risk_for_invalid_license_url_and_policy_incompatibility()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -146,7 +146,7 @@ public class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    public void Should_add_security_risk_for_vulnerabilities_and_dependency_depth()
+    internal void Should_add_security_risk_for_vulnerabilities_and_dependency_depth()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -174,7 +174,7 @@ public class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    public void Should_add_operational_risk_for_poor_repository_hygiene_and_low_popularity()
+    internal void Should_add_operational_risk_for_poor_repository_hygiene_and_low_popularity()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -209,7 +209,7 @@ public class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    public void Should_add_new_security_and_operational_signals()
+    internal void Should_add_new_security_and_operational_signals()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -274,7 +274,7 @@ public class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    public void Should_add_operational_risk_for_issue_closure_and_workflow_quality_signals()
+    internal void Should_add_operational_risk_for_issue_closure_and_workflow_quality_signals()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -316,7 +316,7 @@ public class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    public void Should_add_easy_and_medium_quality_metric_signals()
+    internal void Should_add_easy_and_medium_quality_metric_signals()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo

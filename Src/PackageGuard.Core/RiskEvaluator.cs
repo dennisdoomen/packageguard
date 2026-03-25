@@ -75,22 +75,22 @@ public class RiskEvaluator(ILogger logger)
             rationale.Add(CreateRationale($"Unclassified license ({package.License})", 0.0));
         }
 
-        if (package.HasValidLicenseUrl == false || string.IsNullOrEmpty(package.LicenseUrl))
+        if (package.HasValidLicenseUrl is false || string.IsNullOrEmpty(package.LicenseUrl))
         {
             risk += 1.0;
             rationale.Add(CreateRationale("Missing or invalid license URL", 1.0));
         }
-        else if (package.HasValidLicenseUrl == true)
+        else if (package.HasValidLicenseUrl is true)
         {
             rationale.Add(CreateRationale("Valid license URL", 0.0));
         }
 
-        if (package.IsLicensePolicyCompatible == false)
+        if (package.IsLicensePolicyCompatible is false)
         {
             risk += 3.0;
             rationale.Add(CreateRationale("License is incompatible with configured policy", 3.0));
         }
-        else if (package.IsLicensePolicyCompatible == true)
+        else if (package.IsLicensePolicyCompatible is true)
         {
             rationale.Add(CreateRationale("License matches configured policy", 0.0));
         }
@@ -218,23 +218,24 @@ public class RiskEvaluator(ILogger logger)
                 abandonedRisk));
         }
 
-        if (package.UnmaintainedCriticalTransitiveDependencyCount is > 0)
+        if (package.UnmaintainedCriticalTransitiveDependencyCount is int unmaintainedCriticalTransitiveDependencyCount &&
+            unmaintainedCriticalTransitiveDependencyCount > 0)
         {
-            double criticalTransitiveRisk = Math.Min(1.0, package.UnmaintainedCriticalTransitiveDependencyCount.Value * 0.5);
+            double criticalTransitiveRisk = Math.Min(1.0, unmaintainedCriticalTransitiveDependencyCount * 0.5);
             risk += criticalTransitiveRisk;
             rationale.Add(CreateRationale(
-                $"Unmaintained critical transitive dependencies were detected ({package.UnmaintainedCriticalTransitiveDependencyCount})",
+                $"Unmaintained critical transitive dependencies were detected ({unmaintainedCriticalTransitiveDependencyCount})",
                 criticalTransitiveRisk));
         }
 
-        if (package.IsPackageSigned == false)
+        if (package.IsPackageSigned is false)
         {
             risk += 0.5;
             rationale.Add(CreateRationale("Package signature is missing or invalid", 0.5));
         }
-        else if (package.IsPackageSigned == true)
+        else if (package.IsPackageSigned is true)
         {
-            if (package.HasTrustedPackageSignature == false)
+            if (package.HasTrustedPackageSignature is false)
             {
                 risk += 1.0;
                 rationale.Add(CreateRationale("Package is signed but trust verification failed", 1.0));
@@ -245,17 +246,17 @@ public class RiskEvaluator(ILogger logger)
             }
         }
 
-        if (package.HasVerifiedPublisher == false)
+        if (package.HasVerifiedPublisher is false)
         {
             risk += 0.5;
             rationale.Add(CreateRationale("Verified publisher signal was not detected", 0.5));
         }
-        else if (package.HasVerifiedPublisher == true)
+        else if (package.HasVerifiedPublisher is true)
         {
             rationale.Add(CreateRationale("Verified publisher signal was detected", 0.0));
         }
 
-        if (package.HasNativeBinaryAssets == true)
+        if (package.HasNativeBinaryAssets is true)
         {
             risk += 0.5;
             rationale.Add(CreateRationale("Package contains native or binary assets that may increase supply-chain exposure", 0.5));
@@ -273,7 +274,7 @@ public class RiskEvaluator(ILogger logger)
             rationale.Add(CreateRationale($"Verified commit coverage looks healthy ({FormatPercentage(verifiedCommitRatio)})", 0.0));
         }
 
-        if (package.IsDeprecated == true)
+        if (package.IsDeprecated is true)
         {
             risk += 0.75;
             rationale.Add(CreateRationale("The package version is marked as deprecated", 0.75));
@@ -299,40 +300,40 @@ public class RiskEvaluator(ILogger logger)
             rationale.Add(CreateRationale("Last published release is older than 24 months", 1.0));
         }
 
-        if (package.HasDetailedSecurityPolicy == false)
+        if (package.HasDetailedSecurityPolicy is false)
         {
             risk += 0.25;
             rationale.Add(CreateRationale("SECURITY policy lacks detailed reporting guidance", 0.25));
         }
 
-        if (package.HasCoordinatedDisclosure == false)
+        if (package.HasCoordinatedDisclosure is false)
         {
             risk += 0.25;
             rationale.Add(CreateRationale("No coordinated disclosure signal was detected", 0.25));
         }
 
-        if (package.HasProvenanceAttestation == false)
+        if (package.HasProvenanceAttestation is false)
         {
             risk += 0.5;
             rationale.Add(CreateRationale("No provenance or attestation workflow signal was detected", 0.5));
         }
-        else if (package.HasProvenanceAttestation == true)
+        else if (package.HasProvenanceAttestation is true)
         {
             rationale.Add(CreateRationale("Provenance or attestation workflow signal was detected", 0.0));
         }
 
-        if (package.HasReproducibleBuildSignal == false)
+        if (package.HasReproducibleBuildSignal is false)
         {
             risk += 0.25;
             rationale.Add(CreateRationale("No reproducible-build or deterministic-build signal was detected", 0.25));
         }
 
-        if (package.HasVerifiedReleaseSignature == false)
+        if (package.HasVerifiedReleaseSignature is false)
         {
             risk += 0.25;
             rationale.Add(CreateRationale("Verified release signature signal was not detected", 0.25));
         }
-        else if (package.HasVerifiedReleaseSignature == true)
+        else if (package.HasVerifiedReleaseSignature is true)
         {
             rationale.Add(CreateRationale("Verified release signature signal was detected", 0.0));
         }
@@ -397,18 +398,18 @@ public class RiskEvaluator(ILogger logger)
                 0.5));
         }
 
-        if (package.HasReleaseNotes == false && package.HasChangelog == true)
+        if (package.HasReleaseNotes is false && package.HasChangelog is true)
         {
             risk += 0.25;
             rationale.Add(CreateRationale("GitHub release notes were not detected for recent releases", 0.25));
         }
 
-        if (package.HasSemVerReleaseTags == false)
+        if (package.HasSemVerReleaseTags is false)
         {
             risk += 0.5;
             rationale.Add(CreateRationale("Recent release tags do not consistently follow semantic versioning", 0.5));
         }
-        else if (package.HasSemVerReleaseTags == true)
+        else if (package.HasSemVerReleaseTags is true)
         {
             rationale.Add(CreateRationale("Recent release tags follow semantic versioning", 0.0));
         }
@@ -421,7 +422,7 @@ public class RiskEvaluator(ILogger logger)
                 0.5));
         }
 
-        if (package.HasReadme != true || package.HasDefaultReadme == true)
+        if (package.HasReadme is not true || package.HasDefaultReadme is true)
         {
             risk += 0.5;
             rationale.Add(CreateRationale("README is missing or appears to be boilerplate", 0.5));
@@ -458,13 +459,13 @@ public class RiskEvaluator(ILogger logger)
             rationale.Add(CreateRationale("SECURITY policy is present", 0.0));
         }
 
-        if (package.HasDetailedSecurityPolicy == false)
+        if (package.HasDetailedSecurityPolicy is false)
         {
             risk += 0.25;
             rationale.Add(CreateRationale("SECURITY policy lacks concrete response instructions", 0.25));
         }
 
-        if (package.HasChangelog != true || package.HasDefaultChangelog == true)
+        if (package.HasChangelog is not true || package.HasDefaultChangelog is true)
         {
             risk += 0.5;
             rationale.Add(CreateRationale("CHANGELOG or release notes are missing or low quality", 0.5));
@@ -648,18 +649,18 @@ public class RiskEvaluator(ILogger logger)
                 0.75));
         }
 
-        if (package.HasFlakyWorkflowPattern == true)
+        if (package.HasFlakyWorkflowPattern is true)
         {
             risk += 0.5;
             rationale.Add(CreateRationale("CI workflow history shows a potentially flaky failure pattern", 0.5));
         }
 
-        if (package.HasRecentSuccessfulWorkflowRun == false)
+        if (package.HasRecentSuccessfulWorkflowRun is false)
         {
             risk += 1.5;
             rationale.Add(CreateRationale("No recent successful CI workflow run detected", 1.5));
         }
-        else if (package.HasRecentSuccessfulWorkflowRun == true)
+        else if (package.HasRecentSuccessfulWorkflowRun is true)
         {
             rationale.Add(CreateRationale("Recent successful CI workflow run detected", 0.0));
         }
@@ -680,19 +681,19 @@ public class RiskEvaluator(ILogger logger)
             rationale.Add(CreateRationale("CI workflow matrix breadth looks limited", 0.25));
         }
 
-        if (package.HasCoverageWorkflowSignal == false)
+        if (package.HasCoverageWorkflowSignal is false)
         {
             risk += 0.25;
             rationale.Add(CreateRationale("No coverage workflow signal was detected", 0.25));
         }
 
-        if (package.HasTestSignal == false)
+        if (package.HasTestSignal is false)
         {
             risk += 0.5;
             rationale.Add(CreateRationale("No explicit test execution signal was detected", 0.5));
         }
 
-        if (package.HasDependencyUpdateAutomation == false)
+        if (package.HasDependencyUpdateAutomation is false)
         {
             risk += 0.25;
             rationale.Add(CreateRationale("No dependency update automation signal was detected", 0.25));
@@ -749,7 +750,7 @@ public class RiskEvaluator(ILogger logger)
                 0.5));
         }
 
-        if (package.IsDeprecated == true)
+        if (package.IsDeprecated is true)
         {
             risk += 1.0;
             rationale.Add(CreateRationale("The package version is marked as deprecated", 1.0));
@@ -766,14 +767,14 @@ public class RiskEvaluator(ILogger logger)
             rationale.Add(CreateRationale($"Current package version is behind latest stable ({package.LatestStableVersion})", 0.5));
         }
 
-        if (package.HasModernTargetFrameworkSupport == false && package.SupportedTargetFrameworks.Length > 0)
+        if (package.HasModernTargetFrameworkSupport is false && package.SupportedTargetFrameworks.Length > 0)
         {
             risk += 0.5;
             rationale.Add(CreateRationale(
                 $"Target frameworks look dated ({string.Join(", ", package.SupportedTargetFrameworks)})",
                 0.5));
         }
-        else if (package.HasModernTargetFrameworkSupport == true)
+        else if (package.HasModernTargetFrameworkSupport is true)
         {
             rationale.Add(CreateRationale("Target frameworks include modern runtimes", 0.0));
         }
@@ -796,35 +797,35 @@ public class RiskEvaluator(ILogger logger)
             }
         }
 
-        if (package.HasBranchProtection == false)
+        if (package.HasBranchProtection is false)
         {
             risk += 0.5;
             rationale.Add(CreateRationale("Default branch protection was not detected", 0.5));
         }
-        else if (package.HasBranchProtection == true)
+        else if (package.HasBranchProtection is true)
         {
             rationale.Add(CreateRationale("Default branch protection was detected", 0.0));
         }
 
-        if (package.HasRepositoryOwnershipOrRenameChurn == true)
+        if (package.HasRepositoryOwnershipOrRenameChurn is true)
         {
             risk += 0.5;
             rationale.Add(CreateRationale("Repository ownership or rename churn was detected", 0.5));
         }
 
-        if (package.HasVerifiedReleaseSignature == false)
+        if (package.HasVerifiedReleaseSignature is false)
         {
             risk += 0.25;
             rationale.Add(CreateRationale("Verified release signature signal was not detected", 0.25));
         }
 
-        if (package.HasVerifiedPublisher == false)
+        if (package.HasVerifiedPublisher is false)
         {
             risk += 0.25;
             rationale.Add(CreateRationale("Verified publisher signal was not detected", 0.25));
         }
 
-        if (package.HasReproducibleBuildSignal == false)
+        if (package.HasReproducibleBuildSignal is false)
         {
             risk += 0.25;
             rationale.Add(CreateRationale("No reproducible-build signal was detected", 0.25));

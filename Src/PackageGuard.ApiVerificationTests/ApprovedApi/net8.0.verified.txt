@@ -10,8 +10,8 @@ namespace PackageGuard.Core
     public class AnalysisResult
     {
         public AnalysisResult() { }
-        public PackageGuard.Core.PackageInfo[] Packages { get; set; }
-        public PackageGuard.Core.PolicyViolation[] Violations { get; set; }
+        public PackageGuard.Core.PackageInfo[] Packages { get; init; }
+        public PackageGuard.Core.PolicyViolation[] Violations { get; init; }
     }
     public class AnalyzerSettings
     {

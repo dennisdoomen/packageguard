@@ -1,7 +1,5 @@
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
-
 namespace PackageGuard.Core;
 
 internal sealed class OsvRiskEnricher : IEnrichPackageRisk
@@ -35,16 +33,11 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
 
     private async Task<OsvPackageRiskResult> QueryAsync(PackageInfo package)
     {
-        string? ecosystem = package.Source switch
+        string ecosystem = package.Source switch
         {
             "npm" => "npm",
             _ => "NuGet"
         };
-
-        if (ecosystem is null)
-        {
-            return new OsvPackageRiskResult();
-        }
 
         string? pageToken = null;
         int vulnerabilityCount = 0;

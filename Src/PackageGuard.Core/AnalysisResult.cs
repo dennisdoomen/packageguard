@@ -8,10 +8,10 @@ public class AnalysisResult
     /// <summary>
     /// Gets or sets the policy violations found during analysis.
     /// </summary>
-    public PolicyViolation[] Violations { get; set; } = Array.Empty<PolicyViolation>();
+    public PolicyViolation[] Violations { get; init; } = [];
 
     /// <summary>
     /// Gets or sets all packages analyzed with their risk metrics.
     /// </summary>
-    public PackageInfo[] Packages { get; set; } = Array.Empty<PackageInfo>();
+    public PackageInfo[] Packages { get; init; } = [];
 }
