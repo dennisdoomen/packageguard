@@ -83,5 +83,12 @@ internal sealed class RiskReportWriterSpecs
         JsonElement result = sarif.RootElement.GetProperty("runs")[0].GetProperty("results")[0];
         result.GetProperty("ruleId").GetString().Should().Be("packageguard/risk-medium");
         result.GetProperty("message").GetProperty("text").GetString().Should().Contain("Contoso.Security 2.4.0 scored 47.5/100");
+        result.GetProperty("locations")[0]
+            .GetProperty("physicalLocation")
+            .GetProperty("artifactLocation")
+            .GetProperty("uri")
+            .GetString()
+            .Should()
+            .Be("PackageGuard.sln");
     }
 }

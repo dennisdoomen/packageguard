@@ -122,14 +122,16 @@ internal static class RiskSarifReportWriter
 
     private static string ResolveLocationPath(string projectPath)
     {
+        string rootPath = ResolveRootPath(projectPath);
+
         if (File.Exists(projectPath))
         {
-            return projectPath;
+            return ToSarifUri(rootPath, projectPath);
         }
 
         if (!Directory.Exists(projectPath))
         {
-            return projectPath;
+            return ToSarifUri(rootPath, projectPath);
         }
 
         string[] preferredFiles =
@@ -141,7 +143,7 @@ internal static class RiskSarifReportWriter
         string? preferred = preferredFiles.FirstOrDefault(File.Exists);
         if (preferred is not null)
         {
-            return preferred;
+            return ToSarifUri(rootPath, preferred);
         }
 
         string? projectFile = Directory.EnumerateFiles(projectPath, "*.sln").FirstOrDefault()
@@ -149,7 +151,46 @@ internal static class RiskSarifReportWriter
             ?? Directory.EnumerateFiles(projectPath, "*.csproj").FirstOrDefault()
             ?? Directory.EnumerateFiles(projectPath, "package.json").FirstOrDefault();
 
-        return projectFile ?? projectPath;
+        return ToSarifUri(rootPath, projectFile ?? projectPath);
+    }
+
+    private static string ResolveRootPath(string projectPath)
+    {
+        if (Directory.Exists(projectPath))
+        {
+            return Path.GetFullPath(projectPath);
+        }
+
+        string? directory = Path.GetDirectoryName(projectPath);
+        return string.IsNullOrWhiteSpace(directory)
+            ? Directory.GetCurrentDirectory()
+            : Path.GetFullPath(directory);
+    }
+
+    private static string ToSarifUri(string rootPath, string path)
+    {
+        string fullPath = Path.GetFullPath(path);
+
+        if (TryCreateRelativeUri(rootPath, fullPath, out string? relativeUri) && relativeUri is not null)
+        {
+            return relativeUri;
+        }
+
+        return new Uri(fullPath).AbsoluteUri;
+    }
+
+    private static bool TryCreateRelativeUri(string rootPath, string fullPath, out string? relativeUri)
+    {
+        relativeUri = null;
+
+        string relativePath = Path.GetRelativePath(rootPath, fullPath);
+        if (relativePath.StartsWith("..", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        relativeUri = relativePath.Replace(Path.DirectorySeparatorChar, '/');
+        return true;
     }
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
