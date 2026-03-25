@@ -22,7 +22,9 @@ namespace PackageGuard.Core
         public bool InteractiveRestore { get; init; }
         public string? NpmExePath { get; init; }
         public PackageGuard.Core.NpmPackageManager? NpmPackageManager { get; set; }
+        public bool RefreshRiskCache { get; init; }
         public bool ReportRisk { get; init; }
+        public System.TimeSpan RiskCacheMaxAge { get; init; }
         public bool ScanNuGet { get; init; }
         public bool SkipRestore { get; init; }
         public bool UseCaching { get; init; }
@@ -51,11 +53,9 @@ namespace PackageGuard.Core
         public PackageInfo() { }
         [MemoryPack.MemoryPackIgnore]
         public int? AbandonedTransitiveDependencyCount { get; set; }
-        [MemoryPack.MemoryPackIgnore]
+        public System.DateTimeOffset? CacheUpdatedAt { get; set; }
         public System.DateTimeOffset? ChangelogUpdatedAt { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public int? ClosedBugIssueCountLast90Days { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public int? ContributorCount { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public int DependencyDepth { get; set; }
@@ -63,134 +63,78 @@ namespace PackageGuard.Core
         public string[] DependencyKeys { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public int? DeprecatedTransitiveDependencyCount { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public long? DownloadCount { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? ExternalContributionRate { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool HasAvailableSecurityFix { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasBranchProtection { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasChangelog { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasContributingGuide { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasCoordinatedDisclosure { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasCoverageWorkflowSignal { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasDefaultChangelog { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasDefaultReadme { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasDependencyUpdateAutomation { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasDetailedSecurityPolicy { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasFlakyWorkflowPattern { get; set; }
-        [MemoryPack.MemoryPackIgnore]
+        public bool HasGitHubRiskData { get; set; }
         public bool? HasModernTargetFrameworkSupport { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasNativeBinaryAssets { get; set; }
-        [MemoryPack.MemoryPackIgnore]
+        public bool HasOsvRiskData { get; set; }
         public bool HasPatchedVulnerabilityInLast90Days { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool HasPreOneZeroDependencies { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasProvenanceAttestation { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasReadme { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasRecentSuccessfulWorkflowRun { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasReleaseNotes { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasRepositoryOwnershipOrRenameChurn { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasReproducibleBuildSignal { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasSecurityPolicy { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasSemVerReleaseTags { get; set; }
-        [MemoryPack.MemoryPackIgnore]
+        public bool HasSigningRiskData { get; set; }
         public bool? HasTestSignal { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasTrustedPackageSignature { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasValidLicenseUrl { get; set; }
-        [MemoryPack.MemoryPackIgnore]
+        public bool HasValidatedLicenseUrl { get; set; }
         public bool? HasVerifiedPublisher { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? HasVerifiedReleaseSignature { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? IsDeprecated { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public bool? IsLicensePolicyCompatible { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool IsMajorVersionBehindLatest { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool IsMinorVersionBehindLatest { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool? IsPackageSigned { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public bool IsUsed { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? IssueResponseCoverage { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? IssueTriageWithinSevenDaysRate { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public System.DateTimeOffset? LatestStablePublishedAt { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public string? LatestStableVersion { get; set; }
         public string? License { get; set; }
         public string? LicenseUrl { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? MajorReleaseRatio { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double MaxVulnerabilitySeverity { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? MeanReleaseIntervalDays { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? MedianCriticalIssueResponseDays { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? MedianIssueResponseDays { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? MedianMaintainerActivityDays { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? MedianOpenBugAgeDays { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? MedianPullRequestMergeDays { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? MedianVulnerabilityFixDays { get; set; }
         public string Name { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public int? OpenBugIssueCount { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? OpenSsfScore { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public System.DateTimeOffset? OwnerCreatedAt { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public bool OwnerIsOrganization { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? PrereleaseRatio { get; set; }
         public string[] Projects { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public System.DateTimeOffset? PublishedAt { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public int? RapidReleaseCorrectionCount { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public System.DateTimeOffset? ReadmeUpdatedAt { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public int? RecentFailedWorkflowCount { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public int? RecentMaintainerCount { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public int? ReopenedBugIssueCountLast90Days { get; set; }
         public string? RepositoryUrl { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public int? RequiredStatusCheckCount { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? ReviewerDiversityRatio { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public PackageGuard.Core.RiskDimensions RiskDimensions { get; set; }
@@ -198,32 +142,22 @@ namespace PackageGuard.Core
         public double RiskScore { get; set; }
         public string Source { get; set; }
         public string SourceUrl { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public int? StaleCriticalBugIssueCount { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public int? StaleTransitiveDependencyCount { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public string[] SupportedTargetFrameworks { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? TopContributorShare { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? TopTwoContributorShare { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public int TransitiveVulnerabilityCount { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public int? UniqueReviewerCount { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public int? UnmaintainedCriticalTransitiveDependencyCount { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? VerifiedCommitRatio { get; set; }
         public string Version { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? VersionUpdateLagDays { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public int VulnerabilityCount { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public double? WorkflowFailureRate { get; set; }
-        [MemoryPack.MemoryPackIgnore]
         public int? WorkflowPlatformCount { get; set; }
         public void MarkAsUsed() { }
         public bool MatchesFeed(string feedWildcard) { }
@@ -233,8 +167,8 @@ namespace PackageGuard.Core
     }
     public class PackageInfoCollection : System.Collections.Generic.IEnumerable<PackageGuard.Core.PackageInfo>, System.Collections.IEnumerable
     {
-        public PackageInfoCollection(Microsoft.Extensions.Logging.ILogger logger) { }
-        public void Add(PackageGuard.Core.PackageInfo package) { }
+        public PackageInfoCollection(Microsoft.Extensions.Logging.ILogger logger, PackageGuard.Core.AnalyzerSettings? settings = null) { }
+        public PackageGuard.Core.PackageInfo Add(PackageGuard.Core.PackageInfo package) { }
         public void Clear() { }
         public PackageGuard.Core.PackageInfo? Find(string name, string version, NuGet.Protocol.Core.Types.SourceRepository[] projectNuGetSources) { }
         public PackageGuard.Core.PackageInfo[] GetAllUsedPackages() { }

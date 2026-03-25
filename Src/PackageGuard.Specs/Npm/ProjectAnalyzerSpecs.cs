@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -252,6 +253,8 @@ public class ProjectAnalyzerSpecs
     [TestMethod]
     public async Task Can_analyze_pnpm_projects_without_lock_file()
     {
+        EnsureExecutableIsAvailable("pnpm");
+
         // Arrange
         var project = ChainablePath.Current / "TestCases" / "PnpmAppWithoutLockFile";
         project.GlobFiles("*lock.json", "node_modules\\**").DeleteFileOrDirectory();
@@ -282,6 +285,31 @@ public class ProjectAnalyzerSpecs
             PackageId = "content-type",
             Version = "1.0.5"
         });
+    }
+
+    private static void EnsureExecutableIsAvailable(string executableName)
+    {
+        string[] fileNames = OperatingSystem.IsWindows()
+            ? [$"{executableName}.exe", $"{executableName}.cmd", $"{executableName}.bat"]
+            : [executableName];
+
+        if (!TryFindExecutable(fileNames))
+        {
+            Assert.Inconclusive($"Skipping test because '{executableName}' is not available on PATH.");
+        }
+    }
+
+    private static bool TryFindExecutable(string[] fileNames)
+    {
+        string path = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return false;
+        }
+
+        return path
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Any(directory => fileNames.Any(fileName => File.Exists(Path.Combine(directory, fileName))));
     }
 
     [TestMethod]

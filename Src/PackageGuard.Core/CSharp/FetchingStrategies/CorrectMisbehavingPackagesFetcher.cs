@@ -8,7 +8,7 @@ internal class CorrectMisbehavingPackagesFetcher : IFetchLicense
     public Task FetchLicenseAsync(PackageInfo package)
     {
         if (package.Name.Equals("nunit", StringComparison.InvariantCultureIgnoreCase) &&
-            package.RepositoryUrl?.StartsWith("https://github.com", StringComparison.InvariantCultureIgnoreCase) == false)
+            package.RepositoryUrl?.StartsWith("https://github.com", StringComparison.InvariantCultureIgnoreCase) != true)
         {
             package.RepositoryUrl = "https://github.com/nunit/nunit";
         }
