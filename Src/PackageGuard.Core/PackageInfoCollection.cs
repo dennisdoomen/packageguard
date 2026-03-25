@@ -123,7 +123,10 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
         DateTimeOffset cacheUpdatedAt = DateTimeOffset.UtcNow;
         foreach (PackageInfo package in packages)
         {
-            package.CacheUpdatedAt = cacheUpdatedAt;
+            if (package.CacheUpdatedAt == default)
+            {
+                package.CacheUpdatedAt = cacheUpdatedAt;
+            }
         }
     }
 
