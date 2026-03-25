@@ -50,7 +50,15 @@ internal sealed class RiskReportWriterSpecs
             Version = "2.4.0",
             Source = "nuget",
             License = "MIT",
+            LicenseUrl = "https://licenses.nuget.org/MIT",
+            RepositoryUrl = "https://github.com/contoso/contoso-security",
             RiskScore = 47.5,
+            OpenSsfScore = 8.2,
+            HasContributingGuide = true,
+            HasSecurityPolicy = true,
+            HasReleaseNotes = true,
+            HasRecentSuccessfulWorkflowRun = true,
+            ReadmeUpdatedAt = new DateTimeOffset(2025, 1, 15, 0, 0, 0, TimeSpan.Zero),
             RiskDimensions = new RiskDimensions
             {
                 LegalRisk = 1.0,
@@ -83,6 +91,17 @@ internal sealed class RiskReportWriterSpecs
         html.Should().Contain(@"frontend\package.json");
         html.Should().Contain("<span class=\"label\">Used by:</span>");
         html.Should().NotContain("<th>Used by</th>");
+        html.Should().Contain("Relevant links");
+        html.Should().Contain("href=\"https://licenses.nuget.org/MIT\"");
+        html.Should().Contain("href=\"https://securityscorecards.dev/viewer/?uri=github.com/contoso/contoso-security\"");
+        html.Should().Contain("href=\"https://github.com/contoso/contoso-security/security\"");
+        html.Should().Contain("href=\"https://github.com/contoso/contoso-security/blob/HEAD/CONTRIBUTING.md\"");
+        html.Should().Contain("href=\"https://github.com/contoso/contoso-security/releases\"");
+        html.Should().Contain("href=\"https://github.com/contoso/contoso-security/actions\"");
+        html.Should().Contain("href=\"https://github.com/contoso/contoso-security#readme\"");
+        html.Should().NotContain("<span class=\"label\">License URL:</span>");
+        html.Should().NotContain("<span class=\"label\">Repository:</span>");
+        html.Should().NotContain("<span class=\"label\">OpenSSF Scorecard:</span>");
 
         using JsonDocument sarif = JsonDocument.Parse(await File.ReadAllTextAsync(reportPaths.SarifPath));
         sarif.RootElement.GetProperty("version").GetString().Should().Be("2.1.0");

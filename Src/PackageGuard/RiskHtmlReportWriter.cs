@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using PackageGuard.Core;
 
 namespace PackageGuard;
@@ -89,6 +90,9 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine("    .rationale-list, .detail-list { margin: 12px 0 0; padding-left: 20px; }");
         builder.AppendLine("    .detail-list { list-style: none; padding-left: 0; }");
         builder.AppendLine("    .detail-list li { padding: 4px 0; }");
+        builder.AppendLine("    .link-list { list-style: none; padding-left: 0; margin: 12px 0 0; }");
+        builder.AppendLine("    .link-list li { padding: 4px 0; }");
+        builder.AppendLine("    .link-heading { margin: 16px 0 4px; color: #475569; font-weight: 600; }");
         builder.AppendLine("    .label { color: #475569; font-weight: 600; }");
         builder.AppendLine("    .meta { color: #64748b; }");
         builder.AppendLine("    code { font-family: Cascadia Code, Consolas, monospace; }");
@@ -160,9 +164,9 @@ internal static class RiskHtmlReportWriter
             builder.AppendLine($"    <p>{BuildOverallScorePill(package.RiskScore)}</p>");
             builder.AppendLine("    <p><a href=\"#top\">Back to report summary</a></p>");
             builder.AppendLine("    <div class=\"dimension-grid\">");
-            AppendDimension(builder, "Legal", package.RiskDimensions.LegalRisk, package.RiskDimensions.LegalRiskRationale);
-            AppendDimension(builder, "Security", package.RiskDimensions.SecurityRisk, package.RiskDimensions.SecurityRiskRationale);
-            AppendDimension(builder, "Operational", package.RiskDimensions.OperationalRisk, package.RiskDimensions.OperationalRiskRationale);
+            AppendDimension(builder, "Legal", package.RiskDimensions.LegalRisk, package.RiskDimensions.LegalRiskRationale, BuildLegalLinks(package));
+            AppendDimension(builder, "Security", package.RiskDimensions.SecurityRisk, package.RiskDimensions.SecurityRiskRationale, BuildSecurityLinks(package));
+            AppendDimension(builder, "Operational", package.RiskDimensions.OperationalRisk, package.RiskDimensions.OperationalRiskRationale, BuildOperationalLinks(package));
             builder.AppendLine("    </div>");
             builder.AppendLine("    <h3>Evidence</h3>");
             builder.AppendLine("    <ul class=\"detail-list\">");
@@ -182,7 +186,12 @@ internal static class RiskHtmlReportWriter
         return builder.ToString();
     }
 
-    private static void AppendDimension(StringBuilder builder, string label, double score, IReadOnlyCollection<string> rationale)
+    private static void AppendDimension(
+        StringBuilder builder,
+        string label,
+        double score,
+        IReadOnlyCollection<string> rationale,
+        IReadOnlyCollection<(string Label, string Url)> relevantLinks)
     {
         builder.AppendLine("      <section class=\"dimension-card\">");
         builder.AppendLine($"        <h3>{Encode(label)}</h3>");
@@ -195,6 +204,21 @@ internal static class RiskHtmlReportWriter
         }
 
         builder.AppendLine("        </ul>");
+
+        if (relevantLinks.Count > 0)
+        {
+            builder.AppendLine("        <p class=\"link-heading\">Relevant links</p>");
+            builder.AppendLine("        <ul class=\"link-list\">");
+
+            foreach ((string linkLabel, string url) in relevantLinks)
+            {
+                builder.AppendLine(
+                    $"          <li><a href=\"{Encode(url)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(linkLabel)}</a></li>");
+            }
+
+            builder.AppendLine("        </ul>");
+        }
+
         builder.AppendLine("      </section>");
     }
 
@@ -207,11 +231,6 @@ internal static class RiskHtmlReportWriter
         }
 
         yield return ("License", package.License ?? "Unknown");
-
-        if (package.HasValidLicenseUrl != null)
-        {
-            yield return ("License URL", package.HasValidLicenseUrl.Value ? "Valid" : "Missing or invalid");
-        }
 
         if (package.IsPackageSigned != null)
         {
@@ -301,11 +320,6 @@ internal static class RiskHtmlReportWriter
         if (package.VersionUpdateLagDays != null)
         {
             yield return ("Version update lag", $"{FormatDecimal(package.VersionUpdateLagDays.Value)} days");
-        }
-
-        if (!string.IsNullOrWhiteSpace(package.RepositoryUrl))
-        {
-            yield return ("Repository", package.RepositoryUrl);
         }
 
         if (package.PublishedAt != null)
@@ -423,11 +437,6 @@ internal static class RiskHtmlReportWriter
             yield return ("Test execution signal", package.HasTestSignal == true ? "Detected" : "Not detected");
         }
 
-        if (package.OpenSsfScore != null)
-        {
-            yield return ("OpenSSF Scorecard", FormatDecimal(package.OpenSsfScore.Value));
-        }
-
         if (package.HasBranchProtection != null)
         {
             yield return ("Branch protection", package.HasBranchProtection == true ? "Detected" : "Not detected");
@@ -512,6 +521,118 @@ internal static class RiskHtmlReportWriter
         {
             yield return ("Target frameworks", string.Join(", ", package.SupportedTargetFrameworks));
         }
+    }
+
+    private static IReadOnlyCollection<(string Label, string Url)> BuildLegalLinks(PackageInfo package)
+    {
+        var links = new List<(string Label, string Url)>();
+        AddLink(links, "License text", package.LicenseUrl);
+        return links;
+    }
+
+    private static IReadOnlyCollection<(string Label, string Url)> BuildSecurityLinks(PackageInfo package)
+    {
+        var links = new List<(string Label, string Url)>();
+        string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
+
+        if (repositoryRoot is not null && package.OpenSsfScore != null)
+        {
+            string repositoryIdentifier = repositoryRoot.Replace("https://github.com/", "github.com/", StringComparison.OrdinalIgnoreCase);
+            AddLink(links, "OpenSSF Scorecard", $"https://securityscorecards.dev/viewer/?uri={repositoryIdentifier}");
+        }
+
+        if (repositoryRoot is not null && package.HasSecurityPolicy == true)
+        {
+            AddLink(links, "Security policy", $"{repositoryRoot}/security");
+        }
+
+        return links;
+    }
+
+    private static IReadOnlyCollection<(string Label, string Url)> BuildOperationalLinks(PackageInfo package)
+    {
+        var links = new List<(string Label, string Url)>();
+        AddLink(links, "Repository", package.RepositoryUrl);
+
+        string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
+        if (repositoryRoot is null)
+        {
+            return links;
+        }
+
+        if (package.HasContributingGuide == true)
+        {
+            AddLink(links, "Contributing guide", $"{repositoryRoot}/blob/HEAD/CONTRIBUTING.md");
+        }
+
+        if (package.HasReleaseNotes == true)
+        {
+            AddLink(links, "Release notes", $"{repositoryRoot}/releases");
+        }
+
+        if (package.HasChangelog == true && package.HasDefaultChangelog != true)
+        {
+            AddLink(links, "CHANGELOG", $"{repositoryRoot}/blob/HEAD/CHANGELOG.md");
+        }
+
+        if (package.HasRecentSuccessfulWorkflowRun != null ||
+            package.RecentFailedWorkflowCount != null ||
+            package.WorkflowFailureRate != null ||
+            package.RequiredStatusCheckCount != null)
+        {
+            AddLink(links, "Workflow runs", $"{repositoryRoot}/actions");
+        }
+
+        if (package.ReadmeUpdatedAt != null)
+        {
+            AddLink(links, "README", $"{repositoryRoot}#readme");
+        }
+
+        return links;
+    }
+
+    private static void AddLink(ICollection<(string Label, string Url)> links, string label, string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url) ||
+            !Uri.TryCreate(url, UriKind.Absolute, out Uri? absoluteUri))
+        {
+            return;
+        }
+
+        string normalizedUrl = absoluteUri.ToString();
+        if (links.Any(existing => existing.Url.Equals(normalizedUrl, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        links.Add((label, normalizedUrl));
+    }
+
+    private static string? TryGetGitHubRepositoryRoot(string? repositoryUrl)
+    {
+        string? identifier = TryGetGitHubIdentifier(repositoryUrl);
+        return identifier is null ? null : $"https://github.com/{identifier}";
+    }
+
+    private static string? TryGetGitHubIdentifier(string? repositoryUrl)
+    {
+        if (string.IsNullOrWhiteSpace(repositoryUrl))
+        {
+            return null;
+        }
+
+        Match match = Regex.Match(
+            repositoryUrl,
+            @"github\.com/(?<owner>[a-zA-Z0-9._-]+)/(?<repo>[a-zA-Z0-9._-]+)",
+            RegexOptions.IgnoreCase);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        string repositoryName = match.Groups["repo"].Value.TrimEnd('.');
+        repositoryName = repositoryName.Replace(".git", string.Empty, StringComparison.OrdinalIgnoreCase);
+        return $"{match.Groups["owner"].Value}/{repositoryName}";
     }
 
     private static string BuildOverallScorePill(double score)

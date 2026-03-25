@@ -368,7 +368,6 @@ internal class RiskEvaluatorSpecs
         package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("The package version is marked as deprecated"));
 
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Mean release interval is long"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("GitHub release notes were not detected"));
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Recent release tags do not consistently follow semantic versioning"));
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Median maintainer inactivity is elevated"));
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Issue triage within 7 days is low"));
@@ -377,5 +376,57 @@ internal class RiskEvaluatorSpecs
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Deprecated transitive dependencies were detected"));
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Reviewer diversity looks limited"));
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("The current version trails the latest stable release by a long time"));
+    }
+
+    [TestMethod]
+    internal void Should_not_flag_major_release_ratio_when_releases_stay_on_same_major_line()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2),
+            MajorReleaseRatio = 0.0,
+            ContributorCount = 8,
+            HasReadme = true,
+            HasDefaultReadme = false,
+            HasContributingGuide = true,
+            HasSecurityPolicy = true,
+            HasChangelog = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .NotContain(item => item.Contains("Major release ratio is elevated"));
+    }
+
+    [TestMethod]
+    internal void Should_treat_release_notes_as_a_valid_changelog_replacement()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2),
+            HasReleaseNotes = true,
+            HasChangelog = false,
+            ContributorCount = 8,
+            HasReadme = true,
+            HasDefaultReadme = false,
+            HasContributingGuide = true,
+            HasSecurityPolicy = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("CHANGELOG or release notes are present"));
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .NotContain(item => item.Contains("CHANGELOG or release notes are missing or low quality"));
     }
 }

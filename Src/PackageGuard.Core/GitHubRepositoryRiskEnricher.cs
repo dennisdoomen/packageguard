@@ -516,7 +516,6 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
             JsonElement[] releases = releaseDoc.RootElement.EnumerateArray().ToArray();
             int semVerReleaseCount = 0;
-            int majorReleaseCount = 0;
             bool hasReleaseNotes = releases.Any(release =>
                 release.TryGetProperty("body", out JsonElement bodyElement) &&
                 !string.IsNullOrWhiteSpace(bodyElement.GetString()) &&
@@ -539,6 +538,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 .Select(date => date!.Value)
                 .OrderBy(date => date)
                 .ToList();
+            List<(DateTimeOffset PublishedAt, NuGet.Versioning.NuGetVersion Version)> parsedReleaseVersions = [];
 
             foreach (JsonElement release in releases)
             {
@@ -552,9 +552,10 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 }
 
                 semVerReleaseCount++;
-                if (parsedVersion.Major > 0)
+                DateTimeOffset? publishedAt = TryReadDate(release, "published_at") ?? TryReadDate(release, "created_at");
+                if (publishedAt != null)
                 {
-                    majorReleaseCount++;
+                    parsedReleaseVersions.Add((publishedAt.Value, parsedVersion));
                 }
             }
 
@@ -577,7 +578,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 HasReleaseNotes = hasReleaseNotes,
                 HasSemVerReleaseTags = releases.Length > 0 ? semVerReleaseCount == releases.Length : null,
                 MeanReleaseIntervalDays = ComputeAverageIntervalDays(publishedDates),
-                MajorReleaseRatio = semVerReleaseCount > 0 ? majorReleaseCount / (double)semVerReleaseCount : null,
+                MajorReleaseRatio = ComputeMajorReleaseRatio(parsedReleaseVersions),
                 PrereleaseRatio = releases.Length > 0 ? prereleaseCount / (double)releases.Length : null,
                 RapidReleaseCorrectionCount = rapidCorrections,
                 HasVerifiedReleaseSignature = hasVerifiedReleaseSignature
@@ -1221,6 +1222,32 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         }
 
         return NuGet.Versioning.NuGetVersion.TryParse(normalized, out version);
+    }
+
+    internal static double? ComputeMajorReleaseRatio(
+        IReadOnlyList<(DateTimeOffset PublishedAt, NuGet.Versioning.NuGetVersion Version)> releases)
+    {
+        if (releases.Count < 2)
+        {
+            return null;
+        }
+
+        var orderedReleases = releases
+            .OrderBy(release => release.PublishedAt)
+            .ToArray();
+
+        int transitionCount = orderedReleases.Length - 1;
+        int majorTransitionCount = 0;
+
+        for (int i = 1; i < orderedReleases.Length; i++)
+        {
+            if (orderedReleases[i].Version.Major > orderedReleases[i - 1].Version.Major)
+            {
+                majorTransitionCount++;
+            }
+        }
+
+        return transitionCount > 0 ? majorTransitionCount / (double)transitionCount : null;
     }
 
     private static double? ComputeAverageIntervalDays(IReadOnlyList<DateTimeOffset> dates)

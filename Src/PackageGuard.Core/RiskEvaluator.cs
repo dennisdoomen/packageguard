@@ -401,12 +401,6 @@ public class RiskEvaluator(ILogger logger)
                 0.5));
         }
 
-        if (package is { HasReleaseNotes: false, HasChangelog: true })
-        {
-            risk += 0.25;
-            rationale.Add(CreateRationale("GitHub release notes were not detected for recent releases", 0.25));
-        }
-
         if (package.HasSemVerReleaseTags is false)
         {
             risk += 0.5;
@@ -468,7 +462,9 @@ public class RiskEvaluator(ILogger logger)
             rationale.Add(CreateRationale("SECURITY policy lacks concrete response instructions", 0.25));
         }
 
-        if (package.HasChangelog is not true || package.HasDefaultChangelog is true)
+        bool hasAcceptableReleaseHistory = package.HasReleaseNotes is true ||
+                                           (package.HasChangelog is true && package.HasDefaultChangelog is not true);
+        if (!hasAcceptableReleaseHistory)
         {
             risk += 0.5;
             rationale.Add(CreateRationale("CHANGELOG or release notes are missing or low quality", 0.5));

@@ -513,8 +513,8 @@ public partial class PackageInfo
     public double? MeanReleaseIntervalDays { get; set; }
 
     /// <summary>
-    /// Gets or sets the fraction of semver-parsable sampled releases whose major version is greater than zero.
-    /// In other words, it measures how often recent releases are major-version releases among the parsed sample.
+    /// Gets or sets the share of sampled release-to-release transitions that move to a higher major version.
+    /// This is derived from semver-parsable releases ordered by publication date, so stable releases that stay on the same major line no longer look risky by themselves.
     /// </summary>
     public double? MajorReleaseRatio { get; set; }
 
