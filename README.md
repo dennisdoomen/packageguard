@@ -244,9 +244,9 @@ The exit code indicates either 0 for success or 1 for failure.
 
 ### Risk Metrics
 
-PackageGuard also includes a comprehensive risk assessment system to help you evaluate the risk associated with each package in your project. Use the `--show-risk` flag to display risk metrics alongside policy violations:
+PackageGuard also includes a comprehensive risk assessment system to help you evaluate the risk associated with each package in your project. Use the `--report-risk` flag to display risk metrics alongside policy violations:
 
-`packageguard --show-risk <path-to-project>`
+`packageguard --report-risk <path-to-project>`
 
 This will analyze each package across three key risk dimensions:
 

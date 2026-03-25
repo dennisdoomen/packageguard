@@ -72,9 +72,9 @@ internal class AnalyzeCommandSettings : CommandSettings
     public string? NpmExePath { get; set; }
 
     [Description("Show a colored risk summary in the console and generate a detailed HTML risk report. Defaults to false.")]
-    [CommandOption("--show-risk|--showrisk")]
+    [CommandOption("--report-risk|--reportrisk")]
     [DefaultValue(false)]
-    public bool ShowRisk { get; set; }
+    public bool ReportRisk { get; set; }
 
     public AnalyzerSettings ToCoreSettings()
     {
@@ -88,7 +88,7 @@ internal class AnalyzeCommandSettings : CommandSettings
             UseCaching = UseCaching,
             NpmExePath = NpmExePath,
             ScanNuGet = ScanNuGet,
-            ShowRisk = ShowRisk,
+            ReportRisk = ReportRisk,
             GitHubApiKey = GitHubApiKey
         };
     }

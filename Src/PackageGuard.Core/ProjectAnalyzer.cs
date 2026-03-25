@@ -47,7 +47,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         }
 
         PackageInfo[] allPackages = packages.GetAllUsedPackages();
-        if (settings.ShowRisk)
+        if (settings.ReportRisk)
         {
             var enricher = new PackageRiskEnricher(Logger, settings.GitHubApiKey);
             await enricher.EnrichAsync(allPackages);

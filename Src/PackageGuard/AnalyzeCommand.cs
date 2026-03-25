@@ -40,7 +40,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         PackageInfo[] packages = Array.Empty<PackageInfo>();
         AnalyzerSettings analyzerSettings = settings.ToCoreSettings();
 
-        if (settings.ShowRisk)
+        if (settings.ReportRisk)
         {
             var result = await analyzer.ExecuteAnalysisWithRisk(settings.ProjectPath, analyzerSettings, getPolicy);
             violations = result.Violations;
@@ -81,7 +81,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         }
 
         // Display risk metrics if requested
-        if (settings.ShowRisk && packages.Length > 0)
+        if (settings.ReportRisk && packages.Length > 0)
         {
             string reportPath = await RiskHtmlReportWriter.WriteAsync(settings.ProjectPath, packages);
 
