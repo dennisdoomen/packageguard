@@ -328,4 +328,60 @@ public class PackageInfoSpecs
         // Assert
         package.Should().BeNull();
     }
+
+    [TestMethod]
+    public void Adding_the_same_package_twice_reuses_the_canonical_instance()
+    {
+        // Arrange
+        var collection = new PackageInfoCollection(NullLogger.Instance);
+
+        var original = collection.Add(new PackageInfo
+        {
+            Name = "Bogus",
+            Version = "2.0.0",
+            Source = "nuget.org",
+            SourceUrl = "https://nuget.org"
+        });
+        original.TrackAsUsedInProject("ProjectA");
+
+        // Act
+        var duplicate = collection.Add(new PackageInfo
+        {
+            Name = "Bogus",
+            Version = "2.0.0",
+            Source = "nuget.org",
+            SourceUrl = "https://nuget.org"
+        });
+        duplicate.TrackAsUsedInProject("ProjectB");
+
+        // Assert
+        duplicate.Should().BeSameAs(original);
+        collection.Should().ContainSingle();
+        collection.GetAllUsedPackages().Should().ContainSingle().Which.Projects.Should().BeEquivalentTo("ProjectA", "ProjectB");
+    }
+
+    [TestMethod]
+    public void Dependency_keys_use_the_package_ecosystem_instead_of_the_feed_name()
+    {
+        // Arrange
+        var nugetPackage = new PackageInfo
+        {
+            Name = "System.IO",
+            Version = "4.3.0",
+            Source = "nuget.org",
+            SourceUrl = "https://api.nuget.org/v3/index.json"
+        };
+
+        var npmPackage = new PackageInfo
+        {
+            Name = "express",
+            Version = "4.18.2",
+            Source = "npm",
+            SourceUrl = "https://registry.npmjs.org/express/-/express-4.18.2.tgz"
+        };
+
+        // Act / Assert
+        nugetPackage.GetDependencyKey().Should().Be("nuget|System.IO|4.3.0");
+        npmPackage.GetDependencyKey().Should().Be("npm|express|4.18.2");
+    }
 }

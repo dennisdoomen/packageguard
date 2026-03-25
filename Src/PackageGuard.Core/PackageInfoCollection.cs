@@ -8,28 +8,39 @@ namespace PackageGuard.Core;
 
 public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = null) : IEnumerable<PackageInfo>
 {
-    private readonly HashSet<PackageInfo> packages = new();
-    private HashSet<PackageInfo> cache = new();
+    private readonly Dictionary<string, PackageInfo> packages = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, PackageInfo> cache = new(StringComparer.OrdinalIgnoreCase);
     private bool isCacheInitialized;
 
-    public IEnumerator<PackageInfo> GetEnumerator() => packages.GetEnumerator();
+    public IEnumerator<PackageInfo> GetEnumerator() => packages.Values.GetEnumerator();
 
-    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)packages).GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator() => packages.Values.GetEnumerator();
 
-    public void Add(PackageInfo package)
+    public PackageInfo Add(PackageInfo package)
     {
-        packages.Add(package);
-        cache.Add(package);
-        package.MarkAsUsed();
+        string packageKey = package.GetCollectionKey();
+        if (!cache.TryGetValue(packageKey, out PackageInfo? existingPackage))
+        {
+            existingPackage = package;
+            cache[packageKey] = existingPackage;
+        }
+        else if (!ReferenceEquals(existingPackage, package))
+        {
+            MergePackageState(existingPackage, package);
+        }
 
-        UpdateLicenseForWellKnownLicenseUrls(package);
+        packages[packageKey] = existingPackage;
+        existingPackage.MarkAsUsed();
+
+        UpdateLicenseForWellKnownLicenseUrls(existingPackage);
+        return existingPackage;
     }
 
     private void UpdateLicenseForWellKnownLicenseUrls(PackageInfo package)
     {
         if (package.License is null && package.LicenseUrl is not null)
         {
-            package.License = cache.FirstOrDefault(x => x.LicenseUrl == package.LicenseUrl)?.License;
+            package.License = cache.Values.FirstOrDefault(x => x.LicenseUrl == package.LicenseUrl)?.License;
         }
     }
 
@@ -39,26 +50,27 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
             .Select(source => source.PackageSource.Source)
             .ToArray();
 
-        PackageInfo? package = packages.FirstOrDefault(p => p.Name == name && p.Version == version);
+        PackageInfo? package = packages.Values.FirstOrDefault(p =>
+            p.Name == name &&
+            p.Version == version &&
+            sourceUrls.Contains(p.SourceUrl, StringComparer.OrdinalIgnoreCase));
         if (package is null)
         {
-            package = cache.FirstOrDefault(p => p.Name == name && p.Version == version && ShouldReuseCachedPackage(p));
+            package = cache.Values.FirstOrDefault(p =>
+                p.Name == name &&
+                p.Version == version &&
+                sourceUrls.Contains(p.SourceUrl, StringComparer.OrdinalIgnoreCase) &&
+                ShouldReuseCachedPackage(p));
             if (package is not null)
             {
-                packages.Add(package);
+                packages[package.GetCollectionKey()] = package;
             }
         }
 
         if (package is not null)
         {
-            if (sourceUrls.Contains(package.SourceUrl))
-            {
-                package.MarkAsUsed();
-                return package;
-            }
-
-            logger.LogWarning("Found package {Name} {Version}, but its source {SourceUrl} is not available for this project",
-                name, version, package.SourceUrl);
+            package.MarkAsUsed();
+            return package;
         }
 
         return null;
@@ -80,7 +92,19 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
 
                 if (cachedPackages is not null)
                 {
-                    cache = new HashSet<PackageInfo>(cachedPackages);
+                    cache = new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase);
+                    foreach (PackageInfo cachedPackage in cachedPackages)
+                    {
+                        string packageKey = cachedPackage.GetCollectionKey();
+                        if (!cache.TryGetValue(packageKey, out PackageInfo? existingPackage))
+                        {
+                            cache[packageKey] = cachedPackage;
+                        }
+                        else
+                        {
+                            MergePackageState(existingPackage, cachedPackage);
+                        }
+                    }
                 }
 
                 logger.LogInformation("Successfully loaded the cache from {CacheFilePath}", cacheFilePath);
@@ -101,7 +125,7 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
         await using FileStream fileStream = new(cacheFilePath, FileMode.Create, FileAccess.Write);
         try
         {
-            PackageInfo[] usedPackages = cache.Where(c => c.IsUsed).ToArray();
+            PackageInfo[] usedPackages = cache.Values.Where(c => c.IsUsed).ToArray();
             DateTimeOffset cacheUpdatedAt = DateTimeOffset.UtcNow;
             foreach (PackageInfo package in usedPackages)
             {
@@ -119,7 +143,7 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
 
     public PackageInfo[] GetAllUsedPackages()
     {
-        return cache.Where(package => package.IsUsed).ToArray();
+        return cache.Values.Where(package => package.IsUsed).ToArray();
     }
 
     /// <summary>
@@ -131,6 +155,33 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
     public void Clear()
     {
         packages.Clear();
+    }
+
+    private static void MergePackageState(PackageInfo target, PackageInfo source)
+    {
+        if (string.IsNullOrWhiteSpace(target.Source) && !string.IsNullOrWhiteSpace(source.Source))
+        {
+            target.Source = source.Source;
+        }
+
+        if (string.IsNullOrWhiteSpace(target.SourceUrl) && !string.IsNullOrWhiteSpace(source.SourceUrl))
+        {
+            target.SourceUrl = source.SourceUrl;
+        }
+
+        target.RepositoryUrl ??= source.RepositoryUrl;
+        target.License ??= source.License;
+        target.LicenseUrl ??= source.LicenseUrl;
+
+        foreach (string projectPath in source.Projects.Except(target.Projects, StringComparer.OrdinalIgnoreCase))
+        {
+            target.TrackAsUsedInProject(projectPath);
+        }
+
+        if (source.IsUsed)
+        {
+            target.MarkAsUsed();
+        }
     }
 
     private bool ShouldReuseCachedPackage(PackageInfo package)

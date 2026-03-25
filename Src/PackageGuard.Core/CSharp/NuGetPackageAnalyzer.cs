@@ -49,7 +49,7 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
             package = await RetrievePackageMetadata(projectNuGetSources, packageName, packageVersion);
             if (package is not null)
             {
-                packages.Add(package);
+                package = packages.Add(package);
                 if (package.License is null)
                 {
                     await licenseFetcher.AmendWithMissingLicenseInformation(package);

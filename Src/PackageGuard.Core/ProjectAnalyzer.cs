@@ -70,7 +70,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
 
     private static void PopulateTransitiveVulnerabilityCounts(PackageInfo[] packages)
     {
-        Dictionary<string, PackageInfo> packagesByKey = packages.ToDictionary(CreatePackageKey, StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, PackageInfo> packagesByKey = CreatePackagesByKey(packages);
 
         foreach (PackageInfo package in packages)
         {
@@ -82,7 +82,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
 
     private static void PopulateDependencyHealthCounts(PackageInfo[] packages)
     {
-        Dictionary<string, PackageInfo> packagesByKey = packages.ToDictionary(CreatePackageKey, StringComparer.OrdinalIgnoreCase);
+        Dictionary<string, PackageInfo> packagesByKey = CreatePackagesByKey(packages);
 
         foreach (PackageInfo package in packages)
         {
@@ -194,6 +194,10 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         IsStaleDependency(dependency) &&
         dependency is { MaxVulnerabilitySeverity: >= 7.0, VulnerabilityCount: > 0 };
 
-    private static string CreatePackageKey(PackageInfo package) =>
-        $"{package.Source}|{package.Name}|{package.Version}";
+    private static Dictionary<string, PackageInfo> CreatePackagesByKey(IEnumerable<PackageInfo> packages) =>
+        packages
+            .GroupBy(CreatePackageKey, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+
+    private static string CreatePackageKey(PackageInfo package) => package.GetDependencyKey();
 }

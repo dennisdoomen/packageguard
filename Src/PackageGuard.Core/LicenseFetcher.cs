@@ -1,3 +1,5 @@
+using System.Net.Http;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core.CSharp.FetchingStrategies;
 
@@ -8,12 +10,17 @@ namespace PackageGuard.Core;
 /// </summary>
 public sealed class LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
 {
-    private readonly IEnumerable<IFetchLicense> fetchers =
-    [
-        new CorrectMisbehavingPackagesFetcher(),
-        new GitHubLicenseFetcher(gitHubApiKey),
-        new UrlLicenseFetcher(logger)
-    ];
+    private readonly IReadOnlyList<IFetchLicense> fetchers =
+        [
+            new CorrectMisbehavingPackagesFetcher(),
+            new GitHubLicenseFetcher(gitHubApiKey),
+            new UrlLicenseFetcher(logger)
+        ];
+
+    internal LicenseFetcher(ILogger logger, string? gitHubApiKey, IEnumerable<IFetchLicense> fetchers) : this(logger, gitHubApiKey)
+    {
+        this.fetchers = fetchers.ToArray();
+    }
 
     public async Task AmendWithMissingLicenseInformation(PackageInfo package)
     {
@@ -26,7 +33,20 @@ public sealed class LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
         {
             foreach (IFetchLicense fetcher in fetchers)
             {
-                await fetcher.FetchLicenseAsync(package);
+                try
+                {
+                    await fetcher.FetchLicenseAsync(package);
+                }
+                catch (HttpRequestException ex)
+                {
+                    logger.LogWarning(ex, "License fetcher {Fetcher} failed for {Name} {Version}: {ErrorMessage}",
+                        fetcher.GetType().Name, package.Name, package.Version, ex.Message);
+                }
+                catch (JsonException ex)
+                {
+                    logger.LogWarning(ex, "License fetcher {Fetcher} returned invalid JSON for {Name} {Version}: {ErrorMessage}",
+                        fetcher.GetType().Name, package.Name, package.Version, ex.Message);
+                }
 
                 if (package.License is not null)
                 {

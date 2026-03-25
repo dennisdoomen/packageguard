@@ -82,7 +82,7 @@ internal class PnpmLockFileParser
                     DependencyDepth = 1
                 };
 
-                packages.Add(packageInfo);
+                packageInfo = packages.Add(packageInfo);
                 packageInfo.TrackAsUsedInProject(pnpmLockPath.Directory);
 
                 // Fetch additional metadata from NPM registry since Pnpm lock doesn't include license

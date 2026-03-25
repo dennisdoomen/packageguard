@@ -1,9 +1,12 @@
 using System;
+using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
+using PackageGuard.Core.CSharp.FetchingStrategies;
 
 namespace PackageGuard.Specs;
 
@@ -91,4 +94,42 @@ public class LicenseFetcherSpecs
         // Assert
         package.License.Should().Be("MIT");
     }
- }
+
+    [TestMethod]
+    public async Task Falls_back_to_the_next_fetcher_when_a_fetcher_hits_an_http_error()
+    {
+        // Arrange
+        var fetcher = new LicenseFetcher(NullLogger.Instance, null,
+        [
+            new ThrowingLicenseFetcher(new HttpRequestException("Forbidden", null, HttpStatusCode.Forbidden)),
+            new FixedLicenseFetcher("MIT")
+        ]);
+
+        var package = new PackageInfo
+        {
+            Name = "Bogus",
+            Version = "1.0.0",
+            RepositoryUrl = "https://github.com/example/repo"
+        };
+
+        // Act
+        await fetcher.AmendWithMissingLicenseInformation(package);
+
+        // Assert
+        package.License.Should().Be("MIT");
+    }
+
+    private sealed class ThrowingLicenseFetcher(Exception exception) : IFetchLicense
+    {
+        public Task FetchLicenseAsync(PackageInfo package) => Task.FromException(exception);
+    }
+
+    private sealed class FixedLicenseFetcher(string license) : IFetchLicense
+    {
+        public Task FetchLicenseAsync(PackageInfo package)
+        {
+            package.License = license;
+            return Task.CompletedTask;
+        }
+    }
+}

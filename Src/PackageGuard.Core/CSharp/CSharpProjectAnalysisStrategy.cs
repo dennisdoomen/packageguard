@@ -245,5 +245,5 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
         return result;
     }
 
-    private static string CreatePackageKey(string name, string version) => $"NuGet|{name}|{version}";
+    private static string CreatePackageKey(string name, string version) => PackageInfo.CreateDependencyKey("nuget", name, version);
 }

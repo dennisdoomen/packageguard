@@ -258,6 +258,26 @@ public partial class PackageInfo
         projects.Add(projectPath);
     }
 
+    internal string GetCollectionKey() => CreateCollectionKey(SourceUrl, Name, Version);
+
+    internal string GetDependencyKey() => CreateDependencyKey(GetPackageEcosystem(), Name, Version);
+
+    internal static string CreateCollectionKey(string sourceUrl, string name, string version) => $"{sourceUrl}|{name}|{version}";
+
+    internal static string CreateDependencyKey(string ecosystem, string name, string version) => $"{ecosystem}|{name}|{version}";
+
+    private string GetPackageEcosystem()
+    {
+        if (Source.Equals("npm", StringComparison.OrdinalIgnoreCase) ||
+            SourceUrl.Contains("npmjs.org", StringComparison.OrdinalIgnoreCase) ||
+            SourceUrl.Contains("yarnpkg.com", StringComparison.OrdinalIgnoreCase))
+        {
+            return "npm";
+        }
+
+        return "nuget";
+    }
+
     public override string ToString() => $"{Name}/{Version} ({License})";
 
     /// <summary>

@@ -81,7 +81,7 @@ internal class NpmLockFileParser
                 DependencyDepth = Math.Max(1, packagePath.Split("node_modules/", StringSplitOptions.RemoveEmptyEntries).Length)
             };
 
-            packages.Add(packageInfo);
+            packageInfo = packages.Add(packageInfo);
             packageInfo.TrackAsUsedInProject(lockFilePath.Directory);
 
             // Fetch additional metadata from NPM registry if license is missing

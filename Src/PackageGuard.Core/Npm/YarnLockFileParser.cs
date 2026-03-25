@@ -71,7 +71,7 @@ internal class YarnLockFileParser
                     DependencyDepth = 1
                 };
 
-                packages.Add(packageInfo);
+                packageInfo = packages.Add(packageInfo);
                 packageInfo.TrackAsUsedInProject(yarnLockPath.Directory);
 
                 // Fetch additional metadata from NPM registry since Yarn lock doesn't include license
