@@ -29,7 +29,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
 
         List<PolicyViolation> violations = new();
 
-        PackageInfoCollection packages = new(Logger);
+        PackageInfoCollection packages = new(Logger, settings);
         if (settings is { UseCaching: true, CacheFilePath.Length: > 0 })
         {
             Logger.LogInformation("Try loading package cache from {CacheFilePath}", settings.CacheFilePath);
@@ -39,11 +39,6 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         foreach (IProjectAnalysisStrategy strategy in strategies)
         {
             violations.AddRange(await strategy.ExecuteAnalysis(projectPath, settings, packages));
-        }
-
-        if (settings.UseCaching)
-        {
-            await packages.WriteToCache(settings.CacheFilePath);
         }
 
         PackageInfo[] allPackages = packages.GetAllUsedPackages();
@@ -59,6 +54,11 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
             {
                 evaluator.EvaluateRisk(package);
             }
+        }
+
+        if (settings.UseCaching)
+        {
+            await packages.WriteToCache(settings.CacheFilePath);
         }
 
         return new AnalysisResult

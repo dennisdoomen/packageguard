@@ -16,6 +16,8 @@ internal sealed class NuGetPackageSigningRiskEnricher(ILogger logger, string? gl
         ?? Environment.GetEnvironmentVariable("NUGET_PACKAGES")
         ?? SettingsUtility.GetGlobalPackagesFolder(Settings.LoadDefaultSettings(Directory.GetCurrentDirectory()));
 
+    public bool HasCachedData(PackageInfo package) => package.HasSigningRiskData;
+
     public Task EnrichAsync(PackageInfo package)
     {
         if (package.Source.Equals("npm", StringComparison.OrdinalIgnoreCase))
@@ -51,6 +53,7 @@ internal sealed class NuGetPackageSigningRiskEnricher(ILogger logger, string? gl
         package.SupportedTargetFrameworks = archiveRiskData.SupportedTargetFrameworks;
         package.HasModernTargetFrameworkSupport = archiveRiskData.HasModernTargetFrameworkSupport;
         package.HasNativeBinaryAssets = archiveRiskData.HasNativeBinaryAssets;
+        package.HasSigningRiskData = true;
         return Task.CompletedTask;
     }
 

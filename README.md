@@ -85,15 +85,18 @@ OPTIONS:
     -s, --skip-restore                      Prevent the restore operation from running, even if the lock file is missing
                                             or out-of-date
     -a, --github-api-key                    GitHub API key to use for fetching package licenses. If not specified, you
-                                            may run into GitHub's rate limiting issues
-        --use-caching                       Maintains a cache of the package information to speed up future analysis
-        --cache-file-path        False      Overrides the file path where analysis data is cached. Defaults to the
-                                            "<workingdirectory>/.packageguard/cache.bin"
+                                             may run into GitHub's rate limiting issues
+    --use-caching                       Maintains a cache of the package information to speed up future analysis
+    --cache-file-path        False      Overrides the file path where analysis data is cached. Defaults to the
+                                             "<workingdirectory>/.packageguard/cache.bin"
+        --refresh-risk-cache                Force `--report-risk` to rebuild cached risk-related package data
+        --risk-cache-max-age-hours 24       Maximum age in hours for cached risk-related package data before
+                                             `--report-risk` refreshes it
         --nuget                  True       Explicitly enable or disable scanning for .csproj, .sln or .slnx files
         --npm                               Explicitly specify the package manager to use (npm, yarn, pnpm). If not
-                                            specified, it will detect it automatically
+                                             specified, it will detect it automatically
         --npm-exe-path                      The path to the npm, yarn or pnpm executable. If not specified, the system
-                                            PATH is used
+                                             PATH is used
 ```
 
 ## How do I configure it?
@@ -117,6 +120,24 @@ You can still specify a custom configuration file path using the `--configpath` 
 
 ```bash
 packageguard --configpath path/to/my-config.json
+```
+
+### About the package cache
+
+When `--use-caching` is enabled, PackageGuard stores package metadata in `.packageguard/cache.bin`. For `--report-risk`, that cache now also keeps the expensive risk-related package data that comes from external services and package inspection.
+
+By default, cached risk-related package data is reused for up to **24 hours**. After that, a `--report-risk` run will refresh the package entry from upstream sources before rebuilding the report.
+
+If you want to force a fully fresh risk report while still using the cache file for subsequent runs, use:
+
+```bash
+packageguard . --report-risk --use-caching --refresh-risk-cache
+```
+
+You can also tune the time-to-live for cached risk-related package data:
+
+```bash
+packageguard . --report-risk --use-caching --risk-cache-max-age-hours 6
 ```
 
 ### Configuration Format

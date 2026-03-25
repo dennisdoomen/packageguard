@@ -56,6 +56,16 @@ internal class AnalyzeCommandSettings : CommandSettings
     [CommandOption("--cache-file-path|--cachefilepath")]
     public string CacheFilePath { get; set; } = ChainablePath.Current / ".packageguard" / "cache.bin";
 
+    [Description("Force --report-risk to rebuild risk-related package data instead of reusing cached risk entries.")]
+    [CommandOption("--refresh-risk-cache|--refreshriskcache")]
+    [DefaultValue(false)]
+    public bool RefreshRiskCache { get; set; }
+
+    [Description("Maximum age in hours for cached risk-related package data before --report-risk refreshes it.")]
+    [CommandOption("--risk-cache-max-age-hours|--riskcachemaxagehours")]
+    [DefaultValue(24)]
+    public int RiskCacheMaxAgeHours { get; set; } = 24;
+
     [Description("Explicitly enable or disable scanning for .csproj, .sln or .slnx files")]
     [CommandOption("--nuget")]
     [DefaultValue(true)]
@@ -89,7 +99,9 @@ internal class AnalyzeCommandSettings : CommandSettings
             NpmExePath = NpmExePath,
             ScanNuGet = ScanNuGet,
             ReportRisk = ReportRisk,
-            GitHubApiKey = GitHubApiKey
+            GitHubApiKey = GitHubApiKey,
+            RefreshRiskCache = RefreshRiskCache,
+            RiskCacheMaxAge = TimeSpan.FromHours(Math.Max(0, RiskCacheMaxAgeHours))
         };
     }
 }

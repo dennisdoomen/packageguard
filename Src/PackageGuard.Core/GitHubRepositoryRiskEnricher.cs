@@ -19,6 +19,8 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         HttpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("PackageGuard", "v1"));
     }
 
+    public bool HasCachedData(PackageInfo package) => package.HasGitHubRiskData;
+
     public async Task EnrichAsync(PackageInfo package)
     {
         string? repositoryApiRoot = GetGitHubApiRoot(package.RepositoryUrl);
@@ -88,6 +90,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         package.VerifiedCommitRatio = cached.VerifiedCommitRatio;
         package.MedianMaintainerActivityDays = cached.MedianMaintainerActivityDays;
         package.PublishedAt ??= cached.LastReleaseAt;
+        package.HasGitHubRiskData = true;
     }
 
     private async Task<GitHubRepositoryRiskData?> GetRepositoryRiskDataAsync(string repositoryApiRoot)

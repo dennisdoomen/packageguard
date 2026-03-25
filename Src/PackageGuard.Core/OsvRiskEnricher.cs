@@ -8,6 +8,8 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
     private static readonly Dictionary<string, OsvPackageRiskResult> Cache = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Lock CacheLock = new();
 
+    public bool HasCachedData(PackageInfo package) => package.HasOsvRiskData;
+
     public async Task EnrichAsync(PackageInfo package)
     {
         string cacheKey = $"{package.Source}|{package.Name}|{package.Version}";
@@ -122,6 +124,7 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         package.HasPatchedVulnerabilityInLast90Days = result.HasPatchedVulnerabilityInLast90Days;
         package.HasAvailableSecurityFix = result.HasAvailableSecurityFix;
         package.MedianVulnerabilityFixDays = result.MedianVulnerabilityFixDays;
+        package.HasOsvRiskData = true;
     }
 
     private static bool HasFix(JsonElement vulnerability)

@@ -6,7 +6,7 @@ using Pathy;
 
 namespace PackageGuard.Core;
 
-public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
+public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = null) : IEnumerable<PackageInfo>
 {
     private readonly HashSet<PackageInfo> packages = new();
     private HashSet<PackageInfo> cache = new();
@@ -42,7 +42,7 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
         PackageInfo? package = packages.FirstOrDefault(p => p.Name == name && p.Version == version);
         if (package is null)
         {
-            package = cache.FirstOrDefault(p => p.Name == name && p.Version == version);
+            package = cache.FirstOrDefault(p => p.Name == name && p.Version == version && ShouldReuseCachedPackage(p));
             if (package is not null)
             {
                 packages.Add(package);
@@ -101,7 +101,14 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
         await using FileStream fileStream = new(cacheFilePath, FileMode.Create, FileAccess.Write);
         try
         {
-            await MemoryPackSerializer.SerializeAsync(fileStream, cache.Where(c => c.IsUsed).ToArray());
+            PackageInfo[] usedPackages = cache.Where(c => c.IsUsed).ToArray();
+            DateTimeOffset cacheUpdatedAt = DateTimeOffset.UtcNow;
+            foreach (PackageInfo package in usedPackages)
+            {
+                package.CacheUpdatedAt = cacheUpdatedAt;
+            }
+
+            await MemoryPackSerializer.SerializeAsync(fileStream, usedPackages);
             logger.LogInformation("Package cache written to {CacheFilePath}", cacheFilePath);
         }
         catch (Exception ex)
@@ -124,5 +131,25 @@ public class PackageInfoCollection(ILogger logger) : IEnumerable<PackageInfo>
     public void Clear()
     {
         packages.Clear();
+    }
+
+    private bool ShouldReuseCachedPackage(PackageInfo package)
+    {
+        if (settings?.ReportRisk != true)
+        {
+            return true;
+        }
+
+        if (settings.RefreshRiskCache)
+        {
+            return false;
+        }
+
+        if (package.CacheUpdatedAt is null)
+        {
+            return false;
+        }
+
+        return DateTimeOffset.UtcNow - package.CacheUpdatedAt.Value <= settings.RiskCacheMaxAge;
     }
 }

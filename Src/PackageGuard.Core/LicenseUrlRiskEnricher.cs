@@ -6,11 +6,14 @@ internal sealed class LicenseUrlRiskEnricher(ILogger logger) : IEnrichPackageRis
 {
     private static readonly HttpClient HttpClient = new();
 
+    public bool HasCachedData(PackageInfo package) => package.HasValidatedLicenseUrl;
+
     public async Task EnrichAsync(PackageInfo package)
     {
         if (string.IsNullOrWhiteSpace(package.LicenseUrl))
         {
             package.HasValidLicenseUrl = false;
+            package.HasValidatedLicenseUrl = true;
             return;
         }
 
@@ -20,12 +23,14 @@ internal sealed class LicenseUrlRiskEnricher(ILogger logger) : IEnrichPackageRis
                 HttpCompletionOption.ResponseHeadersRead);
 
             package.HasValidLicenseUrl = response.IsSuccessStatusCode;
+            package.HasValidatedLicenseUrl = true;
         }
         catch (Exception ex)
         {
             logger.LogDebug("Failed to validate license URL for {Name} {Version}: {Error}",
                 package.Name, package.Version, ex.Message);
             package.HasValidLicenseUrl = false;
+            package.HasValidatedLicenseUrl = true;
         }
     }
 }
