@@ -18,6 +18,8 @@ using static Serilog.Log;
 
 class Build : NukeBuild
 {
+    const string PackageGuardReportDirectoryEnvironmentVariable = "PACKAGEGUARD_REPORT_DIRECTORY";
+
     /// Support plugins are available for:
     ///   - JetBrains ReSharper        https://nuke.build/resharper
     ///   - JetBrains Rider            https://nuke.build/rider
@@ -145,6 +147,8 @@ class Build : NukeBuild
         .Executes(() =>
         {
             var project = Solution.PackageGuard;
+            AbsolutePath reportDirectory = ArtifactsDirectory / "PackageGuardReports";
+            reportDirectory.CreateOrCleanDirectory();
 
             Configure<DotNetRunSettings> configurator = s => s
                 .SetProjectFile(project)
@@ -161,8 +165,10 @@ class Build : NukeBuild
             Information("Running PackageGuard without explicit config path:");
             DotNetRun(configurator);
 
-            Information("Running PackageGuard with explicit config path:");
+            Information("Running PackageGuard with explicit config path and risk reporting:");
             DotNetRun(s => configurator(s)
+                .SetProcessEnvironmentVariable(PackageGuardReportDirectoryEnvironmentVariable, reportDirectory)
+                .AddApplicationArguments("--report-risk")
                 .AddApplicationArguments($"--configpath={RootDirectory / ".packageguard" / "config.json"}"));
         });
 

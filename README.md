@@ -244,7 +244,7 @@ The exit code indicates either 0 for success or 1 for failure.
 
 ### Risk Metrics
 
-PackageGuard also includes a risk and quality assessment system to help you evaluate the health of every package in your project. Use the `--report-risk` flag to generate a compact console summary plus a detailed HTML report:
+PackageGuard also includes a risk and quality assessment system to help you evaluate the health of every package in your project. Use the `--report-risk` flag to generate a compact console summary plus a detailed HTML report and a companion SARIF file:
 
 `packageguard --report-risk <path-to-project>`
 
@@ -370,6 +370,9 @@ Package Risk Summary:
 
 Detailed risk report:
 C:\Users\<you>\AppData\Local\Temp\PackageGuard\reports\mockly-risk-report-20260325-045014.html
+C:\Users\<you>\AppData\Local\Temp\PackageGuard\reports\mockly-risk-report-20260325-045014.sarif
+
+The HTML report is intended for humans. The SARIF report is intended for CI systems such as GitHub Actions so you can upload the findings as code-scanning results or attach the file as a build artifact next to the HTML output.
 ```
 
 Example HTML report sections:

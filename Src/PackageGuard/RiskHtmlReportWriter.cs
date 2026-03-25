@@ -7,17 +7,28 @@ namespace PackageGuard;
 
 internal static class RiskHtmlReportWriter
 {
-    public static async Task<string> WriteAsync(string projectPath, IEnumerable<PackageInfo> packages)
+    internal const string ReportDirectoryEnvironmentVariable = "PACKAGEGUARD_REPORT_DIRECTORY";
+
+    public static async Task<RiskReportPaths> WriteAsync(string projectPath, IEnumerable<PackageInfo> packages)
     {
-        string reportPath = GetReportPath(projectPath);
-        string html = BuildHtml(projectPath, packages.OrderByDescending(package => package.RiskScore).ToArray());
-        await File.WriteAllTextAsync(reportPath, html, Encoding.UTF8);
-        return reportPath;
+        PackageInfo[] orderedPackages = packages.OrderByDescending(package => package.RiskScore).ToArray();
+        RiskReportPaths reportPaths = GetReportPaths(projectPath);
+        string html = BuildHtml(projectPath, orderedPackages);
+        string sarif = RiskSarifReportWriter.BuildSarif(projectPath, orderedPackages);
+
+        await File.WriteAllTextAsync(reportPaths.HtmlPath, html, Encoding.UTF8);
+        await File.WriteAllTextAsync(reportPaths.SarifPath, sarif, Encoding.UTF8);
+
+        return reportPaths;
     }
 
-    private static string GetReportPath(string projectPath)
+    private static RiskReportPaths GetReportPaths(string projectPath)
     {
-        string reportDirectory = Path.Combine(Path.GetTempPath(), "PackageGuard", "reports");
+        string? configuredReportDirectory = Environment.GetEnvironmentVariable(ReportDirectoryEnvironmentVariable);
+        string reportDirectory = string.IsNullOrWhiteSpace(configuredReportDirectory)
+            ? Path.Combine(Path.GetTempPath(), "PackageGuard", "reports")
+            : configuredReportDirectory;
+
         Directory.CreateDirectory(reportDirectory);
 
         string projectName = Path.GetFileNameWithoutExtension(projectPath);
@@ -28,8 +39,10 @@ internal static class RiskHtmlReportWriter
 
         string sanitizedProjectName = string.Concat(projectName.Select(ch =>
             Path.GetInvalidFileNameChars().Contains(ch) ? '-' : ch));
-        string fileName = $"{sanitizedProjectName}-risk-report-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.html";
-        return Path.Combine(reportDirectory, fileName);
+        string fileNamePrefix = $"{sanitizedProjectName}-risk-report-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}";
+        return new RiskReportPaths(
+            Path.Combine(reportDirectory, $"{fileNamePrefix}.html"),
+            Path.Combine(reportDirectory, $"{fileNamePrefix}.sarif"));
     }
 
     private static string BuildHtml(string projectPath, PackageInfo[] packages)

@@ -83,7 +83,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         // Display risk metrics if requested
         if (settings.ReportRisk && packages.Length > 0)
         {
-            string reportPath = await RiskHtmlReportWriter.WriteAsync(settings.ProjectPath, packages);
+            RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(settings.ProjectPath, packages);
 
             AnsiConsole.MarkupLine("[yellow1]Package Risk Summary:[/]");
             AnsiConsole.MarkupLine("");
@@ -96,8 +96,9 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             }
 
             AnsiConsole.MarkupLine("");
-            AnsiConsole.MarkupLine("Detailed risk report:");
-            AnsiConsole.MarkupLine($"[blue]{Markup.Escape(reportPath)}[/]");
+            AnsiConsole.MarkupLine("Detailed risk reports:");
+            AnsiConsole.MarkupLine($"HTML: [blue]{Markup.Escape(reportPaths.HtmlPath)}[/]");
+            AnsiConsole.MarkupLine($"SARIF: [blue]{Markup.Escape(reportPaths.SarifPath)}[/]");
         }
 
         if (violations.Length == 0)

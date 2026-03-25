@@ -55,13 +55,26 @@ jobs:
       with:
         sarif_file: Artifacts/CodeIssues.sarif
 
+    - name: Check for PackageGuard SARIF existence
+      id: check_packageguard_sarif
+      uses: andstor/file-existence-action@v3
+      with:
+        files: "Artifacts/PackageGuardReports/*.sarif"
+
+    - name: Upload PackageGuard SARIF file
+      if: steps.check_packageguard_sarif.outputs.files_exists == 'true'
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: Artifacts/PackageGuardReports
+        category: packageguard-risk
+
     - name: Upload artifacts
       if: always()
       uses: actions/upload-artifact@v7
       with:
         name: windows-artifacts
         path: |
-          ./Artifacts/*
+          ./Artifacts/**/*
           ./TestResults/*.trx
 
     - name: Upload ZIP to Release
