@@ -80,9 +80,10 @@ internal static class RiskHtmlReportWriter
 
         foreach (PackageInfo package in packages)
         {
+            string packageAnchor = CreatePackageAnchor(package);
             builder.AppendLine("        <tr>");
-            builder.AppendLine($"          <td>{Encode(package.Name)}</td>");
-            builder.AppendLine($"          <td>{Encode(package.Version)}</td>");
+            builder.AppendLine($"          <td><a href=\"#{packageAnchor}\">{Encode(package.Name)}</a></td>");
+            builder.AppendLine($"          <td><a href=\"#{packageAnchor}\">{Encode(package.Version)}</a></td>");
             builder.AppendLine($"          <td>{BuildOverallScorePill(package.RiskScore)}</td>");
             builder.AppendLine($"          <td>{BuildDimensionScorePill(package.RiskDimensions.LegalRisk)}</td>");
             builder.AppendLine($"          <td>{BuildDimensionScorePill(package.RiskDimensions.SecurityRisk)}</td>");
@@ -96,7 +97,8 @@ internal static class RiskHtmlReportWriter
 
         foreach (PackageInfo package in packages)
         {
-            builder.AppendLine("  <section class=\"card\">");
+            string packageAnchor = CreatePackageAnchor(package);
+            builder.AppendLine($"  <section class=\"card\" id=\"{packageAnchor}\">");
             builder.AppendLine($"    <h2>{Encode(package.Name)} <span class=\"meta\">{Encode(package.Version)}</span></h2>");
             builder.AppendLine($"    <p>{BuildOverallScorePill(package.RiskScore)}</p>");
             builder.AppendLine("    <div class=\"dimension-grid\">");
@@ -243,6 +245,16 @@ internal static class RiskHtmlReportWriter
         };
 
         return $"<span class=\"score-pill {cssClass}\">{Encode(FormatDecimal(score))}/10</span>";
+    }
+
+    private static string CreatePackageAnchor(PackageInfo package)
+    {
+        string raw = $"{package.Name}-{package.Version}".ToLowerInvariant();
+        char[] anchor = raw
+            .Select(ch => char.IsLetterOrDigit(ch) ? ch : '-')
+            .ToArray();
+
+        return $"package-{new string(anchor).Trim('-')}";
     }
 
     private static string GetRiskZone(double score)
