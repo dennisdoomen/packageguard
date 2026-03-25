@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace PackageGuard.Core;
 
 /// <summary>
-/// Evaluates and calculates risk metrics for NuGet packages.
+/// Evaluates and calculates risk metrics for software packages.
 /// </summary>
 public class RiskEvaluator(ILogger logger)
 {
