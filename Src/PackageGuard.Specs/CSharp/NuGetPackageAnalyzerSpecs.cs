@@ -52,6 +52,22 @@ public class NuGetPackageAnalyzerSpecs
     }
 
     [TestMethod]
+    public async Task Can_prefer_repository_metadata_over_project_url()
+    {
+        // Arrange
+        var analyzer = new NuGetPackageAnalyzer(nullLogger, new LicenseFetcher(nullLogger));
+        var packages = new PackageInfoCollection(nullLogger);
+
+        // Act
+        await analyzer.CollectPackageMetadata(ChainablePath.Current.Parent.Parent, "FluentAssertions", NuGetVersion.Parse("8.8.0"),
+            packages);
+
+        // Assert
+        packages.Should().ContainSingle();
+        packages.First().RepositoryUrl.Should().Be("https://github.com/fluentassertions/fluentassertions");
+    }
+
+    [TestMethod]
     public async Task Configure_credential_providers_when_analyzing_packages()
     {
         // Arrange

@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Xml;
+using System.Xml.Linq;
+using Microsoft.Extensions.Logging;
 using NuGet.Common;
 using NuGet.Configuration;
 using NuGet.Credentials;
@@ -59,6 +61,11 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
             {
                 logger.LogWarning("Package {Name} {Version} not found in any of the sources", packageName, packageVersion);
             }
+        }
+
+        if (package is not null)
+        {
+            UpdateRepositoryUrlFromLocalPackage(projectPath, package, packageVersion);
         }
 
         package?.TrackAsUsedInProject(projectPath);
@@ -196,5 +203,68 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         return text.Contains("deprecated", StringComparison.OrdinalIgnoreCase) ||
                text.Contains("deprecation", StringComparison.OrdinalIgnoreCase) ||
                text.Contains("obsolete", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void UpdateRepositoryUrlFromLocalPackage(string projectPath, PackageInfo package, NuGetVersion packageVersion)
+    {
+        string? repositoryUrl = TryGetRepositoryUrlFromNuspec(projectPath, package.Name, packageVersion);
+        if (!string.IsNullOrWhiteSpace(repositoryUrl))
+        {
+            package.RepositoryUrl = repositoryUrl;
+        }
+    }
+
+    private string? TryGetRepositoryUrlFromNuspec(string projectPath, string packageName, NuGetVersion packageVersion)
+    {
+        string globalPackagesFolder = SettingsUtility.GetGlobalPackagesFolder(Settings.LoadDefaultSettings(projectPath));
+        string packageId = packageName.ToLowerInvariant();
+
+        foreach (string version in EnumerateVersionCandidates(packageVersion))
+        {
+            string nuspecPath = Path.Combine(globalPackagesFolder, packageId, version, $"{packageId}.nuspec");
+            if (!File.Exists(nuspecPath))
+            {
+                continue;
+            }
+
+            try
+            {
+                return ReadRepositoryUrlFromNuspec(nuspecPath);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or XmlException)
+            {
+                logger.LogDebug("Failed to read repository metadata from {NuspecPath}: {Error}", nuspecPath, ex.Message);
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> EnumerateVersionCandidates(NuGetVersion packageVersion)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        string normalized = packageVersion.ToNormalizedString().ToLowerInvariant();
+        if (seen.Add(normalized))
+        {
+            yield return normalized;
+        }
+
+        string original = packageVersion.ToString().ToLowerInvariant();
+        if (seen.Add(original))
+        {
+            yield return original;
+        }
+    }
+
+    private static string? ReadRepositoryUrlFromNuspec(string nuspecPath)
+    {
+        XDocument document = XDocument.Load(nuspecPath);
+        string? repositoryUrl = document
+            .Descendants()
+            .FirstOrDefault(element => element.Name.LocalName == "repository")
+            ?.Attribute("url")
+            ?.Value;
+
+        return string.IsNullOrWhiteSpace(repositoryUrl) ? null : repositoryUrl;
     }
 }
