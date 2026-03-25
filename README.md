@@ -314,20 +314,38 @@ PackageGuard combines package metadata, repository evidence, workflow signals, d
 - OpenSSF Scorecard, branch protection and repository ownership churn
 
 The generated HTML report includes the per-package rationale behind every score and a clickable summary that jumps directly to the package details section.
-- 🔴 Red (70-100): High risk
 
-Example output:
+The HTML report is intentionally static and self-contained:
+
+- no scripts
+- no external assets
+- a top-level status summary for Azure DevOps and GitHub artifact viewers
+- a package summary table with links to each package details section
+- per-package legal, security and operational rationale plus raw evidence
+
+Example console output:
 ```
-Package Risk Analysis:
+Package Risk Summary:
 
-Newtonsoft.Json 13.0.1
-- Overall Risk: 20.0/100
-- Legal: 1.0/10
-- Security: 2.0/10
-- Operational: 3.0/10
-- License: MIT
-- Repository: https://www.newtonsoft.com/json
-``` 
+- Glob 1.1.9: 42.8/100 (Medium)
+- Azure.Core 1.44.1: 35.8/100 (Medium)
+- FluentAssertions 8.8.0: 28.5/100 (Low)
+
+Detailed risk report:
+C:\Users\<you>\AppData\Local\Temp\PackageGuard\reports\mockly-risk-report-20260325-045014.html
+```
+
+Example HTML report sections:
+
+- Project path and generation timestamp
+- Overall status with low/medium/high package counts
+- Status-check summary table
+- Package summary table with clickable package names and versions
+- Package details cards with:
+  - overall score
+  - legal, security and operational sub-scores
+  - scoring rationale
+  - collected evidence such as license, repository, release, maintainer, CI and dependency signals
 
 ## Additional notes
 
