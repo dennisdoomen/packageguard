@@ -83,7 +83,7 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
 
             foreach (PackageInfo package in packages)
             {
-                string key = CreatePackageKey(package.Name, package.Version);
+                string key = package.CreatePackageKey();
 
                 if (dependencyDepths.TryGetValue(key, out int depth))
                 {
@@ -160,7 +160,7 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
                 {
                     string name = library.Name!;
                     string version = library.Version!.ToNormalizedString();
-                    return CreatePackageKey(name, version);
+                    return PackageInfo.CreatePackageKey(name, version);
                 },
                 StringComparer.OrdinalIgnoreCase);
 
@@ -184,7 +184,7 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
         while (queue.Count > 0)
         {
             var current = queue.Dequeue();
-            string key = CreatePackageKey(current.Name, current.Version);
+            string key = PackageInfo.CreatePackageKey(current.Name, current.Version);
 
             if (depths.TryGetValue(key, out int existingDepth) && existingDepth <= current.Depth)
             {
@@ -231,12 +231,12 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
                 .Select(dependency => target.Libraries.FirstOrDefault(l =>
                     string.Equals(l.Name, dependency.Id, StringComparison.OrdinalIgnoreCase)))
                 .Where(dependencyLibrary => dependencyLibrary is not null)
-                .Select(dependencyLibrary => CreatePackageKey(dependencyLibrary!.Name!, dependencyLibrary.Version!.ToNormalizedString()))
+                .Select(dependencyLibrary => PackageInfo.CreatePackageKey(dependencyLibrary!.Name!, dependencyLibrary.Version!.ToNormalizedString()))
                 .ToArray();
 
             if (library.Version is not null && !string.IsNullOrWhiteSpace(library.Name))
             {
-                result[CreatePackageKey(library.Name!, library.Version.ToNormalizedString())] = dependencyKeys;
+                result[PackageInfo.CreatePackageKey(library.Name!, library.Version.ToNormalizedString())] = dependencyKeys;
             }
         }
 
@@ -264,15 +264,11 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
 
             if (hasPreOneZeroDependency && library.Version is not null && !string.IsNullOrWhiteSpace(library.Name))
             {
-                result.Add(CreatePackageKey(library.Name!, library.Version.ToNormalizedString()));
+                result.Add(PackageInfo.CreatePackageKey(library.Name!, library.Version.ToNormalizedString()));
             }
         }
 
         return result;
     }
 
-    /// <summary>
-    /// Creates the NuGet dependency key for a given package name and version.
-    /// </summary>
-    private static string CreatePackageKey(string name, string version) => PackageInfo.CreateDependencyKey("nuget", name, version);
 }

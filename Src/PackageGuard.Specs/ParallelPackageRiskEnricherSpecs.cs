@@ -8,7 +8,7 @@ using PackageGuard.Core;
 namespace PackageGuard.Specs;
 
 [TestClass]
-public class PackageRiskEnricherSpecs
+public class ParallelPackageRiskEnricherSpecs
 {
     [TestMethod]
     public async Task Skips_enrichers_that_already_have_cached_data()
@@ -16,7 +16,7 @@ public class PackageRiskEnricherSpecs
         // Arrange
         var skippedEnricher = new FakeRiskEnricher(_ => true);
         var executedEnricher = new FakeRiskEnricher(_ => false);
-        var enricher = new PackageRiskEnricher(skippedEnricher, executedEnricher);
+        var enricher = new ParallelPackageRiskEnricher(skippedEnricher, executedEnricher);
 
         var package = new PackageInfo
         {

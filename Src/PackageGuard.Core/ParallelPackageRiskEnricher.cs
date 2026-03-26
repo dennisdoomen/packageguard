@@ -3,9 +3,9 @@ using Microsoft.Extensions.Logging;
 namespace PackageGuard.Core;
 
 /// <summary>
-/// Enriches a collection of <see cref="PackageInfo"/> instances with risk data by running all registered enrichers in parallel.
+/// Runs all registered <see cref="IEnrichPackageRisk"/> enrichers in parallel across a collection of packages.
 /// </summary>
-internal sealed class PackageRiskEnricher
+internal sealed class ParallelPackageRiskEnricher
 {
     /// <summary>
     /// The maximum number of packages processed concurrently during enrichment.
@@ -18,11 +18,11 @@ internal sealed class PackageRiskEnricher
     private readonly IEnrichPackageRisk[] enrichers;
 
     /// <summary>
-    /// Initializes a new instance of <see cref="PackageRiskEnricher"/> with the default set of enrichers.
+    /// Initializes a new instance of <see cref="ParallelPackageRiskEnricher"/> with the default set of enrichers.
     /// </summary>
     /// <param name="logger">The logger used by the individual enrichers.</param>
     /// <param name="gitHubApiKey">An optional GitHub API key used by the GitHub repository enricher.</param>
-    public PackageRiskEnricher(ILogger logger, string? gitHubApiKey)
+    public ParallelPackageRiskEnricher(ILogger logger, string? gitHubApiKey)
         : this(
             [
                 new LicenseUrlRiskEnricher(logger),
@@ -34,10 +34,10 @@ internal sealed class PackageRiskEnricher
     }
 
     /// <summary>
-    /// Initializes a new instance of <see cref="PackageRiskEnricher"/> with an explicit list of enrichers.
+    /// Initializes a new instance of <see cref="ParallelPackageRiskEnricher"/> with an explicit list of enrichers.
     /// </summary>
     /// <param name="enrichers">The enrichers to apply during enrichment.</param>
-    internal PackageRiskEnricher(params IEnrichPackageRisk[] enrichers)
+    internal ParallelPackageRiskEnricher(params IEnrichPackageRisk[] enrichers)
     {
         this.enrichers = enrichers;
     }

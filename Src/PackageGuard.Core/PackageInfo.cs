@@ -121,7 +121,7 @@ public partial class PackageInfo
 
     /// <summary>
     /// Gets or sets the number of reachable dependencies that are themselves vulnerable.
-    /// <see cref="ProjectAnalyzer"/> walks <see cref="DependencyKeys"/> recursively and counts distinct
+    /// <see cref="TransitiveVulnerabilityCountEnricher"/> walks <see cref="DependencyKeys"/> recursively and counts distinct
     /// transitive packages whose <see cref="VulnerabilityCount"/> is greater than zero.
     /// </summary>
     [MemoryPackIgnore]
@@ -580,7 +580,7 @@ public partial class PackageInfo
 
     /// <summary>
     /// Gets or sets the number of reachable transitive dependencies whose published version is older than 24 months.
-    /// <see cref="ProjectAnalyzer"/> calculates this recursively over <see cref="DependencyKeys"/>.
+    /// <see cref="DependencyHealthCountEnricher"/> calculates this recursively over <see cref="DependencyKeys"/>.
     /// </summary>
     [MemoryPackIgnore]
     public int? StaleTransitiveDependencyCount { get; set; }
@@ -642,7 +642,12 @@ public partial class PackageInfo
     /// <summary>
     /// Builds the dependency key that identifies this package across dependency graphs.
     /// </summary>
-    internal string GetDependencyKey() => CreateDependencyKey(GetPackageEcosystem(), Name, Version);
+    internal string CreatePackageKey() => CreateDependencyKey(GetPackageEcosystem(), Name, Version);
+
+    /// <summary>
+    /// Builds the NuGet dependency key for a package with the given <paramref name="name"/> and <paramref name="version"/>.
+    /// </summary>
+    internal static string CreatePackageKey(string name, string version) => CreateDependencyKey("nuget", name, version);
 
     /// <summary>
     /// Builds the collection key used to distinguish packages by source URL, name, and version.

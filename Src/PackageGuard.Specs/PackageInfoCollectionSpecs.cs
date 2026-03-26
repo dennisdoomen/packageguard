@@ -381,7 +381,7 @@ public class PackageInfoSpecs
         };
 
         // Act / Assert
-        nugetPackage.GetDependencyKey().Should().Be("nuget|System.IO|4.3.0");
-        npmPackage.GetDependencyKey().Should().Be("npm|express|4.18.2");
+        nugetPackage.CreatePackageKey().Should().Be("nuget|System.IO|4.3.0");
+        npmPackage.CreatePackageKey().Should().Be("npm|express|4.18.2");
     }
 }

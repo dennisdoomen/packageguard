@@ -279,6 +279,14 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
     }
 
     /// <summary>
+    /// Builds a dictionary keyed by each used package's dependency key for fast lookup during graph traversal.
+    /// </summary>
+    internal IReadOnlyDictionary<string, PackageInfo> CreatePackagesByKey() =>
+        GetAllUsedPackages()
+            .GroupBy(p => p.CreatePackageKey(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Returns <c>true</c> if the cached package entry is fresh enough to be reused without refetching risk data.
     /// </summary>
     private bool ShouldReuseCachedPackage(PackageInfo package)
