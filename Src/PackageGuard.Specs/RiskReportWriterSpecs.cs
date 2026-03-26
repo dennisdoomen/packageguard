@@ -65,7 +65,7 @@ internal sealed class RiskReportWriterSpecs
                 LegalRiskRationale =
                 [
                     "Permissive license (MIT) (+0.0)",
-                    "Valid license URL (+0.0)"
+                    "License URL (+0.0)"
                 ],
                 SecurityRisk = 6.0,
                 SecurityRiskRationale =
@@ -106,7 +106,7 @@ internal sealed class RiskReportWriterSpecs
         html.Should().Contain(@"frontend\package.json");
         html.Should().Contain("<span class=\"label\">Used by:</span>");
         html.Should().NotContain("<th>Used by</th>");
-        html.Should().Contain("<a href=\"https://github.com/contoso/contoso-security/blob/HEAD/LICENSE\" target=\"_blank\" rel=\"noreferrer noopener\">Valid license URL (+0.0)</a>");
+        html.Should().Contain("<a href=\"https://github.com/contoso/contoso-security/blob/HEAD/LICENSE\" target=\"_blank\" rel=\"noreferrer noopener\">License URL (+0.0)</a>");
         html.Should().Contain("<a href=\"https://github.com/contoso/contoso-security\" target=\"_blank\" rel=\"noreferrer noopener\">Public repository available (+0.0)</a>");
         html.Should().Contain("<a href=\"https://securityscorecards.dev/viewer/?uri=github.com/contoso/contoso-security\" target=\"_blank\" rel=\"noreferrer noopener\">OpenSSF Scorecard score is low (4.0) (+1.5)</a>");
         html.Should().Contain("<a href=\"https://github.com/contoso/contoso-security#readme\" target=\"_blank\" rel=\"noreferrer noopener\">README looks present and non-default (+0.0)</a>");

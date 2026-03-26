@@ -609,7 +609,7 @@ internal static class RiskHtmlReportWriter
     /// </summary>
     private static string BuildRationaleContent(PackageInfo package, string rationale)
     {
-        if (rationale.StartsWith("Valid license URL", StringComparison.Ordinal))
+        if (rationale.StartsWith("License URL", StringComparison.Ordinal))
         {
             string? licenseFileUrl = TryGetLicenseFileUrl(package);
             if (licenseFileUrl is not null)
