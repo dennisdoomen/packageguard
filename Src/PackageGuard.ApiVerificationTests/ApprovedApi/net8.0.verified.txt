@@ -7,14 +7,24 @@ namespace PackageGuard.Core
         public System.Collections.Generic.List<string> Feeds { get; set; }
         public bool Prerelease { get; set; }
     }
+    public class AnalysisResult
+    {
+        public AnalysisResult() { }
+        public PackageGuard.Core.PackageInfo[] Packages { get; init; }
+        public PackageGuard.Core.PolicyViolation[] Violations { get; init; }
+    }
     public class AnalyzerSettings
     {
         public AnalyzerSettings() { }
         public string CacheFilePath { get; init; }
         public bool ForceRestore { get; init; }
+        public string? GitHubApiKey { get; init; }
         public bool InteractiveRestore { get; init; }
         public string? NpmExePath { get; init; }
         public PackageGuard.Core.NpmPackageManager? NpmPackageManager { get; set; }
+        public bool RefreshRiskCache { get; init; }
+        public bool ReportRisk { get; init; }
+        public System.TimeSpan RiskCacheMaxAge { get; init; }
         public bool ScanNuGet { get; init; }
         public bool SkipRestore { get; init; }
         public bool UseCaching { get; init; }
@@ -42,15 +52,113 @@ namespace PackageGuard.Core
     {
         public PackageInfo() { }
         [MemoryPack.MemoryPackIgnore]
+        public int? AbandonedTransitiveDependencyCount { get; set; }
+        public System.DateTimeOffset? CacheUpdatedAt { get; set; }
+        public System.DateTimeOffset? ChangelogUpdatedAt { get; set; }
+        public int? ClosedBugIssueCountLast90Days { get; set; }
+        public int? ContributorCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public int DependencyDepth { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public string[] DependencyKeys { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public int? DeprecatedTransitiveDependencyCount { get; set; }
+        public long? DownloadCount { get; set; }
+        public double? ExternalContributionRate { get; set; }
+        public bool HasAvailableSecurityFix { get; set; }
+        public bool? HasBranchProtection { get; set; }
+        public bool? HasChangelog { get; set; }
+        public bool? HasContributingGuide { get; set; }
+        public bool? HasCoordinatedDisclosure { get; set; }
+        public bool? HasCoverageWorkflowSignal { get; set; }
+        public bool? HasDefaultChangelog { get; set; }
+        public bool? HasDefaultReadme { get; set; }
+        public bool? HasDependencyUpdateAutomation { get; set; }
+        public bool? HasDetailedSecurityPolicy { get; set; }
+        public bool? HasFlakyWorkflowPattern { get; set; }
+        public bool HasGitHubRiskData { get; set; }
+        public bool? HasModernTargetFrameworkSupport { get; set; }
+        public bool? HasNativeBinaryAssets { get; set; }
+        public bool HasOsvRiskData { get; set; }
+        public bool HasPatchedVulnerabilityInLast90Days { get; set; }
+        public bool HasPreOneZeroDependencies { get; set; }
+        public bool? HasProvenanceAttestation { get; set; }
+        public bool? HasReadme { get; set; }
+        public bool? HasRecentSuccessfulWorkflowRun { get; set; }
+        public bool? HasReleaseNotes { get; set; }
+        public bool? HasRepositoryOwnershipOrRenameChurn { get; set; }
+        public bool? HasReproducibleBuildSignal { get; set; }
+        public bool? HasSecurityPolicy { get; set; }
+        public bool? HasSemVerReleaseTags { get; set; }
+        public bool HasSigningRiskData { get; set; }
+        public bool? HasTestSignal { get; set; }
+        public bool? HasTrustedPackageSignature { get; set; }
+        public bool? HasValidLicenseUrl { get; set; }
+        public bool HasValidatedLicenseUrl { get; set; }
+        public bool? HasVerifiedPublisher { get; set; }
+        public bool? HasVerifiedReleaseSignature { get; set; }
+        public bool? IsDeprecated { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool? IsLicensePolicyCompatible { get; set; }
+        public bool IsMajorVersionBehindLatest { get; set; }
+        public bool IsMinorVersionBehindLatest { get; set; }
+        public bool? IsPackageSigned { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public bool IsUsed { get; set; }
+        public double? IssueResponseCoverage { get; set; }
+        public double? IssueTriageWithinSevenDaysRate { get; set; }
+        public System.DateTimeOffset? LatestStablePublishedAt { get; set; }
+        public string? LatestStableVersion { get; set; }
         public string? License { get; set; }
         public string? LicenseUrl { get; set; }
+        public double? MajorReleaseRatio { get; set; }
+        public double MaxVulnerabilitySeverity { get; set; }
+        public double? MeanReleaseIntervalDays { get; set; }
+        public double? MedianCriticalIssueResponseDays { get; set; }
+        public double? MedianIssueResponseDays { get; set; }
+        public double? MedianMaintainerActivityDays { get; set; }
+        public double? MedianOpenBugAgeDays { get; set; }
+        public double? MedianPullRequestMergeDays { get; set; }
+        public double? MedianVulnerabilityFixDays { get; set; }
         public string Name { get; set; }
+        public int? OpenBugIssueCount { get; set; }
+        public double? OpenSsfScore { get; set; }
+        public System.DateTimeOffset? OwnerCreatedAt { get; set; }
+        public bool OwnerIsOrganization { get; set; }
+        public double? PrereleaseRatio { get; set; }
         public string[] Projects { get; set; }
+        public System.DateTimeOffset? PublishedAt { get; set; }
+        public int? RapidReleaseCorrectionCount { get; set; }
+        public System.DateTimeOffset? ReadmeUpdatedAt { get; set; }
+        public int? RecentFailedWorkflowCount { get; set; }
+        public int? RecentMaintainerCount { get; set; }
+        public int? ReopenedBugIssueCountLast90Days { get; set; }
         public string? RepositoryUrl { get; set; }
+        public int? RequiredStatusCheckCount { get; set; }
+        public double? ReviewerDiversityRatio { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public PackageGuard.Core.RiskDimensions RiskDimensions { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public double RiskScore { get; set; }
         public string Source { get; set; }
         public string SourceUrl { get; set; }
+        public int? StaleCriticalBugIssueCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public int? StaleTransitiveDependencyCount { get; set; }
+        public string[] SupportedTargetFrameworks { get; set; }
+        public double? TopContributorShare { get; set; }
+        public double? TopTwoContributorShare { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public int TransitiveVulnerabilityCount { get; set; }
+        public int? UniqueReviewerCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public int? UnmaintainedCriticalTransitiveDependencyCount { get; set; }
+        public double? VerifiedCommitRatio { get; set; }
         public string Version { get; set; }
+        public double? VersionUpdateLagDays { get; set; }
+        public int VulnerabilityCount { get; set; }
+        public double? WorkflowFailureRate { get; set; }
+        public int? WorkflowPlatformCount { get; set; }
         public void MarkAsUsed() { }
         public bool MatchesFeed(string feedWildcard) { }
         public bool SatisfiesRange(string name, string? versionRange = null) { }
@@ -59,10 +167,11 @@ namespace PackageGuard.Core
     }
     public class PackageInfoCollection : System.Collections.Generic.IEnumerable<PackageGuard.Core.PackageInfo>, System.Collections.IEnumerable
     {
-        public PackageInfoCollection(Microsoft.Extensions.Logging.ILogger logger) { }
-        public void Add(PackageGuard.Core.PackageInfo package) { }
+        public PackageInfoCollection(Microsoft.Extensions.Logging.ILogger logger, PackageGuard.Core.AnalyzerSettings? settings = null) { }
+        public PackageGuard.Core.PackageInfo Add(PackageGuard.Core.PackageInfo package) { }
         public void Clear() { }
         public PackageGuard.Core.PackageInfo? Find(string name, string version, NuGet.Protocol.Core.Types.SourceRepository[] projectNuGetSources) { }
+        public PackageGuard.Core.PackageInfo[] GetAllUsedPackages() { }
         public System.Collections.Generic.IEnumerator<PackageGuard.Core.PackageInfo> GetEnumerator() { }
         public System.Threading.Tasks.Task TryInitializeFromCache(string cacheFilePath) { }
         public System.Threading.Tasks.Task WriteToCache(string cacheFilePath) { }
@@ -92,9 +201,10 @@ namespace PackageGuard.Core
     }
     public class ProjectAnalyzer
     {
-        public ProjectAnalyzer(PackageGuard.Core.LicenseFetcher licenseFetcher) { }
+        public ProjectAnalyzer(PackageGuard.Core.LicenseFetcher licenseFetcher, PackageGuard.Core.RiskEvaluator? riskEvaluator = null) { }
         public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
         public System.Threading.Tasks.Task<PackageGuard.Core.PolicyViolation[]> ExecuteAnalysis(string projectPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.GetPolicyByProject getPolicyByProject) { }
+        public System.Threading.Tasks.Task<PackageGuard.Core.AnalysisResult> ExecuteAnalysisWithRisk(string projectPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.GetPolicyByProject getPolicyByProject) { }
     }
     public class ProjectPolicy
     {
@@ -103,6 +213,23 @@ namespace PackageGuard.Core
         public PackageGuard.Core.DenyList DenyList { get; set; }
         public string[] IgnoredFeeds { get; set; }
         public void Validate() { }
+    }
+    [MemoryPack.MemoryPackable(MemoryPack.GenerateType.Object)]
+    public class RiskDimensions : MemoryPack.IMemoryPackFormatterRegister, MemoryPack.IMemoryPackable<PackageGuard.Core.RiskDimensions>
+    {
+        public RiskDimensions() { }
+        public double LegalRisk { get; set; }
+        public string[] LegalRiskRationale { get; set; }
+        public double OperationalRisk { get; set; }
+        public string[] OperationalRiskRationale { get; set; }
+        public double OverallRisk { get; }
+        public double SecurityRisk { get; set; }
+        public string[] SecurityRiskRationale { get; set; }
+    }
+    public class RiskEvaluator
+    {
+        public RiskEvaluator(Microsoft.Extensions.Logging.ILogger logger) { }
+        public void EvaluateRisk(PackageGuard.Core.PackageInfo package) { }
     }
 }
 namespace PackageGuard.Core.CSharp

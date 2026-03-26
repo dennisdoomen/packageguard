@@ -33,4 +33,15 @@ var app = new CommandApp<AnalyzeCommand>(registrar);
 app.Configure(c =>
     c.CaseSensitivity(CaseSensitivity.None));
 
-return app.Run(args);
+string? previousReportRiskPath = Environment.GetEnvironmentVariable(AnalyzeCommandSettings.ReportRiskPathOverrideEnvironmentVariable);
+(string[] normalizedArgs, string? reportRiskPath) = ReportRiskArgumentNormalizer.Normalize(args);
+Environment.SetEnvironmentVariable(AnalyzeCommandSettings.ReportRiskPathOverrideEnvironmentVariable, reportRiskPath);
+
+try
+{
+    return app.Run(normalizedArgs);
+}
+finally
+{
+    Environment.SetEnvironmentVariable(AnalyzeCommandSettings.ReportRiskPathOverrideEnvironmentVariable, previousReportRiskPath);
+}

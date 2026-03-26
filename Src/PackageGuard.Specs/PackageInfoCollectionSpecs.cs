@@ -1,6 +1,8 @@
-﻿using System;
+using System;
+using System.IO;
 using System.Threading.Tasks;
 using FluentAssertions;
+using MemoryPack;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NuGet.Configuration;
@@ -197,5 +199,189 @@ public class PackageInfoSpecs
         // Assert
         PackageInfo package = currentCollection.Find("Bogus", "2.0.0", [source]);
         package.Should().BeNull();
+    }
+
+    [TestMethod]
+    public async Task Can_fetch_enriched_risk_information_from_the_cache()
+    {
+        // Arrange
+        var source = new SourceRepository(new PackageSource("https://nuget.org"), Array.Empty<INuGetResourceProvider>());
+
+        var priorCollection = new PackageInfoCollection(NullLogger.Instance)
+        {
+            new PackageInfo
+            {
+                Name = "Bogus",
+                Version = "2.0.0",
+                SourceUrl = source.PackageSource.Source,
+                HasValidatedLicenseUrl = true,
+                HasValidLicenseUrl = true,
+                VulnerabilityCount = 2,
+                MaxVulnerabilitySeverity = 8.2,
+                HasOsvRiskData = true,
+                IsPackageSigned = true,
+                HasTrustedPackageSignature = true,
+                HasSigningRiskData = true,
+                ContributorCount = 5,
+                HasGitHubRiskData = true,
+                HasReadme = true,
+                HasSecurityPolicy = true,
+                SupportedTargetFrameworks = ["net8.0"],
+                HasModernTargetFrameworkSupport = true,
+                HasNativeBinaryAssets = false,
+                DownloadCount = 1234,
+                LatestStableVersion = "2.0.1"
+            }
+        };
+
+        await priorCollection.WriteToCache(ChainablePath.Current / "cache.bin");
+
+        // Act
+        var currentCollection = new PackageInfoCollection(NullLogger.Instance);
+        await currentCollection.TryInitializeFromCache(ChainablePath.Current / "cache.bin");
+        PackageInfo package = currentCollection.Find("Bogus", "2.0.0", [source]);
+
+        // Assert
+        package.Should().NotBeNull();
+        package.HasValidatedLicenseUrl.Should().BeTrue();
+        package.HasValidLicenseUrl.Should().BeTrue();
+        package.VulnerabilityCount.Should().Be(2);
+        package.MaxVulnerabilitySeverity.Should().Be(8.2);
+        package.HasOsvRiskData.Should().BeTrue();
+        package.IsPackageSigned.Should().BeTrue();
+        package.HasTrustedPackageSignature.Should().BeTrue();
+        package.HasSigningRiskData.Should().BeTrue();
+        package.ContributorCount.Should().Be(5);
+        package.HasGitHubRiskData.Should().BeTrue();
+        package.HasReadme.Should().BeTrue();
+        package.HasSecurityPolicy.Should().BeTrue();
+        package.SupportedTargetFrameworks.Should().ContainSingle().Which.Should().Be("net8.0");
+        package.HasModernTargetFrameworkSupport.Should().BeTrue();
+        package.HasNativeBinaryAssets.Should().BeFalse();
+        package.DownloadCount.Should().Be(1234);
+        package.LatestStableVersion.Should().Be("2.0.1");
+    }
+
+    [TestMethod]
+    public async Task Report_risk_ignores_stale_cached_packages()
+    {
+        // Arrange
+        var source = new SourceRepository(new PackageSource("https://nuget.org"), Array.Empty<INuGetResourceProvider>());
+        string cachePath = ChainablePath.Current / "cache.bin";
+
+        PackageInfo[] cachedPackages =
+        [
+            new PackageInfo
+            {
+                Name = "Bogus",
+                Version = "2.0.0",
+                SourceUrl = source.PackageSource.Source,
+                CacheUpdatedAt = DateTimeOffset.UtcNow.AddHours(-30)
+            }
+        ];
+
+        await using (FileStream fileStream = new(cachePath, FileMode.Create, FileAccess.Write))
+        {
+            await MemoryPackSerializer.SerializeAsync(fileStream, cachedPackages);
+        }
+
+        // Act
+        var currentCollection = new PackageInfoCollection(NullLogger.Instance, new AnalyzerSettings
+        {
+            ReportRisk = true,
+            RiskCacheMaxAge = TimeSpan.FromHours(24)
+        });
+        await currentCollection.TryInitializeFromCache(cachePath);
+        PackageInfo package = currentCollection.Find("Bogus", "2.0.0", [source]);
+
+        // Assert
+        package.Should().BeNull();
+    }
+
+    [TestMethod]
+    public async Task Report_risk_can_force_refresh_of_cached_packages()
+    {
+        // Arrange
+        var source = new SourceRepository(new PackageSource("https://nuget.org"), Array.Empty<INuGetResourceProvider>());
+
+        var priorCollection = new PackageInfoCollection(NullLogger.Instance)
+        {
+            new PackageInfo
+            {
+                Name = "Bogus",
+                Version = "2.0.0",
+                SourceUrl = source.PackageSource.Source
+            }
+        };
+
+        await priorCollection.WriteToCache(ChainablePath.Current / "cache.bin");
+
+        // Act
+        var currentCollection = new PackageInfoCollection(NullLogger.Instance, new AnalyzerSettings
+        {
+            ReportRisk = true,
+            RefreshRiskCache = true
+        });
+        await currentCollection.TryInitializeFromCache(ChainablePath.Current / "cache.bin");
+        PackageInfo package = currentCollection.Find("Bogus", "2.0.0", [source]);
+
+        // Assert
+        package.Should().BeNull();
+    }
+
+    [TestMethod]
+    public void Adding_the_same_package_twice_reuses_the_canonical_instance()
+    {
+        // Arrange
+        var collection = new PackageInfoCollection(NullLogger.Instance);
+
+        var original = collection.Add(new PackageInfo
+        {
+            Name = "Bogus",
+            Version = "2.0.0",
+            Source = "nuget.org",
+            SourceUrl = "https://nuget.org"
+        });
+        original.TrackAsUsedInProject("ProjectA");
+
+        // Act
+        var duplicate = collection.Add(new PackageInfo
+        {
+            Name = "Bogus",
+            Version = "2.0.0",
+            Source = "nuget.org",
+            SourceUrl = "https://nuget.org"
+        });
+        duplicate.TrackAsUsedInProject("ProjectB");
+
+        // Assert
+        duplicate.Should().BeSameAs(original);
+        collection.Should().ContainSingle();
+        collection.GetAllUsedPackages().Should().ContainSingle().Which.Projects.Should().BeEquivalentTo("ProjectA", "ProjectB");
+    }
+
+    [TestMethod]
+    public void Dependency_keys_use_the_package_ecosystem_instead_of_the_feed_name()
+    {
+        // Arrange
+        var nugetPackage = new PackageInfo
+        {
+            Name = "System.IO",
+            Version = "4.3.0",
+            Source = "nuget.org",
+            SourceUrl = "https://api.nuget.org/v3/index.json"
+        };
+
+        var npmPackage = new PackageInfo
+        {
+            Name = "express",
+            Version = "4.18.2",
+            Source = "npm",
+            SourceUrl = "https://registry.npmjs.org/express/-/express-4.18.2.tgz"
+        };
+
+        // Act / Assert
+        nugetPackage.CreatePackageKey().Should().Be("nuget|System.IO|4.3.0");
+        npmPackage.CreatePackageKey().Should().Be("npm|express|4.18.2");
     }
 }

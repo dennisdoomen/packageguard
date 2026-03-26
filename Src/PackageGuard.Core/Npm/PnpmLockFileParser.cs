@@ -12,10 +12,20 @@ namespace PackageGuard.Core.Npm;
 /// </summary>
 internal class PnpmLockFileParser
 {
+    /// <summary>
+    /// The fetcher used to retrieve additional metadata from the NPM registry.
+    /// </summary>
     private readonly NpmRegistryMetadataFetcher metadataFetcher;
 
+    /// <summary>
+    /// The logger used to record diagnostic and informational messages.
+    /// </summary>
     private readonly ILogger logger;
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="PnpmLockFileParser"/> with an optional logger.
+    /// </summary>
+    /// <param name="logger">An optional logger; defaults to <see cref="NullLogger.Instance"/> when not provided.</param>
     public PnpmLockFileParser(ILogger? logger = null)
     {
         this.logger = logger ?? NullLogger.Instance;
@@ -78,10 +88,11 @@ internal class PnpmLockFileParser
                     Version = version,
                     License = null, // Pnpm lock files typically don't include license info
                     Source = "npm",
-                    SourceUrl = resolvedUrl ?? "https://registry.npmjs.org"
+                    SourceUrl = resolvedUrl ?? "https://registry.npmjs.org",
+                    DependencyDepth = 1
                 };
 
-                packages.Add(packageInfo);
+                packageInfo = packages.Add(packageInfo);
                 packageInfo.TrackAsUsedInProject(pnpmLockPath.Directory);
 
                 // Fetch additional metadata from NPM registry since Pnpm lock doesn't include license
@@ -152,21 +163,39 @@ internal class PnpmLockFileParser
         return (string.Empty, string.Empty);
     }
 
+    /// <summary>
+    /// Represents the deserialized structure of a pnpm-lock.yaml file.
+    /// </summary>
     [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     private class PnpmLockFile
     {
+        /// <summary>
+        /// Gets or sets the map of package keys to their lock-file entries.
+        /// </summary>
         public Dictionary<string, PnpmPackageData>? Packages { get; set; }
     }
 
+    /// <summary>
+    /// Represents the data recorded for a single package in a pnpm-lock.yaml file.
+    /// </summary>
     [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     private class PnpmPackageData
     {
+        /// <summary>
+        /// Gets or sets the integrity and resolution information for the package.
+        /// </summary>
         public PnpmResolution? Resolution { get; set; }
     }
 
+    /// <summary>
+    /// Represents the resolution block within a pnpm package entry.
+    /// </summary>
     [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
     private class PnpmResolution
     {
+        /// <summary>
+        /// Gets or sets the integrity hash (e.g., <c>sha512-…</c>) that identifies the package tarball.
+        /// </summary>
         public string? Integrity { get; set; }
     }
 }

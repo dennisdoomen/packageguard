@@ -12,10 +12,20 @@ namespace PackageGuard.Core.Npm;
 /// </summary>
 internal class YarnLockFileParser
 {
+    /// <summary>
+    /// The fetcher used to retrieve additional metadata from the NPM registry.
+    /// </summary>
     private readonly NpmRegistryMetadataFetcher metadataFetcher;
 
+    /// <summary>
+    /// The logger used to record diagnostic and informational messages.
+    /// </summary>
     private readonly ILogger logger;
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="YarnLockFileParser"/> with an optional logger.
+    /// </summary>
+    /// <param name="logger">An optional logger; defaults to <see cref="NullLogger.Instance"/> when not provided.</param>
     public YarnLockFileParser(ILogger? logger = null)
     {
         this.logger = logger ?? NullLogger.Instance;
@@ -67,10 +77,11 @@ internal class YarnLockFileParser
                     Version = packageData.Version,
                     License = null, // Yarn lock files typically don't include license info
                     Source = "npm",
-                    SourceUrl = packageData.Resolved ?? "https://registry.npmjs.org"
+                    SourceUrl = packageData.Resolved ?? "https://registry.npmjs.org",
+                    DependencyDepth = 1
                 };
 
-                packages.Add(packageInfo);
+                packageInfo = packages.Add(packageInfo);
                 packageInfo.TrackAsUsedInProject(yarnLockPath.Directory);
 
                 // Fetch additional metadata from NPM registry since Yarn lock doesn't include license
@@ -288,6 +299,12 @@ internal class YarnLockFileParser
         return packages;
     }
 
+    /// <summary>
+    /// Extracts the value portion of a Yarn v1 property line by removing the prefix and stripping surrounding quotes.
+    /// </summary>
+    /// <param name="line">The trimmed property line (e.g., <c>version "1.0.0"</c>).</param>
+    /// <param name="prefix">The property name prefix to strip (e.g., <c>version </c>).</param>
+    /// <returns>The unquoted value string.</returns>
     private string ExtractValue(string line, string prefix)
     {
         string value = line.Substring(prefix.Length).Trim();
@@ -296,9 +313,19 @@ internal class YarnLockFileParser
         return value;
     }
 
+    /// <summary>
+    /// Holds the resolved version and download URL for a package entry parsed from a yarn.lock file.
+    /// </summary>
     private class YarnPackageData
     {
+        /// <summary>
+        /// Gets or sets the resolved version of the package.
+        /// </summary>
         public string Version { get; set; } = "";
+
+        /// <summary>
+        /// Gets or sets the resolved tarball URL for the package, if present in the lock file.
+        /// </summary>
         public string? Resolved { get; set; }
     }
 }

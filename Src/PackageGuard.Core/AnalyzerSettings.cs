@@ -2,6 +2,9 @@ using Pathy;
 
 namespace PackageGuard.Core;
 
+/// <summary>
+/// Configures the behavior of the package analysis pipeline, including restore options, caching, risk reporting, and ecosystem scanning.
+/// </summary>
 public class AnalyzerSettings
 {
     /// <summary>
@@ -36,6 +39,16 @@ public class AnalyzerSettings
     public string CacheFilePath { get; init; } = ChainablePath.Current / ".packageguard" / "cache.bin";
 
     /// <summary>
+    /// Forces report-risk runs to ignore cached risk-related package data and rebuild it from upstream sources.
+    /// </summary>
+    public bool RefreshRiskCache { get; init; }
+
+    /// <summary>
+    /// The maximum age of cached package/risk metadata before a report-risk run refreshes it.
+    /// </summary>
+    public TimeSpan RiskCacheMaxAge { get; init; } = TimeSpan.FromHours(24);
+
+    /// <summary>
     /// Indicates whether NuGet packages should be scanned during the analysis process.
     /// When enabled, NuGet package dependencies will be analyzed for potential policy violations.
     /// </summary>
@@ -50,4 +63,14 @@ public class AnalyzerSettings
     /// The NPM package manager to use.
     /// </summary>
     public NpmPackageManager? NpmPackageManager { get; set; }
+
+    /// <summary>
+    /// Indicates whether risk metrics should be included in the analysis result.
+    /// </summary>
+    public bool ReportRisk { get; init; }
+
+    /// <summary>
+    /// Optional GitHub API key used to enrich repository-based risk metadata and avoid rate limits.
+    /// </summary>
+    public string? GitHubApiKey { get; init; }
 }
