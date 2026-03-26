@@ -238,7 +238,7 @@ public class ProjectAnalyzerSpecs
         {
             AllowList = new AllowList
             {
-                Licenses = ["mit", "apache-2.0", "unknown"]
+                Licenses = ["mit", "apache-2.0", "unknown", "Microsoft .NET Library License"]
             }
         });
 
@@ -330,7 +330,7 @@ public class ProjectAnalyzerSpecs
             AllowList = new AllowList
             {
                 Licenses = ["mit", "apache-2.0"],
-                Packages = [new PackageSelector("FluentAssertions")]
+                Packages = [new PackageSelector("FluentAssertions"), new PackageSelector("Microsoft.Testing.Extensions.CodeCoverage")]
             }
         });
 
