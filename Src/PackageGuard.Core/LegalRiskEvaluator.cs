@@ -47,7 +47,7 @@ internal sealed class LegalRiskEvaluator : IEvaluateRiskDimension
         }
         else if (package.HasValidLicenseUrl is true)
         {
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Valid license URL", 0.0));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale("License URL", 0.0));
         }
 
         if (package.IsLicensePolicyCompatible is false)
