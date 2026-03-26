@@ -6,11 +6,24 @@ using PackageGuard.Core;
 
 namespace PackageGuard;
 
+/// <summary>
+/// Generates HTML and SARIF risk reports from package analysis results and writes them to disk.
+/// </summary>
 internal static class RiskHtmlReportWriter
 {
+    /// <summary>
+    /// Environment variable that overrides the output directory for generated risk reports.
+    /// </summary>
     internal const string ReportDirectoryEnvironmentVariable = "PACKAGEGUARD_REPORT_DIRECTORY";
+    /// <summary>
+    /// UTF-8 encoding without a byte-order mark, used when writing report files to disk.
+    /// </summary>
     private static readonly UTF8Encoding Utf8WithoutBom = new(false);
 
+    /// <summary>
+    /// Writes HTML and SARIF risk reports for <paramref name="packages"/> to the resolved output path and
+    /// returns the resulting file paths.
+    /// </summary>
     public static async Task<RiskReportPaths> WriteAsync(
         string projectPath,
         IEnumerable<PackageInfo> packages,
@@ -27,6 +40,10 @@ internal static class RiskHtmlReportWriter
         return reportPaths;
     }
 
+    /// <summary>
+    /// Resolves output file paths for the HTML and SARIF reports, falling back to a generated temp-directory
+    /// path when no explicit output location is configured.
+    /// </summary>
     private static RiskReportPaths GetReportPaths(string projectPath, string? configuredReportPath = null)
     {
         string? reportLocation = string.IsNullOrWhiteSpace(configuredReportPath)
@@ -45,6 +62,10 @@ internal static class RiskHtmlReportWriter
         return CreateGeneratedReportPaths(projectPath, reportDirectory);
     }
 
+    /// <summary>
+    /// Resolves report paths from a user-supplied location, treating it as a directory when it ends with a
+    /// separator or has no extension, and as an explicit file path otherwise.
+    /// </summary>
     private static RiskReportPaths ResolveConfiguredReportPaths(string projectPath, string reportLocation)
     {
         if (LooksLikeDirectoryPath(reportLocation))
@@ -78,6 +99,10 @@ internal static class RiskHtmlReportWriter
         return new RiskReportPaths(htmlPath, sarifPath);
     }
 
+    /// <summary>
+    /// Returns <c>true</c> when <paramref name="reportLocation"/> refers to a directory (existing or implied
+    /// by a trailing separator or lack of extension).
+    /// </summary>
     private static bool LooksLikeDirectoryPath(string reportLocation)
     {
         if (Directory.Exists(reportLocation))
@@ -90,6 +115,10 @@ internal static class RiskHtmlReportWriter
                string.IsNullOrWhiteSpace(Path.GetExtension(reportLocation));
     }
 
+    /// <summary>
+    /// Creates timestamped HTML and SARIF report file paths inside <paramref name="reportDirectory"/>,
+    /// using a sanitised form of the project name as the file stem.
+    /// </summary>
     private static RiskReportPaths CreateGeneratedReportPaths(string projectPath, string reportDirectory)
     {
         string projectName = Path.GetFileNameWithoutExtension(projectPath);
@@ -106,6 +135,10 @@ internal static class RiskHtmlReportWriter
             Path.Combine(reportDirectory, $"{fileNamePrefix}.sarif"));
     }
 
+    /// <summary>
+    /// Builds the complete self-contained HTML string for the risk report, including styles, summary table,
+    /// and per-package detail sections.
+    /// </summary>
     private static string BuildHtml(string projectPath, PackageInfo[] packages)
     {
         var builder = new StringBuilder();
@@ -242,6 +275,9 @@ internal static class RiskHtmlReportWriter
         return builder.ToString();
     }
 
+    /// <summary>
+    /// Appends an HTML risk dimension card showing the score pill and rationale list for a single risk dimension.
+    /// </summary>
     private static void AppendDimension(
         StringBuilder builder,
         PackageInfo package,
@@ -263,6 +299,9 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine("      </section>");
     }
 
+    /// <summary>
+    /// Yields label/value pairs representing the key metadata fields shown in the package detail section.
+    /// </summary>
     private static IEnumerable<(string Label, string Value)> BuildDetails(PackageInfo package)
     {
         string[] displayProjectPaths = GetDisplayProjectPaths(package);
@@ -564,6 +603,10 @@ internal static class RiskHtmlReportWriter
         }
     }
 
+    /// <summary>
+    /// Returns an HTML snippet for a rationale string, wrapping it in a hyperlink when the rationale
+    /// matches a known linkable signal (license file, repository, README, contributing guide, changelog, or OpenSSF scorecard).
+    /// </summary>
     private static string BuildRationaleContent(PackageInfo package, string rationale)
     {
         if (rationale.StartsWith("Valid license URL", StringComparison.Ordinal))
@@ -623,6 +666,9 @@ internal static class RiskHtmlReportWriter
         return Encode(rationale);
     }
 
+    /// <summary>
+    /// Returns the validated repository URL for the package, or <c>null</c> if none is available or valid.
+    /// </summary>
     private static string? TryGetRepositoryUrl(PackageInfo package)
     {
         if (Uri.TryCreate(package.RepositoryUrl, UriKind.Absolute, out Uri? repositoryUri))
@@ -633,6 +679,10 @@ internal static class RiskHtmlReportWriter
         return null;
     }
 
+    /// <summary>
+    /// Returns a URL pointing to the license file on GitHub, or falls back to the package's license URL,
+    /// or <c>null</c> if neither is resolvable.
+    /// </summary>
     private static string? TryGetLicenseFileUrl(PackageInfo package)
     {
         string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
@@ -649,24 +699,40 @@ internal static class RiskHtmlReportWriter
         return null;
     }
 
+    /// <summary>
+    /// Returns the root <c>https://github.com/&lt;owner&gt;/&lt;repo&gt;</c> URL derived from
+    /// <paramref name="repositoryUrl"/>, or <c>null</c> if the URL is not a recognised GitHub URL.
+    /// </summary>
     private static string? TryGetGitHubRepositoryRoot(string? repositoryUrl)
     {
         string? identifier = TryGetGitHubIdentifier(repositoryUrl);
         return identifier is null ? null : $"https://github.com/{identifier}";
     }
 
+    /// <summary>
+    /// Returns a URL pointing to the README anchor on the GitHub repository, or <c>null</c> if the repository
+    /// URL is not a recognised GitHub URL.
+    /// </summary>
     private static string? TryGetReadmeUrl(PackageInfo package)
     {
         string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
         return repositoryRoot is null ? null : $"{repositoryRoot}#readme";
     }
 
+    /// <summary>
+    /// Returns a URL pointing to the CONTRIBUTING.md file on the GitHub repository, or <c>null</c> if the
+    /// repository URL is not a recognised GitHub URL.
+    /// </summary>
     private static string? TryGetContributingGuideUrl(PackageInfo package)
     {
         string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
         return repositoryRoot is null ? null : $"{repositoryRoot}/blob/HEAD/CONTRIBUTING.md";
     }
 
+    /// <summary>
+    /// Returns a URL pointing to the release notes or changelog for the package on GitHub,
+    /// preferring the Releases page over a CHANGELOG.md link, or <c>null</c> if neither is available.
+    /// </summary>
     private static string? TryGetReleaseHistoryUrl(PackageInfo package)
     {
         string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
@@ -688,6 +754,10 @@ internal static class RiskHtmlReportWriter
         return null;
     }
 
+    /// <summary>
+    /// Returns a URL to the OpenSSF Scorecard viewer for the package's GitHub repository, or <c>null</c>
+    /// if the repository URL is not a recognised GitHub URL.
+    /// </summary>
     private static string? TryGetOpenSsfScorecardUrl(PackageInfo package)
     {
         string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
@@ -700,6 +770,10 @@ internal static class RiskHtmlReportWriter
         return $"https://securityscorecards.dev/viewer/?uri={repositoryIdentifier}";
     }
 
+    /// <summary>
+    /// Extracts the <c>&lt;owner&gt;/&lt;repo&gt;</c> identifier from a GitHub repository URL,
+    /// or returns <c>null</c> if the URL is not a valid GitHub URL.
+    /// </summary>
     private static string? TryGetGitHubIdentifier(string? repositoryUrl)
     {
         if (string.IsNullOrWhiteSpace(repositoryUrl))
@@ -721,6 +795,9 @@ internal static class RiskHtmlReportWriter
         return $"{match.Groups["owner"].Value}/{repositoryName}";
     }
 
+    /// <summary>
+    /// Builds a colored score pill HTML element showing the overall risk score out of 100.
+    /// </summary>
     private static string BuildOverallScorePill(double score)
     {
         string zone = GetRiskZone(score);
@@ -734,6 +811,9 @@ internal static class RiskHtmlReportWriter
         return $"<span class=\"score-pill {cssClass}\">{Encode(FormatDecimal(score))}/100</span>";
     }
 
+    /// <summary>
+    /// Builds a colored score pill HTML element showing a dimension risk score out of 10.
+    /// </summary>
     private static string BuildDimensionScorePill(double score)
     {
         double normalizedScore = score * 10;
@@ -748,6 +828,9 @@ internal static class RiskHtmlReportWriter
         return $"<span class=\"score-pill {cssClass}\">{Encode(FormatDecimal(score))}/10</span>";
     }
 
+    /// <summary>
+    /// Builds a colored zone pill HTML element showing a risk zone label and an optional value.
+    /// </summary>
     private static string BuildZonePill(string zone, string? value = null)
     {
         string cssClass = zone switch
@@ -761,6 +844,9 @@ internal static class RiskHtmlReportWriter
         return $"<span class=\"score-pill {cssClass}\">{Encode(text)}</span>";
     }
 
+    /// <summary>
+    /// Creates a stable HTML anchor ID for the given package, derived from its name and version.
+    /// </summary>
     private static string CreatePackageAnchor(PackageInfo package)
     {
         string raw = $"{package.Name}-{package.Version}".ToLowerInvariant();
@@ -771,6 +857,9 @@ internal static class RiskHtmlReportWriter
         return $"package-{new string(anchor).Trim('-')}";
     }
 
+    /// <summary>
+    /// Returns the risk zone label ("High", "Medium", or "Low") for a given numeric score.
+    /// </summary>
     private static string GetRiskZone(double score)
     {
         return score switch
@@ -781,8 +870,15 @@ internal static class RiskHtmlReportWriter
         };
     }
 
+    /// <summary>
+    /// Formats a decimal value to one decimal place using the invariant culture.
+    /// </summary>
     private static string FormatDecimal(double value) => value.ToString("0.0", CultureInfo.InvariantCulture);
 
+    /// <summary>
+    /// Returns a human-readable license string for display, noting when the license is missing,
+    /// undetermined, or not one of PackageGuard's recognised SPDX identifiers.
+    /// </summary>
     private static string FormatLicenseDisplay(PackageInfo package)
     {
         if (string.IsNullOrWhiteSpace(package.License) ||
@@ -799,6 +895,10 @@ internal static class RiskHtmlReportWriter
         return package.License;
     }
 
+    /// <summary>
+    /// Returns <c>true</c> when <paramref name="license"/> contains a substring matching one of PackageGuard's
+    /// well-known SPDX license family markers.
+    /// </summary>
     private static bool IsWellKnownLicense(string license)
     {
         string[] knownLicenseMarkers =
@@ -812,8 +912,14 @@ internal static class RiskHtmlReportWriter
             license.Contains(marker, StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// HTML-encodes <paramref name="value"/> to prevent injection in generated markup.
+    /// </summary>
     private static string Encode(string value) => WebUtility.HtmlEncode(value);
 
+    /// <summary>
+    /// Returns a deduplicated, sorted array of display-friendly project paths referencing the given package.
+    /// </summary>
     private static string[] GetDisplayProjectPaths(PackageInfo package)
     {
         return package.Projects
@@ -824,6 +930,10 @@ internal static class RiskHtmlReportWriter
             .ToArray();
     }
 
+    /// <summary>
+    /// Normalises a raw project path for display, appending <c>package.json</c> for npm packages
+    /// that reference a directory rather than an explicit file.
+    /// </summary>
     private static string ToDisplayProjectPath(PackageInfo package, string projectPath)
     {
         if (string.IsNullOrWhiteSpace(projectPath))

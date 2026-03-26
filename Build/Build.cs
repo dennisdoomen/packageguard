@@ -18,6 +18,9 @@ using static Serilog.Log;
 
 class Build : NukeBuild
 {
+    /// <summary>
+    /// The name of the environment variable used to override the output directory for PackageGuard risk reports during self-scanning.
+    /// </summary>
     const string PackageGuardReportDirectoryEnvironmentVariable = "PACKAGEGUARD_REPORT_DIRECTORY";
 
     /// Support plugins are available for:

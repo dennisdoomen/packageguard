@@ -6,10 +6,24 @@ using Spectre.Console.Cli;
 
 namespace PackageGuard;
 
+/// <summary>
+/// Defines the command-line settings for the <c>analyze</c> command, controlling project paths, restore behavior,
+/// caching, npm scanning, and risk reporting output.
+/// </summary>
 [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 internal class AnalyzeCommandSettings : CommandSettings
 {
+    /// <summary>
+    /// The default name of the PackageGuard configuration file.
+    /// </summary>
+    /// <summary>
+    /// The default name of the PackageGuard configuration file.
+    /// </summary>
     public const string DefaultConfigFileName = "config.json";
+
+    /// <summary>
+    /// Environment variable that overrides the output path for the risk report, used in CI pipelines.
+    /// </summary>
     internal const string ReportRiskPathOverrideEnvironmentVariable = "PACKAGEGUARD_REPORT_RISK_PATH_OVERRIDE";
 
     [Description(
@@ -87,6 +101,10 @@ internal class AnalyzeCommandSettings : CommandSettings
     [CommandOption("--report-risk|--reportrisk")]
     public bool ReportRisk { get; set; }
 
+    /// <summary>
+    /// Returns the report risk output path when overridden via the
+    /// <see cref="ReportRiskPathOverrideEnvironmentVariable"/> environment variable, or <c>null</c> if not set.
+    /// </summary>
     public string? GetReportRiskPath()
     {
         string? reportRiskPath = Environment.GetEnvironmentVariable(ReportRiskPathOverrideEnvironmentVariable);
@@ -98,6 +116,9 @@ internal class AnalyzeCommandSettings : CommandSettings
         return reportRiskPath;
     }
 
+    /// <summary>
+    /// Converts the CLI settings into an <see cref="AnalyzerSettings"/> instance used by the core analysis pipeline.
+    /// </summary>
     public AnalyzerSettings ToCoreSettings()
     {
         return new AnalyzerSettings

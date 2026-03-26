@@ -10,10 +10,21 @@ namespace PackageGuard.Core.Npm;
 /// </summary>
 internal class NpmLockFileParser
 {
+    /// <summary>
+    /// The fetcher used to retrieve additional metadata from the NPM registry.
+    /// </summary>
     private readonly NpmRegistryMetadataFetcher metadataFetcher;
 
+    /// <summary>
+    /// The logger used to record diagnostic and informational messages.
+    /// </summary>
     private readonly ILogger logger;
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="NpmLockFileParser"/> with the specified metadata fetcher and optional logger.
+    /// </summary>
+    /// <param name="metadataFetcher">The fetcher used to retrieve additional package metadata from the NPM registry.</param>
+    /// <param name="logger">An optional logger; defaults to <see cref="NullLogger.Instance"/> when not provided.</param>
     public NpmLockFileParser(NpmRegistryMetadataFetcher metadataFetcher, ILogger? logger = null)
     {
         this.metadataFetcher = metadataFetcher;

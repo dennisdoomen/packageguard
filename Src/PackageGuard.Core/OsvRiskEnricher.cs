@@ -3,14 +3,34 @@ using System.Text;
 using System.Text.Json;
 namespace PackageGuard.Core;
 
+/// <summary>
+/// Queries the OSV API for vulnerability data and enriches a <see cref="PackageInfo"/> with the results.
+/// </summary>
 internal sealed class OsvRiskEnricher : IEnrichPackageRisk
 {
+    /// <summary>
+    /// Shared HTTP client used for all OSV API requests.
+    /// </summary>
     private static readonly HttpClient HttpClient = new();
+
+    /// <summary>
+    /// OSV result cache keyed by "source|name|version" to avoid redundant API calls.
+    /// </summary>
     private static readonly Dictionary<string, OsvPackageRiskResult> Cache = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Lock that guards thread-safe access to <see cref="Cache"/>.
+    /// </summary>
     private static readonly Lock CacheLock = new();
 
+    /// <summary>
+    /// Returns <see langword="true"/> if OSV risk data has already been populated for <paramref name="package"/>.
+    /// </summary>
     public bool HasCachedData(PackageInfo package) => package.HasOsvRiskData;
 
+    /// <summary>
+    /// Queries the OSV API for vulnerabilities affecting <paramref name="package"/> and applies the results to it.
+    /// </summary>
     public async Task EnrichAsync(PackageInfo package)
     {
         string cacheKey = $"{package.Source}|{package.Name}|{package.Version}";
@@ -34,6 +54,9 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         Apply(package, result);
     }
 
+    /// <summary>
+    /// Pages through OSV API results for <paramref name="package"/>, aggregating severity and fix data into an <see cref="OsvPackageRiskResult"/>.
+    /// </summary>
     private async Task<OsvPackageRiskResult> QueryAsync(PackageInfo package)
     {
         string ecosystem = package.Source switch
@@ -102,6 +125,9 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         };
     }
 
+    /// <summary>
+    /// Builds the JSON request body for the OSV query API, optionally including a pagination token.
+    /// </summary>
     private static string CreateRequestBody(PackageInfo package, string ecosystem, string? pageToken)
     {
         if (string.IsNullOrWhiteSpace(pageToken))
@@ -116,8 +142,14 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
                  """;
     }
 
+    /// <summary>
+    /// JSON-escapes backslash and double-quote characters in <paramref name="value"/>.
+    /// </summary>
     private static string Escape(string value) => value.Replace("\\", "\\\\").Replace("\"", "\\\"");
 
+    /// <summary>
+    /// Copies all OSV result fields from <paramref name="result"/> onto <paramref name="package"/>.
+    /// </summary>
     private static void Apply(PackageInfo package, OsvPackageRiskResult result)
     {
         package.VulnerabilityCount = result.VulnerabilityCount;
@@ -128,6 +160,9 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         package.HasOsvRiskData = true;
     }
 
+    /// <summary>
+    /// Returns <see langword="true"/> if any range event within <paramref name="vulnerability"/> contains a "fixed" version.
+    /// </summary>
     private static bool HasFix(JsonElement vulnerability)
     {
         if (!vulnerability.TryGetProperty("affected", out JsonElement affected) || affected.ValueKind != JsonValueKind.Array)
@@ -160,6 +195,9 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         return false;
     }
 
+    /// <summary>
+    /// Returns <see langword="true"/> if <paramref name="vulnerability"/> was modified within the last 90 days.
+    /// </summary>
     private static bool IsRecentlyModified(JsonElement vulnerability)
     {
         if (vulnerability.TryGetProperty("modified", out JsonElement modifiedElement) &&
@@ -171,6 +209,9 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         return false;
     }
 
+    /// <summary>
+    /// Extracts and returns the highest numeric CVSS or text-mapped severity score from <paramref name="vulnerability"/>.
+    /// </summary>
     private static double ReadSeverity(JsonElement vulnerability)
     {
         foreach (JsonElement severity in EnumerateSeverityElements(vulnerability))
@@ -206,6 +247,9 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         return 0;
     }
 
+    /// <summary>
+    /// Yields all severity JSON elements from the top-level severity array and from each affected-package entry.
+    /// </summary>
     private static IEnumerable<JsonElement> EnumerateSeverityElements(JsonElement vulnerability)
     {
         if (vulnerability.TryGetProperty("severity", out JsonElement severity) && severity.ValueKind == JsonValueKind.Array)
@@ -232,6 +276,9 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         }
     }
 
+    /// <summary>
+    /// Yields text severity strings sourced from <c>ecosystem_specific</c> and <c>database_specific</c> objects within the affected entries.
+    /// </summary>
     private static IEnumerable<string> EnumerateTextSeverities(JsonElement vulnerability)
     {
         if (!vulnerability.TryGetProperty("affected", out JsonElement affected) || affected.ValueKind != JsonValueKind.Array)
@@ -265,6 +312,9 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         }
     }
 
+    /// <summary>
+    /// Parses a CVSS vector string or plain numeric score into a <see cref="double"/>; returns <c>0</c> when parsing fails.
+    /// </summary>
     private static double ParseScore(string? score)
     {
         if (string.IsNullOrWhiteSpace(score))
@@ -281,6 +331,9 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         return parts.Select(part => double.TryParse(part, NumberStyles.Number, CultureInfo.InvariantCulture, out double value) ? value : 0).FirstOrDefault(value => value > 0);
     }
 
+    /// <summary>
+    /// Returns the number of days between the published and modified dates of <paramref name="vulnerability"/> if a fix exists; otherwise <see langword="null"/>.
+    /// </summary>
     private static double? TryGetDaysToFix(JsonElement vulnerability)
     {
         if (!HasFix(vulnerability))
@@ -298,6 +351,10 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
         return (modifiedAt.Value - publishedAt.Value).TotalDays;
     }
 
+    /// <summary>
+    /// Reads and parses the date-valued property identified by <paramref name="propertyName"/> from <paramref name="element"/>;
+    /// returns <see langword="null"/> if the property is absent or unparseable.
+    /// </summary>
     private static DateTimeOffset? TryReadDate(JsonElement element, string propertyName)
     {
         return element.TryGetProperty(propertyName, out JsonElement property) &&
@@ -306,6 +363,9 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
             : null;
     }
 
+    /// <summary>
+    /// Computes the median of <paramref name="values"/>, or returns <see langword="null"/> if the list is empty.
+    /// </summary>
     private static double? ComputeMedian(List<double> values)
     {
         if (values.Count == 0)
@@ -320,16 +380,34 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
             : values[middle];
     }
 
+    /// <summary>
+    /// Holds the aggregated OSV vulnerability results for a single package version.
+    /// </summary>
     private sealed class OsvPackageRiskResult
     {
+        /// <summary>
+        /// Total number of vulnerabilities found for the package.
+        /// </summary>
         public int VulnerabilityCount { get; init; }
 
+        /// <summary>
+        /// Highest severity score across all vulnerabilities found for the package.
+        /// </summary>
         public double MaxSeverity { get; init; }
 
+        /// <summary>
+        /// Whether at least one vulnerability was patched within the last 90 days.
+        /// </summary>
         public bool HasPatchedVulnerabilityInLast90Days { get; init; }
 
+        /// <summary>
+        /// Whether at least one vulnerability has an available security fix.
+        /// </summary>
         public bool HasAvailableSecurityFix { get; init; }
 
+        /// <summary>
+        /// Median number of days from vulnerability publication to fix, or <see langword="null"/> if no fix data is available.
+        /// </summary>
         public double? MedianVulnerabilityFixDays { get; init; }
     }
 }

@@ -13,6 +13,10 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
 {
     private readonly ILogger logger = logger ?? NullLogger.Instance;
 
+    /// <summary>
+    /// Analyzes C# projects found at <paramref name="projectOrSolutionPath"/> for NuGet policy violations,
+    /// collecting package metadata and checking each package against the configured allow/deny lists and license policies.
+    /// </summary>
     public async Task<PolicyViolation[]> ExecuteAnalysis(string projectOrSolutionPath, AnalyzerSettings settings,
         PackageInfoCollection packages)
     {
@@ -48,6 +52,10 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
         return violations.ToArray();
     }
 
+    /// <summary>
+    /// Restores and loads the lock file for <paramref name="projectPath"/>, then collects metadata for every
+    /// package library it references and stamps each with its dependency depth, dependency keys, and pre-1.0 flag.
+    /// </summary>
     private async Task CollectPackagesFrom(string projectPath, AnalyzerSettings settings, PackageInfoCollection packages,
         NuGetPackageAnalyzer analyzer)
     {
@@ -95,6 +103,10 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
         }
     }
 
+    /// <summary>
+    /// Checks every package in <paramref name="packages"/> against the allow/deny lists and license rules in
+    /// <paramref name="policy"/> and returns a violation record for each non-compliant package.
+    /// </summary>
     private PolicyViolation[] VerifyAgainstPolicy(PackageInfoCollection packages, ProjectPolicy policy)
     {
         var violations = new List<PolicyViolation>();
@@ -113,6 +125,10 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
         return violations.ToArray();
     }
 
+    /// <summary>
+    /// Updates <see cref="PackageInfo.IsLicensePolicyCompatible"/> by checking the package license against
+    /// the policy allow/deny license lists, ANDing the result with any previously recorded compatibility value.
+    /// </summary>
     private static void UpdateLicensePolicyCompatibility(PackageInfo package, ProjectPolicy policy)
     {
         bool allowlistCompatible = !policy.AllowList.Licenses.Any() ||
@@ -125,6 +141,10 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
         package.IsLicensePolicyCompatible &= compatible;
     }
 
+    /// <summary>
+    /// Performs a BFS over the lock-file dependency graph and returns a dictionary mapping each package key
+    /// to its shallowest depth from a direct project dependency (depth 1 = direct dependency).
+    /// </summary>
     private static Dictionary<string, int> CalculateDependencyDepths(LockFile lockFile)
     {
         Dictionary<string, int> depths = new(StringComparer.OrdinalIgnoreCase);
@@ -193,6 +213,9 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
         return depths;
     }
 
+    /// <summary>
+    /// Builds a map from each package key to the dependency keys of its direct children as recorded in the lock file.
+    /// </summary>
     private static Dictionary<string, string[]> BuildDependencyKeys(LockFile lockFile)
     {
         Dictionary<string, string[]> result = new(StringComparer.OrdinalIgnoreCase);
@@ -220,6 +243,9 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
         return result;
     }
 
+    /// <summary>
+    /// Returns the set of package keys for packages that have at least one direct dependency on a pre-1.0 (major == 0) package.
+    /// </summary>
     private static HashSet<string> FindPackagesDependingOnPreOneZeroPackages(LockFile lockFile)
     {
         HashSet<string> result = new(StringComparer.OrdinalIgnoreCase);
@@ -245,5 +271,8 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
         return result;
     }
 
+    /// <summary>
+    /// Creates the NuGet dependency key for a given package name and version.
+    /// </summary>
     private static string CreatePackageKey(string name, string version) => PackageInfo.CreateDependencyKey("nuget", name, version);
 }

@@ -8,12 +8,25 @@ using Spectre.Console.Cli;
 
 namespace PackageGuard;
 
+/// <summary>
+/// CLI command that runs NuGet package analysis against configured allow/deny policies.
+/// </summary>
 [UsedImplicitly]
 internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommandSettings>
 {
+    /// <summary>
+    /// Exit code indicating the analysis completed with no policy violations.
+    /// </summary>
     private const int SuccessExitCode = 0;
+
+    /// <summary>
+    /// Exit code indicating the analysis found one or more policy violations.
+    /// </summary>
     private const int FailureExitCode = 1;
 
+    /// <summary>
+    /// Runs the package analysis, reports any policy violations to the console, and writes risk reports when requested.
+    /// </summary>
     public override async Task<int> ExecuteAsync(CommandContext context, AnalyzeCommandSettings settings, CancellationToken _)
     {
         // Display PackageGuard version
@@ -117,6 +130,9 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         return SuccessExitCode;
     }
 
+    /// <summary>
+    /// Maps a 0–100 risk score to an Ansi console color name for display.
+    /// </summary>
     private static string GetRiskColor(double score)
     {
         return score switch
@@ -127,6 +143,9 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         };
     }
 
+    /// <summary>
+    /// Maps a 0–100 risk score to a risk zone label: Low, Medium, or High.
+    /// </summary>
     private static string GetRiskZone(double score)
     {
         return score switch
@@ -136,6 +155,9 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             _ => "Low"
         };
     }
+    /// <summary>
+    /// Formats a double value to one decimal place using invariant culture.
+    /// </summary>
     private static string FormatDecimal(double value)
     {
         return value.ToString("0.0", CultureInfo.InvariantCulture);

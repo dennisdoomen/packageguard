@@ -8,6 +8,9 @@ namespace PackageGuard.Core;
 /// </summary>
 public class RiskEvaluator(ILogger logger)
 {
+    /// <summary>
+    /// Holds the computed score and rationale strings for a single risk dimension.
+    /// </summary>
     private sealed record RiskDimensionEvaluation(double Score, string[] Rationale);
 
     /// <summary>
@@ -897,6 +900,9 @@ public class RiskEvaluator(ILogger logger)
             license.Contains(restrictive, StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// Returns <see langword="true"/> if the license is a weak copyleft license (e.g. LGPL, MPL).
+    /// </summary>
     private static bool IsWeakCopyleftLicense(string license)
     {
         var weakCopyleftLicenses = new[]
@@ -922,6 +928,9 @@ public class RiskEvaluator(ILogger logger)
             license.Contains(permissive, StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    /// Computes the ratio of closed to total bug issues in the last 90 days, or <see langword="null"/> if data is unavailable.
+    /// </summary>
     private static double? GetBugClosureRate(PackageInfo package)
     {
         if (package.ClosedBugIssueCountLast90Days is null || package.OpenBugIssueCount is null)
@@ -935,6 +944,9 @@ public class RiskEvaluator(ILogger logger)
         return total > 0 ? closed / (double)total : null;
     }
 
+    /// <summary>
+    /// Computes the ratio of reopened to closed bug issues, or <see langword="null"/> if data is unavailable.
+    /// </summary>
     private static double? GetBugReopenRate(PackageInfo package)
     {
         if (package.ClosedBugIssueCountLast90Days is not > 0 || package.ReopenedBugIssueCountLast90Days is null)
@@ -945,6 +957,9 @@ public class RiskEvaluator(ILogger logger)
         return package.ReopenedBugIssueCountLast90Days.Value / (double)package.ClosedBugIssueCountLast90Days.Value;
     }
 
+    /// <summary>
+    /// Caps the raw risk score at 10 and returns a <see cref="RiskDimensionEvaluation"/> with the capped score and rationale.
+    /// </summary>
     private static RiskDimensionEvaluation CreateEvaluation(double risk, List<string> rationale)
     {
         var cappedRisk = Math.Min(risk, 10.0);
@@ -961,16 +976,25 @@ public class RiskEvaluator(ILogger logger)
         return new RiskDimensionEvaluation(cappedRisk, rationale.ToArray());
     }
 
+    /// <summary>
+    /// Formats a rationale entry as "description (+score)".
+    /// </summary>
     private static string CreateRationale(string description, double contribution)
     {
         return $"{description} (+{FormatScore(contribution)})";
     }
 
+    /// <summary>
+    /// Formats a numeric score to one decimal place using invariant culture.
+    /// </summary>
     private static string FormatScore(double value)
     {
         return value.ToString("0.0", CultureInfo.InvariantCulture);
     }
 
+    /// <summary>
+    /// Formats a decimal value as a percentage string using invariant culture.
+    /// </summary>
     private static string FormatPercentage(double value)
     {
         return value.ToString("P0", CultureInfo.InvariantCulture);

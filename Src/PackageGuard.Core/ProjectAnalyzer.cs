@@ -11,14 +11,24 @@ namespace PackageGuard.Core;
 /// </summary>
 public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskEvaluator = null)
 {
+    /// <summary>
+    /// Gets or sets the logger used to report analysis progress and diagnostics.
+    /// </summary>
     public ILogger Logger { get; set; } = NullLogger.Instance;
 
+    /// <summary>
+    /// Analyzes the project at <paramref name="projectPath"/> against the configured policies and returns any violations found.
+    /// </summary>
     public async Task<PolicyViolation[]> ExecuteAnalysis(string projectPath, AnalyzerSettings settings, GetPolicyByProject getPolicyByProject)
     {
         AnalysisResult result = await ExecuteAnalysisWithRisk(projectPath, settings, getPolicyByProject);
         return result.Violations;
     }
 
+    /// <summary>
+    /// Analyzes the project at <paramref name="projectPath"/> against the configured policies and returns full results,
+    /// including risk metrics when <see cref="AnalyzerSettings.ReportRisk"/> is enabled.
+    /// </summary>
     public async Task<AnalysisResult> ExecuteAnalysisWithRisk(string projectPath, AnalyzerSettings settings,
         GetPolicyByProject getPolicyByProject)
     {
@@ -78,6 +88,10 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         };
     }
 
+    /// <summary>
+    /// Iterates all packages and sets <see cref="PackageInfo.TransitiveVulnerabilityCount"/> to the number
+    /// of unique vulnerable packages reachable through the dependency graph.
+    /// </summary>
     private static void PopulateTransitiveVulnerabilityCounts(PackageInfo[] packages)
     {
         Dictionary<string, PackageInfo> packagesByKey = CreatePackagesByKey(packages);
@@ -90,6 +104,10 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         }
     }
 
+    /// <summary>
+    /// Iterates all packages and sets transitive dependency health counts (stale, abandoned, deprecated,
+    /// unmaintained-critical) by walking the dependency graph for each package.
+    /// </summary>
     private static void PopulateDependencyHealthCounts(PackageInfo[] packages)
     {
         Dictionary<string, PackageInfo> packagesByKey = CreatePackagesByKey(packages);
@@ -106,6 +124,10 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         }
     }
 
+    /// <summary>
+    /// Recursively counts the number of unique transitive dependencies of <paramref name="package"/> that have
+    /// at least one known vulnerability, avoiding cycles via <paramref name="visited"/>.
+    /// </summary>
     private static int CountVulnerableDependencies(PackageInfo package, IReadOnlyDictionary<string, PackageInfo> packagesByKey,
         HashSet<string> visited)
     {
@@ -134,6 +156,10 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         return count;
     }
 
+    /// <summary>
+    /// Recursively counts the number of unique stale, abandoned, deprecated, and unmaintained-critical
+    /// transitive dependencies of <paramref name="package"/>, avoiding cycles via <paramref name="visited"/>.
+    /// </summary>
     private static (int staleCount, int abandonedCount, int deprecatedCount, int unmaintainedCriticalCount) CountDependencyHealth(PackageInfo package,
         IReadOnlyDictionary<string, PackageInfo> packagesByKey, HashSet<string> visited)
     {
@@ -185,9 +211,16 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         return (staleCount, abandonedCount, deprecatedCount, unmaintainedCriticalCount);
     }
 
+    /// <summary>
+    /// Returns <c>true</c> when <paramref name="dependency"/> was published more than 24 months ago.
+    /// </summary>
     private static bool IsStaleDependency(PackageInfo dependency) =>
         dependency.PublishedAt != null && dependency.PublishedAt.Value < DateTimeOffset.UtcNow.AddMonths(-24);
 
+    /// <summary>
+    /// Returns <c>true</c> when <paramref name="dependency"/> is stale and also shows low maintainer activity
+    /// or has known security vulnerabilities with high severity.
+    /// </summary>
     private static bool LooksAbandonedAndRisky(PackageInfo dependency)
     {
         if (!IsStaleDependency(dependency))
@@ -200,14 +233,23 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         return lowMaintainerSignal || securitySignal;
     }
 
+    /// <summary>
+    /// Returns <c>true</c> when <paramref name="dependency"/> is stale and has high-severity unpatched vulnerabilities.
+    /// </summary>
     private static bool LooksUnmaintainedAndCritical(PackageInfo dependency) =>
         IsStaleDependency(dependency) &&
         dependency is { MaxVulnerabilitySeverity: >= 7.0, VulnerabilityCount: > 0 };
 
+    /// <summary>
+    /// Builds a dictionary keyed by each package's dependency key for fast lookup during graph traversal.
+    /// </summary>
     private static Dictionary<string, PackageInfo> CreatePackagesByKey(IEnumerable<PackageInfo> packages) =>
         packages
             .GroupBy(CreatePackageKey, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// Returns the dependency key for <paramref name="package"/> used as the lookup key in the packages-by-key dictionary.
+    /// </summary>
     private static string CreatePackageKey(PackageInfo package) => package.GetDependencyKey();
 }

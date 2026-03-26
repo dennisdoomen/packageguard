@@ -2,6 +2,9 @@ using Pathy;
 
 namespace PackageGuard.Core;
 
+/// <summary>
+/// Configures the behavior of the package analysis pipeline, including restore options, caching, risk reporting, and ecosystem scanning.
+/// </summary>
 public class AnalyzerSettings
 {
     /// <summary>
