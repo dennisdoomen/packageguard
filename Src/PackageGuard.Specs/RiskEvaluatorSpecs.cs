@@ -430,4 +430,419 @@ internal class RiskEvaluatorSpecs
         package.RiskDimensions.OperationalRiskRationale.Should()
             .NotContain(item => item.Contains("CHANGELOG or release notes are missing or low quality"));
     }
+
+    [TestMethod]
+    internal void Should_evaluate_legal_risk_for_mpl_as_weak_copyleft()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MPL-2.0",
+            LicenseUrl = "https://opensource.org/licenses/MPL-2.0",
+            HasValidLicenseUrl = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.LegalRisk.Should().Be(3.0);
+        package.RiskDimensions.LegalRiskRationale.Should().Contain(item => item.Contains("Weak copyleft license (MPL-2.0)"));
+    }
+
+    [TestMethod]
+    internal void Should_evaluate_legal_risk_for_agpl_as_restrictive()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "AGPL-3.0",
+            LicenseUrl = "https://opensource.org/licenses/AGPL-3.0",
+            HasValidLicenseUrl = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.LegalRisk.Should().Be(6.0);
+        package.RiskDimensions.LegalRiskRationale.Should().Contain(item => item.Contains("Restrictive license (AGPL-3.0)"));
+    }
+
+    [TestMethod]
+    internal void Should_add_security_risk_when_package_signature_is_missing()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            IsPackageSigned = false
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Package signature is missing or invalid"));
+    }
+
+    [TestMethod]
+    internal void Should_apply_higher_security_risk_for_dependency_chain_deeper_than_20()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var deepPackage = new PackageInfo
+        {
+            Name = "DeepPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            DependencyDepth = 25
+        };
+
+        var shallowPackage = new PackageInfo
+        {
+            Name = "ShallowPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            DependencyDepth = 11
+        };
+
+        riskEvaluator.EvaluateRisk(deepPackage);
+        riskEvaluator.EvaluateRisk(shallowPackage);
+
+        deepPackage.RiskDimensions.SecurityRisk.Should()
+            .BeGreaterThan(shallowPackage.RiskDimensions.SecurityRisk);
+        deepPackage.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Deep dependency chain (depth 25)"));
+    }
+
+    [TestMethod]
+    internal void Should_add_security_risk_for_abandoned_transitive_dependencies()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            AbandonedTransitiveDependencyCount = 2
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Potentially abandoned risky transitive dependencies were detected (2)"));
+    }
+
+    [TestMethod]
+    internal void Should_add_security_risk_when_owner_account_is_less_than_one_year_old()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            OwnerCreatedAt = DateTimeOffset.UtcNow.AddMonths(-6)
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Repository owner account is less than one year old"));
+    }
+
+    [TestMethod]
+    internal void Should_add_security_risk_for_packages_with_native_binary_assets()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            HasNativeBinaryAssets = true,
+            HasSigningRiskData = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Package contains native or binary assets that may increase supply-chain exposure"));
+    }
+
+    [TestMethod]
+    internal void Should_add_security_risk_when_coordinated_disclosure_is_absent()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var packageWithoutDisclosure = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            HasCoordinatedDisclosure = false
+        };
+
+        var packageWithDisclosure = new PackageInfo
+        {
+            Name = "TestPackage2",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            HasCoordinatedDisclosure = true
+        };
+
+        riskEvaluator.EvaluateRisk(packageWithoutDisclosure);
+        riskEvaluator.EvaluateRisk(packageWithDisclosure);
+
+        packageWithoutDisclosure.RiskDimensions.SecurityRisk.Should()
+            .BeGreaterThan(packageWithDisclosure.RiskDimensions.SecurityRisk);
+        packageWithoutDisclosure.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("No coordinated disclosure signal was detected"));
+    }
+
+    [TestMethod]
+    internal void Should_add_operational_risk_for_high_prerelease_release_ratio()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2),
+            PrereleaseRatio = 0.6,
+            ContributorCount = 5,
+            HasReadme = true,
+            HasDefaultReadme = false,
+            HasContributingGuide = true,
+            HasSecurityPolicy = true,
+            HasChangelog = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("High prerelease ratio detected"));
+    }
+
+    [TestMethod]
+    internal void Should_add_operational_risk_for_rapid_release_corrections()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2),
+            RapidReleaseCorrectionCount = 3,
+            ContributorCount = 5,
+            HasReadme = true,
+            HasDefaultReadme = false,
+            HasContributingGuide = true,
+            HasSecurityPolicy = true,
+            HasChangelog = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Rapid release corrections were detected (3)"));
+    }
+
+    [TestMethod]
+    internal void Should_add_operational_risk_for_release_older_than_12_but_not_24_months()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-15),
+            ContributorCount = 5,
+            HasReadme = true,
+            HasDefaultReadme = false,
+            HasContributingGuide = true,
+            HasSecurityPolicy = true,
+            HasChangelog = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Last release is older than 12 months"));
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .NotContain(item => item.Contains("Last release is older than 24 months"));
+    }
+
+    [TestMethod]
+    internal void Should_add_operational_risk_for_elevated_but_not_long_mean_release_interval()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2),
+            MeanReleaseIntervalDays = 250,
+            ContributorCount = 5,
+            HasReadme = true,
+            HasDefaultReadme = false,
+            HasContributingGuide = true,
+            HasSecurityPolicy = true,
+            HasChangelog = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Mean release interval is elevated"));
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .NotContain(item => item.Contains("Mean release interval is long"));
+    }
+
+    [TestMethod]
+    internal void Should_add_operational_risk_for_stale_readme_and_changelog()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2),
+            HasReadme = true,
+            HasDefaultReadme = false,
+            ReadmeUpdatedAt = DateTimeOffset.UtcNow.AddMonths(-24),
+            HasContributingGuide = true,
+            HasSecurityPolicy = true,
+            HasDetailedSecurityPolicy = false,
+            HasChangelog = true,
+            ChangelogUpdatedAt = DateTimeOffset.UtcNow.AddMonths(-24),
+            ContributorCount = 5
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("README has not been refreshed recently"));
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("SECURITY policy lacks concrete response instructions"));
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("CHANGELOG has not been refreshed recently"));
+    }
+
+    [TestMethod]
+    internal void Should_add_operational_risk_for_very_few_active_maintainers()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2),
+            ContributorCount = 5,
+            RecentMaintainerCount = 1,
+            HasReadme = true,
+            HasDefaultReadme = false,
+            HasContributingGuide = true,
+            HasSecurityPolicy = true,
+            HasChangelog = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Very few active maintainers in the last 6 months (1)"));
+    }
+
+    [TestMethod]
+    internal void Should_add_operational_risk_for_limited_package_popularity()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2),
+            DownloadCount = 5000,
+            ContributorCount = 5,
+            HasReadme = true,
+            HasDefaultReadme = false,
+            HasContributingGuide = true,
+            HasSecurityPolicy = true,
+            HasChangelog = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Limited package popularity (5000 downloads)"));
+    }
+
+    [TestMethod]
+    internal void Should_add_operational_risk_for_version_update_lag_between_90_and_365_days()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2),
+            LatestStableVersion = "1.5.0",
+            VersionUpdateLagDays = 120,
+            IsMinorVersionBehindLatest = true,
+            ContributorCount = 5,
+            HasReadme = true,
+            HasDefaultReadme = false,
+            HasContributingGuide = true,
+            HasSecurityPolicy = true,
+            HasChangelog = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("The current version trails the latest stable release (120.0 days)"));
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .NotContain(item => item.Contains("by a long time"));
+    }
+
+    [TestMethod]
+    internal void Should_add_operational_risk_for_moderate_openssf_score()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2),
+            OpenSsfScore = 6.0,
+            ContributorCount = 5,
+            HasReadme = true,
+            HasDefaultReadme = false,
+            HasContributingGuide = true,
+            HasSecurityPolicy = true,
+            HasChangelog = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("OpenSSF Scorecard score is moderate (6.0)"));
+    }
 }
