@@ -59,7 +59,7 @@ public class NuGetPackageAnalyzerSpecs
         var packages = new PackageInfoCollection(nullLogger);
 
         // Act
-        await analyzer.CollectPackageMetadata(ChainablePath.Current.Parent.Parent, "FluentAssertions", NuGetVersion.Parse("8.8.0"),
+        await analyzer.CollectPackageMetadata(ChainablePath.Current.Parent.Parent, "FluentAssertions", NuGetVersion.Parse("8.9.0"),
             packages);
 
         // Assert
