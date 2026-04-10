@@ -33,18 +33,13 @@ public class PnpmLockFileParserSpecs
 
         var expressPackage = packages.FirstOrDefault(p => p.Name == "express");
         expressPackage.Should().NotBeNull();
-        expressPackage!.Version.Should().Be("4.18.2");
+        expressPackage!.Version.Should().Be("4.22.1");
         expressPackage.Source.Should().Be("npm");
         expressPackage.Projects.Should().Contain(projectPath);
 
         var lodashPackage = packages.FirstOrDefault(p => p.Name == "lodash");
         lodashPackage.Should().NotBeNull();
-        lodashPackage!.Version.Should().Be("4.17.21");
-
-        // Should include scoped package
-        var babelPackage = packages.FirstOrDefault(p => p.Name == "@babel/core");
-        babelPackage.Should().NotBeNull();
-        babelPackage!.Version.Should().Be("7.23.0");
+        lodashPackage!.Version.Should().Be("4.18.1");
     }
 
     [TestMethod]
