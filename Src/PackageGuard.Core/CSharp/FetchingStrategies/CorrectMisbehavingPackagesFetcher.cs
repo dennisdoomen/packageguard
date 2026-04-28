@@ -20,12 +20,12 @@ internal class CorrectMisbehavingPackagesFetcher : IFetchLicense
                 package.RepositoryUrl = "https://github.com/nunit/nunit";
             }
 
-            package.License = "MIT";
+            package.License ??= "MIT";
         }
 
         if (package.Name.Equals("NETStandard.Library", StringComparison.InvariantCultureIgnoreCase))
         {
-            package.License = "MIT";
+            package.License ??= "MIT";
             package.RepositoryUrl = "https://github.com/dotnet/standard";
         }
 

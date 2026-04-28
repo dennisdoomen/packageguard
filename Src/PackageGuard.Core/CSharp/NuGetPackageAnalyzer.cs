@@ -59,6 +59,7 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         PackageInfoCollection packages)
     {
         SourceRepository[] projectNuGetSources = GetNuGetSources(projectPath);
+        NuspecMetadata? nuspecMetadata = TryReadNuspecMetadata(projectPath, packageName, packageVersion);
 
         PackageInfo? package = packages.Find(packageName, packageVersion.ToNormalizedString(), projectNuGetSources);
         if (package is not null)
@@ -72,11 +73,7 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
             {
                 package = packages.Add(package);
 
-                if (package.License is null)
-                {
-                    NuspecMetadata? nuspecMetadata = TryReadNuspecMetadata(projectPath, packageName, packageVersion);
-                    package.License = nuspecMetadata?.License;
-                }
+                package.License ??= nuspecMetadata?.License;
 
                 if (package.License is null)
                 {
@@ -89,9 +86,9 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
             }
         }
 
-        if (package is not null)
+        if (package is not null && !string.IsNullOrWhiteSpace(nuspecMetadata?.RepositoryUrl))
         {
-            UpdateRepositoryUrlFromLocalPackage(projectPath, package, packageVersion);
+            package.RepositoryUrl = nuspecMetadata.RepositoryUrl;
         }
 
         package?.TrackAsUsedInProject(projectPath);
@@ -248,22 +245,6 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         return text.Contains("deprecated", StringComparison.OrdinalIgnoreCase) ||
                text.Contains("deprecation", StringComparison.OrdinalIgnoreCase) ||
                text.Contains("obsolete", StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    /// Overrides <see cref="PackageInfo.RepositoryUrl"/> with the value read from the locally cached
-    /// .nuspec file when a valid repository URL is found there.
-    /// </summary>
-    /// <param name="projectPath">The project directory used to resolve the global packages folder.</param>
-    /// <param name="package">The package whose repository URL may be updated.</param>
-    /// <param name="packageVersion">The package version used to locate the .nuspec file.</param>
-    private void UpdateRepositoryUrlFromLocalPackage(string projectPath, PackageInfo package, NuGetVersion packageVersion)
-    {
-        NuspecMetadata? nuspecMetadata = TryReadNuspecMetadata(projectPath, package.Name, packageVersion);
-        if (!string.IsNullOrWhiteSpace(nuspecMetadata?.RepositoryUrl))
-        {
-            package.RepositoryUrl = nuspecMetadata.RepositoryUrl;
-        }
     }
 
     /// <summary>
