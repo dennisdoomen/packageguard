@@ -27,7 +27,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
     /// <summary>
     /// Runs the package analysis, reports any policy violations to the console, and writes risk reports when requested.
     /// </summary>
-    public override async Task<int> ExecuteAsync(CommandContext context, AnalyzeCommandSettings settings, CancellationToken _)
+    protected override async Task<int> ExecuteAsync(CommandContext context, AnalyzeCommandSettings settings, CancellationToken _)
     {
         // Display PackageGuard version
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown";
