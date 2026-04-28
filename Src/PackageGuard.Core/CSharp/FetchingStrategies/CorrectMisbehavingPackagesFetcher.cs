@@ -13,15 +13,19 @@ internal class CorrectMisbehavingPackagesFetcher : IFetchLicense
     /// <returns>A completed task.</returns>
     public Task FetchLicenseAsync(PackageInfo package)
     {
-        if (package.Name.Equals("nunit", StringComparison.InvariantCultureIgnoreCase) &&
-            package.RepositoryUrl?.StartsWith("https://github.com", StringComparison.InvariantCultureIgnoreCase) != true)
+        if (package.Name.Equals("nunit", StringComparison.InvariantCultureIgnoreCase))
         {
-            package.RepositoryUrl = "https://github.com/nunit/nunit";
+            if (package.RepositoryUrl?.StartsWith("https://github.com", StringComparison.InvariantCultureIgnoreCase) != true)
+            {
+                package.RepositoryUrl = "https://github.com/nunit/nunit";
+            }
+
+            package.License ??= "MIT";
         }
 
         if (package.Name.Equals("NETStandard.Library", StringComparison.InvariantCultureIgnoreCase))
         {
-            package.License = "MIT";
+            package.License ??= "MIT";
             package.RepositoryUrl = "https://github.com/dotnet/standard";
         }
 
