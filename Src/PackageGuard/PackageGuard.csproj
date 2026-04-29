@@ -39,10 +39,10 @@
       <PackageReference Include="Serilog" Version="4.3.1" />
       <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
       <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
-      <PackageReference Include="Spectre.Console" Version="0.55.2" />
-      <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
+      <PackageReference Include="Spectre.Console" Version="0.54.0" />
+      <PackageReference Include="Spectre.Console.Cli" Version="0.53.1" />
       <PackageReference Include="NuGet.ProjectModel" Version="6.14.3" />
-      <PackageReference Include="Spectre.Console.Cli.Extensions.DependencyInjection" Version="0.24.0" />
+      <PackageReference Include="Spectre.Console.Cli.Extensions.DependencyInjection" Version="0.23.0" />
       <PackageReference Include="vertical-spectreconsolelogger" Version="0.10.1-dev.20241201.35" />
     </ItemGroup>
 
