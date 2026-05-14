@@ -59,6 +59,7 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         PackageInfoCollection packages)
     {
         SourceRepository[] projectNuGetSources = GetNuGetSources(projectPath);
+        NuspecMetadata? nuspecMetadata = TryReadNuspecMetadata(projectPath, packageName, packageVersion);
 
         PackageInfo? package = packages.Find(packageName, packageVersion.ToNormalizedString(), projectNuGetSources);
         if (package is not null)
@@ -71,6 +72,9 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
             if (package is not null)
             {
                 package = packages.Add(package);
+
+                package.License ??= nuspecMetadata?.License;
+
                 if (package.License is null)
                 {
                     await licenseFetcher.AmendWithMissingLicenseInformation(package);
@@ -82,9 +86,9 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
             }
         }
 
-        if (package is not null)
+        if (package is not null && !string.IsNullOrWhiteSpace(nuspecMetadata?.RepositoryUrl))
         {
-            UpdateRepositoryUrlFromLocalPackage(projectPath, package, packageVersion);
+            package.RepositoryUrl = nuspecMetadata.RepositoryUrl;
         }
 
         package?.TrackAsUsedInProject(projectPath);
@@ -244,30 +248,14 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
     }
 
     /// <summary>
-    /// Overrides <see cref="PackageInfo.RepositoryUrl"/> with the value read from the locally cached
-    /// .nuspec file when a valid repository URL is found there.
-    /// </summary>
-    /// <param name="projectPath">The project directory used to resolve the global packages folder.</param>
-    /// <param name="package">The package whose repository URL may be updated.</param>
-    /// <param name="packageVersion">The package version used to locate the .nuspec file.</param>
-    private void UpdateRepositoryUrlFromLocalPackage(string projectPath, PackageInfo package, NuGetVersion packageVersion)
-    {
-        string? repositoryUrl = TryGetRepositoryUrlFromNuspec(projectPath, package.Name, packageVersion);
-        if (!string.IsNullOrWhiteSpace(repositoryUrl))
-        {
-            package.RepositoryUrl = repositoryUrl;
-        }
-    }
-
-    /// <summary>
     /// Searches the global NuGet packages cache for a .nuspec file matching the given package and version,
-    /// then extracts and returns the repository URL from it, or <see langword="null"/> when not found.
+    /// then extracts and returns the license and repository URL from it,
+    /// or <see langword="null"/> when the .nuspec file is not found or cannot be read.
     /// </summary>
     /// <param name="projectPath">The project directory used to locate NuGet settings.</param>
     /// <param name="packageName">The package identifier (case-insensitive).</param>
     /// <param name="packageVersion">The package version used to construct the expected .nuspec path.</param>
-    /// <returns>The repository URL string, or <see langword="null"/> when unavailable.</returns>
-    private string? TryGetRepositoryUrlFromNuspec(string projectPath, string packageName, NuGetVersion packageVersion)
+    private NuspecMetadata? TryReadNuspecMetadata(string projectPath, string packageName, NuGetVersion packageVersion)
     {
         string globalPackagesFolder = SettingsUtility.GetGlobalPackagesFolder(Settings.LoadDefaultSettings(projectPath));
         string packageId = packageName.ToLowerInvariant();
@@ -282,11 +270,11 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 
             try
             {
-                return ReadRepositoryUrlFromNuspec(nuspecPath);
+                return ReadNuspecMetadata(nuspecPath);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or XmlException)
             {
-                logger.LogDebug("Failed to read repository metadata from {NuspecPath}: {Error}", nuspecPath, ex.Message);
+                logger.LogDebug("Failed to read metadata from {NuspecPath}: {Error}", nuspecPath, ex.Message);
             }
         }
 
@@ -315,19 +303,37 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
     }
 
     /// <summary>
-    /// Parses the .nuspec XML at the given path and returns the value of the
-    /// <c>repository url</c> attribute, or <see langword="null"/> when absent or blank.
+    /// Parses the .nuspec XML at the given path and returns the license expression and repository URL.
     /// </summary>
     /// <param name="nuspecPath">The full path to the .nuspec file.</param>
-    private static string? ReadRepositoryUrlFromNuspec(string nuspecPath)
+    private static NuspecMetadata ReadNuspecMetadata(string nuspecPath)
     {
         XDocument document = XDocument.Load(nuspecPath);
+
+        XElement? licenseElement = document
+            .Descendants()
+            .FirstOrDefault(element => element.Name.LocalName == "license");
+
+        string? license = null;
+        if (licenseElement?.Attribute("type")?.Value.Equals("expression", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            string expression = licenseElement.Value.Trim();
+            license = string.IsNullOrWhiteSpace(expression) ? null : expression;
+        }
+
         string? repositoryUrl = document
             .Descendants()
             .FirstOrDefault(element => element.Name.LocalName == "repository")
             ?.Attribute("url")
             ?.Value;
 
-        return string.IsNullOrWhiteSpace(repositoryUrl) ? null : repositoryUrl;
+        return new NuspecMetadata(
+            License: license,
+            RepositoryUrl: string.IsNullOrWhiteSpace(repositoryUrl) ? null : repositoryUrl);
     }
+
+    /// <summary>
+    /// Holds the license expression and repository URL extracted from a .nuspec file.
+    /// </summary>
+    private sealed record NuspecMetadata(string? License, string? RepositoryUrl);
 }
