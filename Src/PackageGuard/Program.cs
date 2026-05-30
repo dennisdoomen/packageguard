@@ -1,4 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
+// See https://aka.ms/new-console-template for more information
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -45,3 +45,4 @@ finally
 {
     Environment.SetEnvironmentVariable(AnalyzeCommandSettings.ReportRiskPathOverrideEnvironmentVariable, previousReportRiskPath);
 }
+

@@ -13,8 +13,7 @@ namespace PackageGuard;
 /// </summary>
 [UsedImplicitly]
 internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommandSettings>
-{
-    /// <summary>
+{    /// <summary>
     /// Exit code indicating the analysis completed with no policy violations.
     /// </summary>
     private const int SuccessExitCode = 0;
