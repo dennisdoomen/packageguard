@@ -66,6 +66,36 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
 
         logger.LogHeader("Completing analysis");
 
+        // Write risk reports before reporting violations so they are always generated when requested
+        if (settings.ReportRisk && packages.Length > 0)
+        {
+            logger.LogHeader("Writing risk reports");
+            logger.LogInformation(
+                "Writing detailed HTML and SARIF risk reports for {PackageCount} packages.",
+                packages.Length);
+
+            RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
+                settings.ProjectPath,
+                packages,
+                settings.GetReportRiskPath());
+
+            AnsiConsole.MarkupLine("[yellow1]Package Risk Summary:[/]");
+            AnsiConsole.MarkupLine("");
+
+            foreach (var package in packages.OrderByDescending(p => p.RiskScore))
+            {
+                var riskColor = GetRiskColor(package.RiskScore);
+                AnsiConsole.MarkupLine(
+                    $"- {Markup.Escape(package.Name)} {Markup.Escape(package.Version)}: [{riskColor}]{FormatDecimal(package.RiskScore)}/100 ({GetRiskZone(package.RiskScore)})[/]");
+            }
+
+            AnsiConsole.MarkupLine("");
+            AnsiConsole.MarkupLine("Detailed risk reports:");
+            AnsiConsole.MarkupLine($"HTML: [blue]{Markup.Escape(reportPaths.HtmlPath)}[/]");
+            AnsiConsole.MarkupLine($"SARIF: [blue]{Markup.Escape(reportPaths.SarifPath)}[/]");
+            AnsiConsole.MarkupLine("");
+        }
+
         if (violations.Length > 0)
         {
             AnsiConsole.MarkupLine("[red1]Policy violations found:[/]");
@@ -93,39 +123,7 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
             return settings.IgnoreViolations ? SuccessExitCode : FailureExitCode;
         }
 
-        // Display risk metrics if requested
-        if (settings.ReportRisk && packages.Length > 0)
-        {
-            logger.LogHeader("Writing risk reports");
-            logger.LogInformation(
-                "Writing detailed HTML and SARIF risk reports for {PackageCount} packages.",
-                packages.Length);
-
-            RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
-                settings.ProjectPath,
-                packages,
-                settings.GetReportRiskPath());
-
-            AnsiConsole.MarkupLine("[yellow1]Package Risk Summary:[/]");
-            AnsiConsole.MarkupLine("");
-
-            foreach (var package in packages.OrderByDescending(p => p.RiskScore))
-            {
-                var riskColor = GetRiskColor(package.RiskScore);
-                AnsiConsole.MarkupLine(
-                    $"- {Markup.Escape(package.Name)} {Markup.Escape(package.Version)}: [{riskColor}]{FormatDecimal(package.RiskScore)}/100 ({GetRiskZone(package.RiskScore)})[/]");
-            }
-
-            AnsiConsole.MarkupLine("");
-            AnsiConsole.MarkupLine("Detailed risk reports:");
-            AnsiConsole.MarkupLine($"HTML: [blue]{Markup.Escape(reportPaths.HtmlPath)}[/]");
-            AnsiConsole.MarkupLine($"SARIF: [blue]{Markup.Escape(reportPaths.SarifPath)}[/]");
-        }
-
-        if (violations.Length == 0)
-        {
-            AnsiConsole.MarkupLine("[green3_1]No policy violations found.[/]");
-        }
+        AnsiConsole.MarkupLine("[green3_1]No policy violations found.[/]");
 
         return SuccessExitCode;
     }
