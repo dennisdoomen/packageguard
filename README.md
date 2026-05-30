@@ -85,18 +85,23 @@ OPTIONS:
     -s, --skip-restore                      Prevent the restore operation from running, even if the lock file is missing
                                             or out-of-date
     -a, --github-api-key                    GitHub API key to use for fetching package licenses. If not specified, you
-                                             may run into GitHub's rate limiting issues
-    --use-caching                       Maintains a cache of the package information to speed up future analysis
-    --cache-file-path        False      Overrides the file path where analysis data is cached. Defaults to the
-                                             "<workingdirectory>/.packageguard/cache.bin"
-        --refresh-risk-cache                Force `--report-risk` to rebuild cached risk-related package data
+                                            may run into GitHub's rate limiting issues
+        --use-caching                       Maintains a cache of the package information to speed up future analysis
+        --cache-file-path                   Overrides the file path where analysis data is cached. Defaults to the
+                                            "<workingdirectory>/.packageguard/cache.bin"
+        --refresh-risk-cache                Force --report-risk to rebuild risk-related package data instead of
+                                            reusing cached risk entries
         --risk-cache-max-age-hours 24       Maximum age in hours for cached risk-related package data before
-                                             `--report-risk` refreshes it
+                                            --report-risk refreshes it
         --nuget                  True       Explicitly enable or disable scanning for .csproj, .sln or .slnx files
         --npm                               Explicitly specify the package manager to use (npm, yarn, pnpm). If not
-                                             specified, it will detect it automatically
+                                            specified, it will detect it automatically
         --npm-exe-path                      The path to the npm, yarn or pnpm executable. If not specified, the system
-                                             PATH is used
+                                            PATH is used
+        --report-risk                       Show a colored risk summary in the console and generate detailed HTML/SARIF
+                                            risk reports. Optionally provide a directory or file path. Directories
+                                            receive generated file names; explicit filenames are used directly and may
+                                            overwrite prior files
 ```
 
 ## How do I configure it?
