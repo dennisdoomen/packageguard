@@ -26,12 +26,18 @@ services.AddLogging(configure => configure
 services.AddSingleton<ILogger>(sp => sp
     .GetRequiredService<ILoggerFactory>()
     .CreateLogger("PackageGuard"));
+services.AddTransient<AnalyzeCommand>();
+services.AddTransient<AnalyzeCommandSettings>();
 
 using var registrar = new DependencyInjectionRegistrar(services);
 
-var app = new CommandApp<AnalyzeCommand>(registrar);
+var app = new CommandApp(registrar);
 app.Configure(c =>
-    c.CaseSensitivity(CaseSensitivity.None));
+{
+    c.AddCommand<AnalyzeCommand>("analyze");
+    c.CaseSensitivity(CaseSensitivity.None);
+});
+app.SetDefaultCommand<AnalyzeCommand>();
 
 string? previousReportRiskPath = Environment.GetEnvironmentVariable(AnalyzeCommandSettings.ReportRiskPathOverrideEnvironmentVariable);
 (string[] normalizedArgs, string? reportRiskPath) = ReportRiskArgumentNormalizer.Normalize(args);
@@ -41,8 +47,12 @@ try
 {
     return app.Run(normalizedArgs);
 }
+catch (Exception ex)
+{
+    Console.Error.WriteLine(ex);
+    throw;
+}
 finally
 {
     Environment.SetEnvironmentVariable(AnalyzeCommandSettings.ReportRiskPathOverrideEnvironmentVariable, previousReportRiskPath);
 }
-
