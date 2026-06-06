@@ -12,7 +12,7 @@ namespace PackageGuard;
 /// CLI command that runs NuGet package analysis against configured allow/deny policies.
 /// </summary>
 [UsedImplicitly]
-public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommandSettings>
+internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommandSettings>
 {    /// <summary>
     /// Exit code indicating the analysis completed with no policy violations.
     /// </summary>

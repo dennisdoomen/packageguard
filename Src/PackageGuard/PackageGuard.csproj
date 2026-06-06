@@ -43,7 +43,6 @@
       <PackageReference Include="Spectre.Console.Cli" Version="0.55.0" />
       <PackageReference Include="NuGet.ProjectModel" Version="7.6.0" />
       <PackageReference Include="Spectre.Console.Cli.Extensions.DependencyInjection" Version="0.25.0" />
-      <PackageReference Include="vertical-spectreconsolelogger" Version="0.10.1-dev.20241201.35" />
     </ItemGroup>
 
   <ItemGroup Label="Package files">
