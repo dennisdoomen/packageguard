@@ -398,13 +398,14 @@ public class ProjectAnalyzerSpecs
         {
             AllowList = new AllowList
             {
-                Licenses = ["mit", "apache-2.0"],
+                Licenses = ["this-license-does-not-exist"],
                 Packages = [new PackageSelector("Fluent*")]
             }
         });
 
         // Assert
-        violations.Should().ContainSingle(x => x.PackageId == "Microsoft.Testing.Extensions.CodeCoverage");
+        violations.Should().NotBeEmpty();
+        violations.Should().NotContain(x => x.PackageId.StartsWith("Fluent", StringComparison.OrdinalIgnoreCase));
     }
 
     [TestMethod]
@@ -418,13 +419,14 @@ public class ProjectAnalyzerSpecs
         {
             AllowList = new AllowList
             {
-                Licenses = ["mit", "apache-2.0"],
+                Licenses = ["this-license-does-not-exist"],
                 Packages = [new PackageSelector("Fluent*", "[8.0.0,9.0.0)")]
             }
         });
 
         // Assert
-        violations.Should().ContainSingle(x => x.PackageId == "Microsoft.Testing.Extensions.CodeCoverage");
+        violations.Should().NotBeEmpty();
+        violations.Should().NotContain(x => x.PackageId.StartsWith("Fluent", StringComparison.OrdinalIgnoreCase));
     }
 
     [TestMethod]
