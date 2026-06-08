@@ -1,5 +1,5 @@
-using System.Reflection;
 using System.Globalization;
+using System.Reflection;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core;
@@ -43,69 +43,79 @@ public sealed class AnalyzeCommand : AsyncCommand<AnalyzeCommandSettings>
             logger.LogInformation("Verbose logging enabled — debug-level output is active");
         }
 
-        var licenseFetcher = new LicenseFetcher(logger, settings.GitHubApiKey);
-        var riskEvaluator = new RiskEvaluator(logger);
-        var analyzer = new ProjectAnalyzer(licenseFetcher, riskEvaluator)
-        {
-            Logger = logger,
-        };
-
+        var analyzer = BuildAnalyzer(logger, settings);
         var loader = new ConfigurationLoader(logger);
 
-        // Use hierarchical configuration discovery if using default config path and it doesn't exist
         GetPolicyByProject getPolicy = _ => loader.GetConfigurationFromConfigPath(settings.ConfigPath);
         if (settings.ConfigPath == AnalyzeCommandSettings.DefaultConfigFileName && !File.Exists(settings.ConfigPath))
         {
             getPolicy = loader.GetEffectiveConfigurationForProject;
         }
 
-        PolicyViolation[] violations;
-        PackageInfo[] packages = [];
         AnalyzerSettings analyzerSettings = settings.ToCoreSettings();
-
-        if (settings.ReportRisk)
-        {
-            var result = await analyzer.ExecuteAnalysisWithRisk(settings.ProjectPath, analyzerSettings, getPolicy);
-            violations = result.Violations;
-            packages = result.Packages;
-        }
-        else
-        {
-            violations = await analyzer.ExecuteAnalysis(settings.ProjectPath, analyzerSettings, getPolicy);
-        }
+        (PolicyViolation[] violations, PackageInfo[] packages) =
+            await RunAnalysisAsync(analyzer, settings, analyzerSettings, getPolicy);
 
         logger.LogHeader("Completing analysis");
 
-        // Write risk reports before reporting violations so they are always generated when requested
         if (settings.ReportRisk && packages.Length > 0)
         {
-            logger.LogHeader("Writing risk reports");
-            logger.LogInformation(
-                "Writing detailed HTML and SARIF risk reports for {PackageCount} packages.",
-                packages.Length);
-
-            RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
-                settings.ProjectPath,
-                packages,
-                settings.GetReportRiskPath());
-
-            AnsiConsole.MarkupLine("[yellow1]Package Risk Summary:[/]");
-            AnsiConsole.MarkupLine("");
-
-            foreach (var package in packages.OrderByDescending(p => p.RiskScore))
-            {
-                var riskColor = GetRiskColor(package.RiskScore);
-                AnsiConsole.MarkupLine(
-                    $"- {Markup.Escape(package.Name)} {Markup.Escape(package.Version)}: [{riskColor}]{FormatDecimal(package.RiskScore)}/100 ({GetRiskZone(package.RiskScore)})[/]");
-            }
-
-            AnsiConsole.MarkupLine("");
-            AnsiConsole.MarkupLine("Detailed risk reports:");
-            AnsiConsole.MarkupLine($"HTML: [blue]{Markup.Escape(reportPaths.HtmlPath)}[/]");
-            AnsiConsole.MarkupLine($"SARIF: [blue]{Markup.Escape(reportPaths.SarifPath)}[/]");
-            AnsiConsole.MarkupLine("");
+            await WriteRiskReportsAsync(logger, settings, packages);
         }
 
+        return ReportViolations(logger, violations, settings);
+    }
+
+    private static ProjectAnalyzer BuildAnalyzer(ILogger logger, AnalyzeCommandSettings settings)
+    {
+        var licenseFetcher = new LicenseFetcher(logger, settings.GitHubApiKey);
+        var riskEvaluator = new RiskEvaluator(logger);
+        return new ProjectAnalyzer(licenseFetcher, riskEvaluator) { Logger = logger };
+    }
+
+    private static async Task<(PolicyViolation[] violations, PackageInfo[] packages)> RunAnalysisAsync(
+        ProjectAnalyzer analyzer,
+        AnalyzeCommandSettings settings,
+        AnalyzerSettings analyzerSettings,
+        GetPolicyByProject getPolicy)
+    {
+        if (settings.ReportRisk)
+        {
+            var result = await analyzer.ExecuteAnalysisWithRisk(settings.ProjectPath, analyzerSettings, getPolicy);
+            return (result.Violations, result.Packages);
+        }
+
+        PolicyViolation[] violations = await analyzer.ExecuteAnalysis(settings.ProjectPath, analyzerSettings, getPolicy);
+        return (violations, []);
+    }
+
+    private static async Task WriteRiskReportsAsync(ILogger logger, AnalyzeCommandSettings settings, PackageInfo[] packages)
+    {
+        logger.LogHeader("Writing risk reports");
+        logger.LogInformation("Writing detailed HTML and SARIF risk reports for {PackageCount} packages.", packages.Length);
+
+        RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
+            settings.ProjectPath, packages, settings.GetReportRiskPath());
+
+        AnsiConsole.MarkupLine("[yellow1]Package Risk Summary:[/]");
+        AnsiConsole.MarkupLine("");
+
+        foreach (var package in packages.OrderByDescending(p => p.RiskScore))
+        {
+            var riskColor = GetRiskColor(package.RiskScore);
+            AnsiConsole.MarkupLine(
+                $"- {Markup.Escape(package.Name)} {Markup.Escape(package.Version)}: [{riskColor}]{FormatDecimal(package.RiskScore)}/100 ({GetRiskZone(package.RiskScore)})[/]");
+        }
+
+        AnsiConsole.MarkupLine("");
+        AnsiConsole.MarkupLine("Detailed risk reports:");
+        AnsiConsole.MarkupLine($"HTML: [blue]{Markup.Escape(reportPaths.HtmlPath)}[/]");
+        AnsiConsole.MarkupLine($"SARIF: [blue]{Markup.Escape(reportPaths.SarifPath)}[/]");
+        AnsiConsole.MarkupLine("");
+    }
+
+    private static int ReportViolations(ILogger logger, PolicyViolation[] violations, AnalyzeCommandSettings settings)
+    {
         if (violations.Length > 0)
         {
             AnsiConsole.MarkupLine("[red1]Policy violations found:[/]");
@@ -134,7 +144,6 @@ public sealed class AnalyzeCommand : AsyncCommand<AnalyzeCommandSettings>
         }
 
         AnsiConsole.MarkupLine("[green3_1]No policy violations found.[/]");
-
         return SuccessExitCode;
     }
 
@@ -163,6 +172,7 @@ public sealed class AnalyzeCommand : AsyncCommand<AnalyzeCommandSettings>
             _ => "Low"
         };
     }
+
     /// <summary>
     /// Formats a double value to one decimal place using invariant culture.
     /// </summary>

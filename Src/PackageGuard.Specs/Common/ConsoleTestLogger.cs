@@ -18,6 +18,7 @@ internal static class ConsoleTestLogger
                 o.SingleLine = true;
                 o.TimestampFormat = "HH:mm:ss ";
             });
+
             builder.SetMinimumLevel(minimumLevel);
         });
 

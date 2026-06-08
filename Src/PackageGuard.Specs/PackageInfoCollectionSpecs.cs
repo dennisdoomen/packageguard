@@ -271,7 +271,7 @@ public class PackageInfoSpecs
 
         PackageInfo[] cachedPackages =
         [
-            new PackageInfo
+            new()
             {
                 Name = "Bogus",
                 Version = "2.0.0",
@@ -291,6 +291,7 @@ public class PackageInfoSpecs
             ReportRisk = true,
             RiskCacheMaxAge = TimeSpan.FromHours(24)
         });
+
         await currentCollection.TryInitializeFromCache(cachePath);
         PackageInfo package = currentCollection.Find("Bogus", "2.0.0", [source]);
 
@@ -322,6 +323,7 @@ public class PackageInfoSpecs
             ReportRisk = true,
             RefreshRiskCache = true
         });
+
         await currentCollection.TryInitializeFromCache(ChainablePath.Current / "cache.bin");
         PackageInfo package = currentCollection.Find("Bogus", "2.0.0", [source]);
 
@@ -342,6 +344,7 @@ public class PackageInfoSpecs
             Source = "nuget.org",
             SourceUrl = "https://nuget.org"
         });
+
         original.TrackAsUsedInProject("ProjectA");
 
         // Act
@@ -352,6 +355,7 @@ public class PackageInfoSpecs
             Source = "nuget.org",
             SourceUrl = "https://nuget.org"
         });
+
         duplicate.TrackAsUsedInProject("ProjectB");
 
         // Assert

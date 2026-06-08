@@ -22,7 +22,9 @@ internal sealed class RiskReportWriterSpecs
     {
         reportDirectory = Path.Combine(Path.GetTempPath(), "PackageGuard-ReportSpecs", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(reportDirectory);
-        string existingReportDirectory = Environment.GetEnvironmentVariable(RiskHtmlReportWriter.ReportDirectoryEnvironmentVariable);
+        string existingReportDirectory =
+            Environment.GetEnvironmentVariable(RiskHtmlReportWriter.ReportDirectoryEnvironmentVariable);
+
         hadOriginalReportDirectory = existingReportDirectory is not null;
         originalReportDirectory = existingReportDirectory ?? "";
         Environment.SetEnvironmentVariable(RiskHtmlReportWriter.ReportDirectoryEnvironmentVariable, reportDirectory);
@@ -84,6 +86,7 @@ internal sealed class RiskReportWriterSpecs
                 ]
             }
         };
+
         package.TrackAsUsedInProject(@"src\Contoso.App\Contoso.App.csproj");
         package.TrackAsUsedInProject(@"frontend\package.json");
 
@@ -106,12 +109,30 @@ internal sealed class RiskReportWriterSpecs
         html.Should().Contain(@"frontend\package.json");
         html.Should().Contain("<span class=\"label\">Used by:</span>");
         html.Should().NotContain("<th>Used by</th>");
-        html.Should().Contain("<a href=\"https://github.com/contoso/contoso-security/blob/HEAD/LICENSE\" target=\"_blank\" rel=\"noreferrer noopener\">License URL (+0.0)</a>");
-        html.Should().Contain("<a href=\"https://github.com/contoso/contoso-security\" target=\"_blank\" rel=\"noreferrer noopener\">Public repository available (+0.0)</a>");
-        html.Should().Contain("<a href=\"https://securityscorecards.dev/viewer/?uri=github.com/contoso/contoso-security\" target=\"_blank\" rel=\"noreferrer noopener\">OpenSSF Scorecard score is low (4.0) (+1.5)</a>");
-        html.Should().Contain("<a href=\"https://github.com/contoso/contoso-security#readme\" target=\"_blank\" rel=\"noreferrer noopener\">README looks present and non-default (+0.0)</a>");
-        html.Should().Contain("<a href=\"https://github.com/contoso/contoso-security/blob/HEAD/CONTRIBUTING.md\" target=\"_blank\" rel=\"noreferrer noopener\">CONTRIBUTING guide is present (+0.0)</a>");
-        html.Should().Contain("<a href=\"https://github.com/contoso/contoso-security/releases\" target=\"_blank\" rel=\"noreferrer noopener\">CHANGELOG or release notes are present (+0.0)</a>");
+        html.Should()
+            .Contain(
+                "<a href=\"https://github.com/contoso/contoso-security/blob/HEAD/LICENSE\" target=\"_blank\" rel=\"noreferrer noopener\">License URL (+0.0)</a>");
+
+        html.Should()
+            .Contain(
+                "<a href=\"https://github.com/contoso/contoso-security\" target=\"_blank\" rel=\"noreferrer noopener\">Public repository available (+0.0)</a>");
+
+        html.Should()
+            .Contain(
+                "<a href=\"https://securityscorecards.dev/viewer/?uri=github.com/contoso/contoso-security\" target=\"_blank\" rel=\"noreferrer noopener\">OpenSSF Scorecard score is low (4.0) (+1.5)</a>");
+
+        html.Should()
+            .Contain(
+                "<a href=\"https://github.com/contoso/contoso-security#readme\" target=\"_blank\" rel=\"noreferrer noopener\">README looks present and non-default (+0.0)</a>");
+
+        html.Should()
+            .Contain(
+                "<a href=\"https://github.com/contoso/contoso-security/blob/HEAD/CONTRIBUTING.md\" target=\"_blank\" rel=\"noreferrer noopener\">CONTRIBUTING guide is present (+0.0)</a>");
+
+        html.Should()
+            .Contain(
+                "<a href=\"https://github.com/contoso/contoso-security/releases\" target=\"_blank\" rel=\"noreferrer noopener\">CHANGELOG or release notes are present (+0.0)</a>");
+
         html.Should().NotContain("Relevant links");
         html.Should().NotContain("<span class=\"label\">License URL:</span>");
         html.Should().NotContain("<span class=\"label\">Repository:</span>");
@@ -122,7 +143,9 @@ internal sealed class RiskReportWriterSpecs
         JsonElement result = sarif.RootElement.GetProperty("runs")[0].GetProperty("results")[0];
         result.GetProperty("ruleId").GetString().Should().Be("packageguard/risk-medium");
         result.GetProperty("message").GetProperty("text").GetString().Should().Contain("Contoso.Security 2.4.0 scored 47.5/100");
-        result.GetProperty("message").GetProperty("text").GetString().Should().Contain(@"Used by: frontend\package.json, src\Contoso.App\Contoso.App.csproj.");
+        result.GetProperty("message").GetProperty("text").GetString().Should()
+            .Contain(@"Used by: frontend\package.json, src\Contoso.App\Contoso.App.csproj.");
+
         result.GetProperty("properties").GetProperty("usedBy")[0].GetString().Should().Be(@"frontend\package.json");
         result.GetProperty("properties").GetProperty("usedBy")[1].GetString().Should().Be(@"src\Contoso.App\Contoso.App.csproj");
         result.GetProperty("locations")[0]
@@ -172,7 +195,14 @@ internal sealed class RiskReportWriterSpecs
 
         RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
             Path.Combine(reportDirectory, "PackageGuard.sln"),
-            [new PackageInfo { Name = "Contoso.Security", Version = "2.4.0", RiskDimensions = new RiskDimensions() }],
+            [
+                new PackageInfo
+                {
+                    Name = "Contoso.Security",
+                    Version = "2.4.0",
+                    RiskDimensions = new RiskDimensions()
+                }
+            ],
             explicitDirectory);
 
         Directory.Exists(explicitDirectory).Should().BeTrue();
@@ -194,7 +224,14 @@ internal sealed class RiskReportWriterSpecs
 
         RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
             Path.Combine(reportDirectory, "PackageGuard.sln"),
-            [new PackageInfo { Name = "Contoso.Security", Version = "2.4.0", RiskDimensions = new RiskDimensions() }],
+            [
+                new PackageInfo
+                {
+                    Name = "Contoso.Security",
+                    Version = "2.4.0",
+                    RiskDimensions = new RiskDimensions()
+                }
+            ],
             explicitHtmlPath);
 
         reportPaths.HtmlPath.Should().Be(explicitHtmlPath);

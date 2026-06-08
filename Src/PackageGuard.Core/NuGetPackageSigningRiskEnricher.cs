@@ -1,6 +1,6 @@
-using System.IO.Compression;
-using System.Diagnostics;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO.Compression;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using NuGet.Configuration;
@@ -27,8 +27,9 @@ internal sealed class NuGetPackageSigningRiskEnricher(ILogger logger, string? gl
     /// The path to the NuGet global packages folder used to locate .nupkg archives on disk.
     /// </summary>
     private readonly string globalPackagesFolder = globalPackagesFolder
-        ?? Environment.GetEnvironmentVariable("NUGET_PACKAGES")
-        ?? SettingsUtility.GetGlobalPackagesFolder(Settings.LoadDefaultSettings(Directory.GetCurrentDirectory()));
+                                                   ?? Environment.GetEnvironmentVariable("NUGET_PACKAGES")
+                                                   ?? SettingsUtility.GetGlobalPackagesFolder(
+                                                       Settings.LoadDefaultSettings(Directory.GetCurrentDirectory()));
 
     /// <summary>
     /// Returns <see langword="true"/> if signing risk data has already been populated for <paramref name="package"/>.
@@ -125,7 +126,9 @@ internal sealed class NuGetPackageSigningRiskEnricher(ILogger logger, string? gl
         try
         {
             using ZipArchive archive = ZipFile.OpenRead(packagePath);
-            bool isSigned = archive.Entries.Any(entry => entry.FullName.Equals(".signature.p7s", StringComparison.OrdinalIgnoreCase));
+            bool isSigned =
+                archive.Entries.Any(entry => entry.FullName.Equals(".signature.p7s", StringComparison.OrdinalIgnoreCase));
+
             string[] targetFrameworks = ReadTargetFrameworks(archive);
 
             return new ArchiveRiskData
@@ -133,7 +136,8 @@ internal sealed class NuGetPackageSigningRiskEnricher(ILogger logger, string? gl
                 IsSigned = isSigned,
                 HasTrustedSignature = isSigned ? VerifyTrustedSignature(packagePath) : false,
                 SupportedTargetFrameworks = targetFrameworks,
-                HasModernTargetFrameworkSupport = targetFrameworks.Length == 0 ? null : targetFrameworks.Any(IsModernTargetFramework),
+                HasModernTargetFrameworkSupport =
+                    targetFrameworks.Length == 0 ? null : targetFrameworks.Any(IsModernTargetFramework),
                 HasNativeBinaryAssets = archive.Entries.Any(IsNativeBinaryAsset)
             };
         }

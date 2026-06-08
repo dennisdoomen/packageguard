@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using PackageGuard.Core.Common;
 using NuGet.Versioning;
+using PackageGuard.Core.Common;
 
 namespace PackageGuard.Core.Npm;
 
@@ -54,121 +54,9 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
             string jsonContent = await HttpClient.GetStringAsync(registryUrl);
             using JsonDocument doc = JsonDocument.Parse(jsonContent);
             JsonElement root = doc.RootElement;
-            JsonElement timeElement = root.TryGetProperty("time", out JsonElement parsedTimeElement) &&
-                                      parsedTimeElement.ValueKind == JsonValueKind.Object
-                ? parsedTimeElement
-                : default;
 
-            JsonElement currentVersionMetadata = TryGetCurrentVersionMetadata(root, package.Version);
-
-            if (timeElement.ValueKind == JsonValueKind.Object &&
-                timeElement.TryGetProperty(package.Version, out JsonElement publishedElement) &&
-                DateTimeOffset.TryParse(publishedElement.GetString(), out DateTimeOffset publishedAt))
-            {
-                package.PublishedAt = publishedAt;
-            }
-
-            if (root.TryGetProperty("dist-tags", out JsonElement distTagsElement) &&
-                distTagsElement.ValueKind == JsonValueKind.Object &&
-                distTagsElement.TryGetProperty("latest", out JsonElement latestElement))
-            {
-                string? latestStableVersion = latestElement.GetString();
-                if (!string.IsNullOrWhiteSpace(latestStableVersion))
-                {
-                    package.LatestStableVersion = latestStableVersion;
-
-                    if (timeElement.ValueKind == JsonValueKind.Object &&
-                        timeElement.TryGetProperty(latestStableVersion, out JsonElement latestPublishedElement) &&
-                        DateTimeOffset.TryParse(latestPublishedElement.GetString(), out DateTimeOffset latestStablePublishedAt))
-                    {
-                        package.LatestStablePublishedAt = latestStablePublishedAt;
-                    }
-
-                    if (TryParseSemanticVersion(latestStableVersion, out NuGetVersion? latestVersion) &&
-                        TryParseSemanticVersion(package.Version, out NuGetVersion? currentVersion))
-                    {
-                        package.IsMajorVersionBehindLatest = latestVersion is not null &&
-                                                             currentVersion is not null &&
-                                                             latestVersion.Major > currentVersion.Major;
-                        package.IsMinorVersionBehindLatest = latestVersion is not null &&
-                                                              currentVersion is not null &&
-                                                              latestVersion.Major == currentVersion.Major &&
-                                                              latestVersion > currentVersion;
-                    }
-
-                    if (package is { PublishedAt: not null, LatestStablePublishedAt: not null } &&
-                        package.LatestStablePublishedAt.Value > package.PublishedAt.Value)
-                    {
-                        package.VersionUpdateLagDays = (package.LatestStablePublishedAt.Value - package.PublishedAt.Value).TotalDays;
-                    }
-                }
-            }
-
-            // Extract license if not already present
-            if (package.License is null)
-            {
-                if (currentVersionMetadata.ValueKind == JsonValueKind.Object &&
-                    currentVersionMetadata.TryGetProperty("license", out JsonElement currentLicenseElement))
-                {
-                    package.License = currentLicenseElement.GetString();
-                }
-                else if (root.TryGetProperty("license", out JsonElement licenseElement))
-                {
-                    package.License = licenseElement.GetString();
-                }
-
-                logger.LogDebug("Found license for {Name}: {License}", package.Name, package.License);
-            }
-
-            // Extract repository URL if not already present
-            if (package.RepositoryUrl is null)
-            {
-                JsonElement repositoryElement = currentVersionMetadata.ValueKind == JsonValueKind.Object &&
-                                                currentVersionMetadata.TryGetProperty("repository", out JsonElement versionRepositoryElement)
-                    ? versionRepositoryElement
-                    : root.TryGetProperty("repository", out JsonElement rootRepositoryElement)
-                        ? rootRepositoryElement
-                        : default;
-
-                if (repositoryElement.ValueKind == JsonValueKind.String)
-                {
-                    package.RepositoryUrl = repositoryElement.GetString();
-                }
-                else if (repositoryElement.ValueKind == JsonValueKind.Object &&
-                         repositoryElement.TryGetProperty("url", out JsonElement urlElement))
-                {
-                    string? repoUrl = urlElement.GetString();
-                    if (repoUrl is not null)
-                    {
-                        // Clean up git+ prefix and .git suffix if present
-                        package.RepositoryUrl = repoUrl
-                            .Replace("git+", "")
-                            .Replace("git://", "https://")
-                            .TrimEnd('/', '.', 'g', 'i', 't');
-                    }
-                }
-
-                logger.LogDebug("Found repository URL for {Name}: {Url}", package.Name, package.RepositoryUrl);
-            }
-
-            if (currentVersionMetadata.ValueKind == JsonValueKind.Object &&
-                currentVersionMetadata.TryGetProperty("deprecated", out JsonElement deprecatedElement))
-            {
-                package.IsDeprecated = !string.IsNullOrWhiteSpace(deprecatedElement.GetString());
-            }
-
-            // Extract license URL if available (some packages have this)
-            if (package.LicenseUrl is null)
-            {
-                // Try to construct a license URL from the repository
-                if (package.RepositoryUrl is not null && package.RepositoryUrl.Contains("github.com"))
-                {
-                    // Construct a typical GitHub license URL
-                    string cleanUrl = package.RepositoryUrl.TrimEnd('/');
-                    package.LicenseUrl = $"{cleanUrl}/blob/master/LICENSE";
-                    logger.LogDebug("Constructed license URL for {Name}: {Url}", package.Name, package.LicenseUrl);
-                }
-            }
+            ParseVersionMetadata(package, root);
+            ParsePackageMetadata(package, root);
 
             await FetchDownloadCountAsync(package);
         }
@@ -181,6 +69,137 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
         {
             logger.LogWarning("Failed to parse NPM package metadata for {Name} {Version}: {Error}",
                 package.Name, package.Version, ex.Message);
+        }
+    }
+
+    /// <summary>Parses version-specific metadata: published date, latest stable version, and version lag.</summary>
+    private static void ParseVersionMetadata(PackageInfo package, JsonElement root)
+    {
+        JsonElement timeElement = root.TryGetProperty("time", out JsonElement parsedTimeElement) &&
+                                  parsedTimeElement.ValueKind == JsonValueKind.Object
+            ? parsedTimeElement
+            : default;
+
+        if (timeElement.ValueKind == JsonValueKind.Object &&
+            timeElement.TryGetProperty(package.Version, out JsonElement publishedElement) &&
+            DateTimeOffset.TryParse(publishedElement.GetString(), out DateTimeOffset publishedAt))
+        {
+            package.PublishedAt = publishedAt;
+        }
+
+        if (!root.TryGetProperty("dist-tags", out JsonElement distTagsElement) ||
+            distTagsElement.ValueKind != JsonValueKind.Object ||
+            !distTagsElement.TryGetProperty("latest", out JsonElement latestElement))
+        {
+            return;
+        }
+
+        string? latestStableVersion = latestElement.GetString();
+        if (string.IsNullOrWhiteSpace(latestStableVersion))
+        {
+            return;
+        }
+
+        package.LatestStableVersion = latestStableVersion;
+
+        if (timeElement.ValueKind == JsonValueKind.Object &&
+            timeElement.TryGetProperty(latestStableVersion, out JsonElement latestPublishedElement) &&
+            DateTimeOffset.TryParse(latestPublishedElement.GetString(), out DateTimeOffset latestStablePublishedAt))
+        {
+            package.LatestStablePublishedAt = latestStablePublishedAt;
+        }
+
+        if (TryParseSemanticVersion(latestStableVersion, out NuGetVersion? latestVersion) &&
+            TryParseSemanticVersion(package.Version, out NuGetVersion? currentVersion))
+        {
+            package.IsMajorVersionBehindLatest = latestVersion is not null &&
+                                                 currentVersion is not null &&
+                                                 latestVersion.Major > currentVersion.Major;
+
+            package.IsMinorVersionBehindLatest = latestVersion is not null &&
+                                                 currentVersion is not null &&
+                                                 latestVersion.Major == currentVersion.Major &&
+                                                 latestVersion > currentVersion;
+        }
+
+        if (package is { PublishedAt: not null, LatestStablePublishedAt: not null } &&
+            package.LatestStablePublishedAt.Value > package.PublishedAt.Value)
+        {
+            package.VersionUpdateLagDays =
+                (package.LatestStablePublishedAt.Value - package.PublishedAt.Value).TotalDays;
+        }
+    }
+
+    /// <summary>Parses license, repository URL, deprecation status, and license URL from the registry response.</summary>
+    private void ParsePackageMetadata(PackageInfo package, JsonElement root)
+    {
+        JsonElement currentVersionMetadata = TryGetCurrentVersionMetadata(root, package.Version);
+
+        // Extract license if not already present
+        if (package.License is null)
+        {
+            if (currentVersionMetadata.ValueKind == JsonValueKind.Object &&
+                currentVersionMetadata.TryGetProperty("license", out JsonElement currentLicenseElement))
+            {
+                package.License = currentLicenseElement.GetString();
+            }
+            else if (root.TryGetProperty("license", out JsonElement licenseElement))
+            {
+                package.License = licenseElement.GetString();
+            }
+
+            logger.LogDebug("Found license for {Name}: {License}", package.Name, package.License);
+        }
+
+        // Extract repository URL if not already present
+        if (package.RepositoryUrl is null)
+        {
+            JsonElement repositoryElement = currentVersionMetadata.ValueKind == JsonValueKind.Object &&
+                                            currentVersionMetadata.TryGetProperty("repository",
+                                                out JsonElement versionRepositoryElement)
+                ? versionRepositoryElement
+                : root.TryGetProperty("repository", out JsonElement rootRepositoryElement)
+                    ? rootRepositoryElement
+                    : default;
+
+            if (repositoryElement.ValueKind == JsonValueKind.String)
+            {
+                package.RepositoryUrl = repositoryElement.GetString();
+            }
+            else if (repositoryElement.ValueKind == JsonValueKind.Object &&
+                     repositoryElement.TryGetProperty("url", out JsonElement urlElement))
+            {
+                string? repoUrl = urlElement.GetString();
+                if (repoUrl is not null)
+                {
+                    // Clean up git+ prefix and .git suffix if present
+                    package.RepositoryUrl = repoUrl
+                        .Replace("git+", "")
+                        .Replace("git://", "https://")
+                        .TrimEnd('/', '.', 'g', 'i', 't');
+                }
+            }
+
+            logger.LogDebug("Found repository URL for {Name}: {Url}", package.Name, package.RepositoryUrl);
+        }
+
+        if (currentVersionMetadata.ValueKind == JsonValueKind.Object &&
+            currentVersionMetadata.TryGetProperty("deprecated", out JsonElement deprecatedElement))
+        {
+            package.IsDeprecated = !string.IsNullOrWhiteSpace(deprecatedElement.GetString());
+        }
+
+        // Extract license URL if available (some packages have this)
+        if (package.LicenseUrl is null)
+        {
+            // Try to construct a license URL from the repository
+            if (package.RepositoryUrl is not null && package.RepositoryUrl.Contains("github.com"))
+            {
+                // Construct a typical GitHub license URL
+                string cleanUrl = package.RepositoryUrl.TrimEnd('/');
+                package.LicenseUrl = $"{cleanUrl}/blob/master/LICENSE";
+                logger.LogDebug("Constructed license URL for {Name}: {Url}", package.Name, package.LicenseUrl);
+            }
         }
     }
 
@@ -224,7 +243,7 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
 
             int packageIndex = -1;
             string packageNameInUrl = package.Name.Replace("/", "%2f"); // Scoped packages may be URL-encoded
- for (int i = 0; i < pathSegments.Length; i++)
+            for (int i = 0; i < pathSegments.Length; i++)
             {
                 string decodedSegment = Uri.UnescapeDataString(pathSegments[i]);
                 if (decodedSegment == package.Name || decodedSegment == packageNameInUrl)

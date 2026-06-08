@@ -11,15 +11,27 @@ internal sealed class IssueHealthRiskFactor : IEvaluateRiskFactor
         var risk = 0.0;
         var rationale = new List<string>();
 
+        risk += EvaluateOpenIssueRisk(package, rationale);
+        risk += EvaluateClosureRateRisk(package, rationale);
+
+        return new RiskFactorContribution(risk, rationale.ToArray());
+    }
+
+    private static double EvaluateOpenIssueRisk(PackageInfo package, List<string> rationale)
+    {
+        double risk = 0;
+
         if (package.OpenBugIssueCount > 25)
         {
             risk += 1.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"High number of open bug issues ({package.OpenBugIssueCount})", 1.5));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale($"High number of open bug issues ({package.OpenBugIssueCount})",
+                1.5));
         }
         else if (package.OpenBugIssueCount > 10)
         {
             risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Elevated number of open bug issues ({package.OpenBugIssueCount})", 0.5));
+            rationale.Add(
+                RiskEvaluationHelpers.CreateRationale($"Elevated number of open bug issues ({package.OpenBugIssueCount})", 0.5));
         }
 
         if (package.StaleCriticalBugIssueCount > 0)
@@ -28,33 +40,6 @@ internal sealed class IssueHealthRiskFactor : IEvaluateRiskFactor
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
                 $"Stale critical bug issues remain open ({package.StaleCriticalBugIssueCount})",
                 1.5));
-        }
-
-        double? closureRate = GetBugClosureRate(package);
-        if (closureRate != null)
-        {
-            double bugClosureRate = closureRate.Value;
-            if (bugClosureRate < 0.35)
-            {
-                risk += 1.0;
-                rationale.Add(RiskEvaluationHelpers.CreateRationale($"Bug closure rate is low ({RiskEvaluationHelpers.FormatPercentage(bugClosureRate)})", 1.0));
-            }
-            else if (bugClosureRate < 0.60)
-            {
-                risk += 0.5;
-                rationale.Add(RiskEvaluationHelpers.CreateRationale($"Bug closure rate is moderate ({RiskEvaluationHelpers.FormatPercentage(bugClosureRate)})", 0.5));
-            }
-            else
-            {
-                rationale.Add(RiskEvaluationHelpers.CreateRationale($"Bug closure rate looks healthy ({RiskEvaluationHelpers.FormatPercentage(bugClosureRate)})", 0.0));
-            }
-        }
-
-        double? reopenRate = GetBugReopenRate(package);
-        if (reopenRate > 0.20)
-        {
-            risk += 0.75;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Bug reopen rate is elevated ({RiskEvaluationHelpers.FormatPercentage(reopenRate.Value)})", 0.75));
         }
 
         if (package.MedianIssueResponseDays > 30)
@@ -67,7 +52,8 @@ internal sealed class IssueHealthRiskFactor : IEvaluateRiskFactor
         else if (package.MedianIssueResponseDays != null)
         {
             double responseDays = package.MedianIssueResponseDays.Value;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Median issue response time looks healthy ({RiskEvaluationHelpers.FormatScore(responseDays)} days)", 0.0));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                $"Median issue response time looks healthy ({RiskEvaluationHelpers.FormatScore(responseDays)} days)", 0.0));
         }
 
         if (package.MedianCriticalIssueResponseDays > 7)
@@ -102,7 +88,45 @@ internal sealed class IssueHealthRiskFactor : IEvaluateRiskFactor
                 0.75));
         }
 
-        return new RiskFactorContribution(risk, rationale.ToArray());
+        return risk;
+    }
+
+    private static double EvaluateClosureRateRisk(PackageInfo package, List<string> rationale)
+    {
+        double risk = 0;
+
+        double? closureRate = GetBugClosureRate(package);
+        if (closureRate != null)
+        {
+            double bugClosureRate = closureRate.Value;
+            if (bugClosureRate < 0.35)
+            {
+                risk += 1.0;
+                rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                    $"Bug closure rate is low ({RiskEvaluationHelpers.FormatPercentage(bugClosureRate)})", 1.0));
+            }
+            else if (bugClosureRate < 0.60)
+            {
+                risk += 0.5;
+                rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                    $"Bug closure rate is moderate ({RiskEvaluationHelpers.FormatPercentage(bugClosureRate)})", 0.5));
+            }
+            else
+            {
+                rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                    $"Bug closure rate looks healthy ({RiskEvaluationHelpers.FormatPercentage(bugClosureRate)})", 0.0));
+            }
+        }
+
+        double? reopenRate = GetBugReopenRate(package);
+        if (reopenRate > 0.20)
+        {
+            risk += 0.75;
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                $"Bug reopen rate is elevated ({RiskEvaluationHelpers.FormatPercentage(reopenRate.Value)})", 0.75));
+        }
+
+        return risk;
     }
 
     /// <summary>

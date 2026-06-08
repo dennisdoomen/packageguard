@@ -41,5 +41,5 @@ public partial class RiskDimensions
     /// <summary>
     /// Gets the overall risk score calculated from individual dimensions.
     /// </summary>
-    public double OverallRisk => (LegalRisk * 0.20) + (SecurityRisk * 0.45) + (OperationalRisk * 0.35);
+    public double OverallRisk => LegalRisk * 0.20 + SecurityRisk * 0.45 + OperationalRisk * 0.35;
 }

@@ -116,10 +116,10 @@ internal class RiskEvaluatorSpecs
         riskEvaluator.EvaluateRisk(package);
 
         // Assert
-        var expectedOverallRisk = (package.RiskDimensions.LegalRisk * 0.20) +
-                                   (package.RiskDimensions.SecurityRisk * 0.45) +
-                                   (package.RiskDimensions.OperationalRisk * 0.35);
-        
+        var expectedOverallRisk = package.RiskDimensions.LegalRisk * 0.20 +
+                                  package.RiskDimensions.SecurityRisk * 0.45 +
+                                  package.RiskDimensions.OperationalRisk * 0.35;
+
         package.RiskDimensions.OverallRisk.Should().Be(expectedOverallRisk);
         package.RiskScore.Should().Be(expectedOverallRisk * 10); // Scaled to 0-100
     }
@@ -169,10 +169,15 @@ internal class RiskEvaluatorSpecs
         riskEvaluator.EvaluateRisk(package);
 
         package.RiskDimensions.SecurityRisk.Should().BeGreaterThan(7.0);
-        package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("Known vulnerabilities found (1, max severity 8.0)"));
-        package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("Median vulnerability fix time is slow"));
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Known vulnerabilities found (1, max severity 8.0)"));
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Median vulnerability fix time is slow"));
+
         package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("Deep dependency chain (depth 11)"));
-        package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("Vulnerable transitive dependencies (2)"));
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Vulnerable transitive dependencies (2)"));
     }
 
     [TestMethod]
@@ -200,14 +205,23 @@ internal class RiskEvaluatorSpecs
         riskEvaluator.EvaluateRisk(package);
 
         package.RiskDimensions.OperationalRisk.Should().Be(10.0);
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Last release is older than 24 months"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("README is missing or appears to be boilerplate"));
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Last release is older than 24 months"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("README is missing or appears to be boilerplate"));
+
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("CONTRIBUTING guide is missing"));
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("SECURITY policy is missing"));
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Low contributor count (1)"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("High number of open bug issues (30)"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Low package popularity (500 downloads)"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Dimension score capped at 10.0/10"));
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("High number of open bug issues (30)"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Low package popularity (500 downloads)"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Dimension score capped at 10.0/10"));
     }
 
     [TestMethod]
@@ -260,19 +274,39 @@ internal class RiskEvaluatorSpecs
         riskEvaluator.EvaluateRisk(package);
 
         package.RiskDimensions.SecurityRisk.Should().BeGreaterThan(5.0);
-        package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("A security fix is available for a known vulnerability"));
-        package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("Package is signed but trust verification failed"));
-        package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("Verified publisher signal was not detected"));
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("A security fix is available for a known vulnerability"));
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Package is signed but trust verification failed"));
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Verified publisher signal was not detected"));
 
         package.RiskDimensions.OperationalRisk.Should().BeGreaterThan(9.0);
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("CHANGELOG or release notes are missing or low quality"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Contribution concentration is high"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Recent CI workflow failures are elevated (4)"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("No recent successful CI workflow run detected"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("No required status checks were detected"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Current package version is behind latest stable (2.0.0)"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("OpenSSF Scorecard score is low (4.5)"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Repository ownership or rename churn was detected"));
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("CHANGELOG or release notes are missing or low quality"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Contribution concentration is high"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Recent CI workflow failures are elevated (4)"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("No recent successful CI workflow run detected"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("No required status checks were detected"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Current package version is behind latest stable (2.0.0)"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("OpenSSF Scorecard score is low (4.5)"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Repository ownership or rename churn was detected"));
     }
 
     [TestMethod]
@@ -311,10 +345,17 @@ internal class RiskEvaluatorSpecs
 
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Bug closure rate is low"));
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Bug reopen rate is elevated"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Critical issue response time is slow"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Maintainer response coverage is low"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("CI workflow failure rate is elevated"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("CI workflow history shows a potentially flaky failure pattern"));
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Critical issue response time is slow"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Maintainer response coverage is low"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("CI workflow failure rate is elevated"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item =>
+            item.Contains("CI workflow history shows a potentially flaky failure pattern"));
     }
 
     [TestMethod]
@@ -363,20 +404,42 @@ internal class RiskEvaluatorSpecs
 
         riskEvaluator.EvaluateRisk(package);
 
-        package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("Unmaintained critical transitive dependencies were detected"));
-        package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("Verified commit coverage is limited"));
-        package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("The package version is marked as deprecated"));
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Unmaintained critical transitive dependencies were detected"));
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Verified commit coverage is limited"));
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("The package version is marked as deprecated"));
 
         package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Mean release interval is long"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Recent release tags do not consistently follow semantic versioning"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("A high share of semver release transitions were major-version jumps (50 %)"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Median maintainer inactivity is elevated"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Issue triage within 7 days is low"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("No dependency update automation signal was detected"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("No explicit test execution signal was detected"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Deprecated transitive dependencies were detected"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("Reviewer diversity looks limited"));
-        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item => item.Contains("The current version trails the latest stable release by a long time"));
+        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item =>
+            item.Contains("Recent release tags do not consistently follow semantic versioning"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item =>
+            item.Contains("A high share of semver release transitions were major-version jumps (50 %)"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Median maintainer inactivity is elevated"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Issue triage within 7 days is low"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("No dependency update automation signal was detected"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("No explicit test execution signal was detected"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Deprecated transitive dependencies were detected"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Reviewer diversity looks limited"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should().Contain(item =>
+            item.Contains("The current version trails the latest stable release by a long time"));
     }
 
     [TestMethod]
@@ -427,6 +490,7 @@ internal class RiskEvaluatorSpecs
 
         package.RiskDimensions.OperationalRiskRationale.Should()
             .Contain(item => item.Contains("CHANGELOG or release notes are present"));
+
         package.RiskDimensions.OperationalRiskRationale.Should()
             .NotContain(item => item.Contains("CHANGELOG or release notes are missing or low quality"));
     }
@@ -515,6 +579,7 @@ internal class RiskEvaluatorSpecs
 
         deepPackage.RiskDimensions.SecurityRisk.Should()
             .BeGreaterThan(shallowPackage.RiskDimensions.SecurityRisk);
+
         deepPackage.RiskDimensions.SecurityRiskRationale.Should()
             .Contain(item => item.Contains("Deep dependency chain (depth 25)"));
     }
@@ -604,6 +669,7 @@ internal class RiskEvaluatorSpecs
 
         packageWithoutDisclosure.RiskDimensions.SecurityRisk.Should()
             .BeGreaterThan(packageWithDisclosure.RiskDimensions.SecurityRisk);
+
         packageWithoutDisclosure.RiskDimensions.SecurityRiskRationale.Should()
             .Contain(item => item.Contains("No coordinated disclosure signal was detected"));
     }
@@ -680,6 +746,7 @@ internal class RiskEvaluatorSpecs
 
         package.RiskDimensions.OperationalRiskRationale.Should()
             .Contain(item => item.Contains("Last release is older than 12 months"));
+
         package.RiskDimensions.OperationalRiskRationale.Should()
             .NotContain(item => item.Contains("Last release is older than 24 months"));
     }
@@ -707,6 +774,7 @@ internal class RiskEvaluatorSpecs
 
         package.RiskDimensions.OperationalRiskRationale.Should()
             .Contain(item => item.Contains("Mean release interval is elevated"));
+
         package.RiskDimensions.OperationalRiskRationale.Should()
             .NotContain(item => item.Contains("Mean release interval is long"));
     }
@@ -736,8 +804,10 @@ internal class RiskEvaluatorSpecs
 
         package.RiskDimensions.OperationalRiskRationale.Should()
             .Contain(item => item.Contains("README has not been refreshed recently"));
+
         package.RiskDimensions.OperationalRiskRationale.Should()
             .Contain(item => item.Contains("SECURITY policy lacks concrete response instructions"));
+
         package.RiskDimensions.OperationalRiskRationale.Should()
             .Contain(item => item.Contains("CHANGELOG has not been refreshed recently"));
     }
@@ -817,6 +887,7 @@ internal class RiskEvaluatorSpecs
 
         package.RiskDimensions.OperationalRiskRationale.Should()
             .Contain(item => item.Contains("The current version trails the latest stable release (120.0 days)"));
+
         package.RiskDimensions.OperationalRiskRationale.Should()
             .NotContain(item => item.Contains("by a long time"));
     }

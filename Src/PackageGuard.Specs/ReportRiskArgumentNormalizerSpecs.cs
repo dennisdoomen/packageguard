@@ -18,7 +18,9 @@ public class ReportRiskArgumentNormalizerSpecs
     [TestMethod]
     public void Normalize_extracts_a_path_following_report_risk()
     {
-        var result = ReportRiskArgumentNormalizer.Normalize(["Test.sln", "--report-risk", @"C:\temp\risk.html", "--ignore-violations"]);
+        var result = ReportRiskArgumentNormalizer.Normalize([
+            "Test.sln", "--report-risk", @"C:\temp\risk.html", "--ignore-violations"
+        ]);
 
         result.Args.Should().Equal("Test.sln", "--report-risk", "--ignore-violations");
         result.ReportRiskPath.Should().Be(@"C:\temp\risk.html");
@@ -27,7 +29,9 @@ public class ReportRiskArgumentNormalizerSpecs
     [TestMethod]
     public void Normalize_extracts_an_inline_report_risk_path()
     {
-        var result = ReportRiskArgumentNormalizer.Normalize(["Test.sln", "--report-risk=C:\\temp\\risk.html", "--ignore-violations"]);
+        var result = ReportRiskArgumentNormalizer.Normalize([
+            "Test.sln", "--report-risk=C:\\temp\\risk.html", "--ignore-violations"
+        ]);
 
         result.Args.Should().Equal("Test.sln", "--report-risk", "--ignore-violations");
         result.ReportRiskPath.Should().Be(@"C:\temp\risk.html");

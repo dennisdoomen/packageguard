@@ -20,13 +20,12 @@ internal sealed class DependencyHealthCountEnricher(IReadOnlyDictionary<string, 
     public Task EnrichAsync(PackageInfo package)
     {
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        (int staleCount, int abandonedCount, int deprecatedCount, int unmaintainedCriticalCount) =
-            CountDependencyHealth(package, visited);
+        DependencyHealthCounts counts = CountDependencyHealth(package, visited);
 
-        package.StaleTransitiveDependencyCount = staleCount;
-        package.AbandonedTransitiveDependencyCount = abandonedCount;
-        package.DeprecatedTransitiveDependencyCount = deprecatedCount;
-        package.UnmaintainedCriticalTransitiveDependencyCount = unmaintainedCriticalCount;
+        package.StaleTransitiveDependencyCount = counts.StaleCount;
+        package.AbandonedTransitiveDependencyCount = counts.AbandonedCount;
+        package.DeprecatedTransitiveDependencyCount = counts.DeprecatedCount;
+        package.UnmaintainedCriticalTransitiveDependencyCount = counts.UnmaintainedCriticalCount;
 
         return Task.CompletedTask;
     }
@@ -35,8 +34,7 @@ internal sealed class DependencyHealthCountEnricher(IReadOnlyDictionary<string, 
     /// Recursively counts the number of unique stale, abandoned, deprecated, and unmaintained-critical
     /// transitive dependencies of <paramref name="package"/>, avoiding cycles via <paramref name="visited"/>.
     /// </summary>
-    private (int staleCount, int abandonedCount, int deprecatedCount, int unmaintainedCriticalCount) CountDependencyHealth(
-        PackageInfo package, HashSet<string> visited)
+    private DependencyHealthCounts CountDependencyHealth(PackageInfo package, HashSet<string> visited)
     {
         int staleCount = 0;
         int abandonedCount = 0;
@@ -75,15 +73,15 @@ internal sealed class DependencyHealthCountEnricher(IReadOnlyDictionary<string, 
                 unmaintainedCriticalCount++;
             }
 
-            (int nestedStale, int nestedAbandoned, int nestedDeprecated, int nestedUnmaintainedCritical) =
-                CountDependencyHealth(dependency, visited);
-            staleCount += nestedStale;
-            abandonedCount += nestedAbandoned;
-            deprecatedCount += nestedDeprecated;
-            unmaintainedCriticalCount += nestedUnmaintainedCritical;
+            DependencyHealthCounts nested = CountDependencyHealth(dependency, visited);
+
+            staleCount += nested.StaleCount;
+            abandonedCount += nested.AbandonedCount;
+            deprecatedCount += nested.DeprecatedCount;
+            unmaintainedCriticalCount += nested.UnmaintainedCriticalCount;
         }
 
-        return (staleCount, abandonedCount, deprecatedCount, unmaintainedCriticalCount);
+        return new DependencyHealthCounts(staleCount, abandonedCount, deprecatedCount, unmaintainedCriticalCount);
     }
 
     /// <summary>

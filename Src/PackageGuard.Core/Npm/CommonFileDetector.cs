@@ -12,14 +12,14 @@ internal class CommonFileDetector : IDetectPackageManager
     {
         var mappings = new List<(string lockFile, NpmPackageManager manager)>
         {
-            ( "package-lock.json", NpmPackageManager.Npm ),
-            ( ".npmrc", NpmPackageManager.Npm ),
-            ( "pnpm-lock.json", NpmPackageManager.Pnpm ),
-            ( "pnpm-workspace.yml", NpmPackageManager.Pnpm ),
-            ( "yarn.lock", NpmPackageManager.Yarn ),
-            ( ".yarnrc.yml", NpmPackageManager.Yarn ),
-            ( ".yarnrc", NpmPackageManager.Yarn ),
-            ( "package.json", NpmPackageManager.Npm ),
+            ("package-lock.json", NpmPackageManager.Npm),
+            (".npmrc", NpmPackageManager.Npm),
+            ("pnpm-lock.json", NpmPackageManager.Pnpm),
+            ("pnpm-workspace.yml", NpmPackageManager.Pnpm),
+            ("yarn.lock", NpmPackageManager.Yarn),
+            (".yarnrc.yml", NpmPackageManager.Yarn),
+            (".yarnrc", NpmPackageManager.Yarn),
+            ("package.json", NpmPackageManager.Npm),
         };
 
         ChainablePath path = projectOrSolutionPath.ToPath();

@@ -1,4 +1,3 @@
-using System.Net.Http;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core.CSharp.FetchingStrategies;
@@ -23,7 +22,8 @@ public sealed class LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
     /// <summary>
     /// Test-only constructor that accepts an explicit set of license fetcher strategies.
     /// </summary>
-    internal LicenseFetcher(ILogger logger, string? gitHubApiKey, IEnumerable<IFetchLicense> fetchers) : this(logger, gitHubApiKey)
+    internal LicenseFetcher(ILogger logger, string? gitHubApiKey, IEnumerable<IFetchLicense> fetchers) : this(logger,
+        gitHubApiKey)
     {
         this.fetchers = fetchers.ToArray();
     }

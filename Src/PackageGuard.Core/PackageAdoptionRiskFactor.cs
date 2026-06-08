@@ -12,20 +12,34 @@ internal sealed class PackageAdoptionRiskFactor : IEvaluateRiskFactor
         var risk = 0.0;
         var rationale = new List<string>();
 
+        risk += EvaluateDownloadRisk(package, rationale);
+        risk += EvaluateVersionRisk(package, rationale);
+        risk += EvaluateEcosystemRisk(package, rationale);
+
+        return new RiskFactorContribution(risk, rationale.ToArray());
+    }
+
+    private static double EvaluateDownloadRisk(PackageInfo package, List<string> rationale)
+    {
+        double risk = 0;
+
         if (package.DownloadCount is < 1000)
         {
             risk += 2.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Low package popularity ({package.DownloadCount} downloads)", 2.0));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Low package popularity ({package.DownloadCount} downloads)",
+                2.0));
         }
         else if (package.DownloadCount is < 10000)
         {
             risk += 1.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Limited package popularity ({package.DownloadCount} downloads)", 1.0));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Limited package popularity ({package.DownloadCount} downloads)",
+                1.0));
         }
         else if (package.DownloadCount != null)
         {
             long downloadCount = package.DownloadCount.Value;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Package popularity is established ({downloadCount} downloads)", 0.0));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Package popularity is established ({downloadCount} downloads)",
+                0.0));
         }
 
         if (package.HasPreOneZeroDependencies)
@@ -37,7 +51,8 @@ internal sealed class PackageAdoptionRiskFactor : IEvaluateRiskFactor
         if (package.StaleTransitiveDependencyCount is > 0)
         {
             risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Stale transitive dependencies were detected ({package.StaleTransitiveDependencyCount})", 0.25));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                $"Stale transitive dependencies were detected ({package.StaleTransitiveDependencyCount})", 0.25));
         }
 
         if (package.AbandonedTransitiveDependencyCount is > 0)
@@ -64,6 +79,13 @@ internal sealed class PackageAdoptionRiskFactor : IEvaluateRiskFactor
                 0.5));
         }
 
+        return risk;
+    }
+
+    private static double EvaluateVersionRisk(PackageInfo package, List<string> rationale)
+    {
+        double risk = 0;
+
         if (package.IsDeprecated is true)
         {
             risk += 1.0;
@@ -73,13 +95,39 @@ internal sealed class PackageAdoptionRiskFactor : IEvaluateRiskFactor
         if (package.IsMajorVersionBehindLatest)
         {
             risk += 1.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Current package version is behind latest stable ({package.LatestStableVersion})", 1.5));
+            rationale.Add(
+                RiskEvaluationHelpers.CreateRationale(
+                    $"Current package version is behind latest stable ({package.LatestStableVersion})", 1.5));
         }
         else if (package.IsMinorVersionBehindLatest)
         {
             risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Current package version is behind latest stable ({package.LatestStableVersion})", 0.5));
+            rationale.Add(
+                RiskEvaluationHelpers.CreateRationale(
+                    $"Current package version is behind latest stable ({package.LatestStableVersion})", 0.5));
         }
+
+        if (package.VersionUpdateLagDays is > 365)
+        {
+            risk += 1.0;
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                $"The current version trails the latest stable release by a long time ({RiskEvaluationHelpers.FormatScore(package.VersionUpdateLagDays.Value)} days)",
+                1.0));
+        }
+        else if (package.VersionUpdateLagDays is > 90)
+        {
+            risk += 0.5;
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                $"The current version trails the latest stable release ({RiskEvaluationHelpers.FormatScore(package.VersionUpdateLagDays.Value)} days)",
+                0.5));
+        }
+
+        return risk;
+    }
+
+    private static double EvaluateEcosystemRisk(PackageInfo package, List<string> rationale)
+    {
+        double risk = 0;
 
         if (package is { HasModernTargetFrameworkSupport: false, SupportedTargetFrameworks: [_, ..] })
         {
@@ -99,16 +147,19 @@ internal sealed class PackageAdoptionRiskFactor : IEvaluateRiskFactor
             if (openSsfScore < 5.0)
             {
                 risk += 1.5;
-                rationale.Add(RiskEvaluationHelpers.CreateRationale($"OpenSSF Scorecard score is low ({RiskEvaluationHelpers.FormatScore(openSsfScore)})", 1.5));
+                rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                    $"OpenSSF Scorecard score is low ({RiskEvaluationHelpers.FormatScore(openSsfScore)})", 1.5));
             }
             else if (openSsfScore < 7.0)
             {
                 risk += 0.5;
-                rationale.Add(RiskEvaluationHelpers.CreateRationale($"OpenSSF Scorecard score is moderate ({RiskEvaluationHelpers.FormatScore(openSsfScore)})", 0.5));
+                rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                    $"OpenSSF Scorecard score is moderate ({RiskEvaluationHelpers.FormatScore(openSsfScore)})", 0.5));
             }
             else
             {
-                rationale.Add(RiskEvaluationHelpers.CreateRationale($"OpenSSF Scorecard score is strong ({RiskEvaluationHelpers.FormatScore(openSsfScore)})", 0.0));
+                rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                    $"OpenSSF Scorecard score is strong ({RiskEvaluationHelpers.FormatScore(openSsfScore)})", 0.0));
             }
         }
 
@@ -146,21 +197,6 @@ internal sealed class PackageAdoptionRiskFactor : IEvaluateRiskFactor
             rationale.Add(RiskEvaluationHelpers.CreateRationale("No reproducible-build signal was detected", 0.25));
         }
 
-        if (package.VersionUpdateLagDays is > 365)
-        {
-            risk += 1.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"The current version trails the latest stable release by a long time ({RiskEvaluationHelpers.FormatScore(package.VersionUpdateLagDays.Value)} days)",
-                1.0));
-        }
-        else if (package.VersionUpdateLagDays is > 90)
-        {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"The current version trails the latest stable release ({RiskEvaluationHelpers.FormatScore(package.VersionUpdateLagDays.Value)} days)",
-                0.5));
-        }
-
-        return new RiskFactorContribution(risk, rationale.ToArray());
+        return risk;
     }
 }
