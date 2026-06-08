@@ -50,7 +50,7 @@ class Build : NukeBuild
     [Solution(GenerateProjects = true)]
     readonly Solution Solution;
 
-    [GitVersion(Framework = "net8.0", NoFetch = true, NoCache = true)]
+    [GitVersion(Framework = "net10.0", NoFetch = true, NoCache = true)]
     readonly GitVersion GitVersion;
 
     [NuGetPackage("JetBrains.ReSharper.GlobalTools", "inspectcode.exe")]
