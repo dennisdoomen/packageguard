@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using MemoryPack;
 using NuGet.Versioning;
@@ -53,8 +52,7 @@ public partial class PackageInfo
     public string[] Projects
     {
         get => projects.ToArray();
-        [UsedImplicitly]
-        set => projects = new List<string>();
+        [UsedImplicitly] set => projects = new List<string>();
     }
 
     /// <summary>

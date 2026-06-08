@@ -21,6 +21,16 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
             rationale.Add(RiskEvaluationHelpers.CreateRationale("Public repository available", 0.0));
         }
 
+        risk += EvaluateVulnerabilityRisk(package, rationale);
+        risk += EvaluateTransitiveDependencyRisk(package, rationale);
+        risk += EvaluateSupplyChainRisk(package, rationale);
+        risk += EvaluateOwnershipRisk(package, rationale);
+
+        return RiskEvaluationHelpers.CreateEvaluation(risk, rationale);
+    }
+
+    private static double EvaluateVulnerabilityRisk(PackageInfo package, List<string> rationale)
+    {
         double vulnerabilityRisk = 0;
         if (package.VulnerabilityCount > 0)
         {
@@ -64,16 +74,23 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         else if (package.MedianVulnerabilityFixDays != null)
         {
             double fixDays = package.MedianVulnerabilityFixDays.Value;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Median vulnerability fix time looks reasonable ({RiskEvaluationHelpers.FormatScore(fixDays)} days)", 0.0));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                $"Median vulnerability fix time looks reasonable ({RiskEvaluationHelpers.FormatScore(fixDays)} days)", 0.0));
         }
 
         double cappedVulnerabilityRisk = Math.Min(6.0, vulnerabilityRisk);
-        risk += cappedVulnerabilityRisk;
 
         if (vulnerabilityRisk > cappedVulnerabilityRisk)
         {
             rationale.Add("Vulnerability contribution capped at +6.0");
         }
+
+        return cappedVulnerabilityRisk;
+    }
+
+    private static double EvaluateTransitiveDependencyRisk(PackageInfo package, List<string> rationale)
+    {
+        double risk = 0;
 
         if (package.DependencyDepth > 20)
         {
@@ -87,7 +104,9 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         }
         else if (package.DependencyDepth > 0)
         {
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Dependency depth {package.DependencyDepth} stays below the risk threshold", 0.0));
+            rationale.Add(
+                RiskEvaluationHelpers.CreateRationale(
+                    $"Dependency depth {package.DependencyDepth} stays below the risk threshold", 0.0));
         }
 
         double transitiveRisk = Math.Min(1.5, package.TransitiveVulnerabilityCount * 0.5);
@@ -134,6 +153,13 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
                 criticalTransitiveRisk));
         }
 
+        return risk;
+    }
+
+    private static double EvaluateSupplyChainRisk(PackageInfo package, List<string> rationale)
+    {
+        double risk = 0;
+
         if (package.IsPackageSigned is false)
         {
             risk += 0.5;
@@ -165,7 +191,9 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         if (package.HasNativeBinaryAssets is true)
         {
             risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Package contains native or binary assets that may increase supply-chain exposure", 0.5));
+            rationale.Add(
+                RiskEvaluationHelpers.CreateRationale(
+                    "Package contains native or binary assets that may increase supply-chain exposure", 0.5));
         }
 
         if (package.VerifiedCommitRatio is < 0.5)
@@ -178,8 +206,65 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         else if (package.VerifiedCommitRatio != null)
         {
             double verifiedCommitRatio = package.VerifiedCommitRatio.Value;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Verified commit coverage looks healthy ({RiskEvaluationHelpers.FormatPercentage(verifiedCommitRatio)})", 0.0));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                $"Verified commit coverage looks healthy ({RiskEvaluationHelpers.FormatPercentage(verifiedCommitRatio)})", 0.0));
         }
+
+        risk += EvaluateAttestationRisk(package, rationale);
+
+        return risk;
+    }
+
+    private static double EvaluateAttestationRisk(PackageInfo package, List<string> rationale)
+    {
+        double risk = 0;
+
+        if (package.HasDetailedSecurityPolicy is false)
+        {
+            risk += 0.25;
+            rationale.Add(RiskEvaluationHelpers.CreateRationale("SECURITY policy lacks detailed reporting guidance", 0.25));
+        }
+
+        if (package.HasCoordinatedDisclosure is false)
+        {
+            risk += 0.25;
+            rationale.Add(RiskEvaluationHelpers.CreateRationale("No coordinated disclosure signal was detected", 0.25));
+        }
+
+        if (package.HasProvenanceAttestation is false)
+        {
+            risk += 0.5;
+            rationale.Add(
+                RiskEvaluationHelpers.CreateRationale("No provenance or attestation workflow signal was detected", 0.5));
+        }
+        else if (package.HasProvenanceAttestation is true)
+        {
+            rationale.Add(RiskEvaluationHelpers.CreateRationale("Provenance or attestation workflow signal was detected", 0.0));
+        }
+
+        if (package.HasReproducibleBuildSignal is false)
+        {
+            risk += 0.25;
+            rationale.Add(
+                RiskEvaluationHelpers.CreateRationale("No reproducible-build or deterministic-build signal was detected", 0.25));
+        }
+
+        if (package.HasVerifiedReleaseSignature is false)
+        {
+            risk += 0.25;
+            rationale.Add(RiskEvaluationHelpers.CreateRationale("Verified release signature signal was not detected", 0.25));
+        }
+        else if (package.HasVerifiedReleaseSignature is true)
+        {
+            rationale.Add(RiskEvaluationHelpers.CreateRationale("Verified release signature signal was detected", 0.0));
+        }
+
+        return risk;
+    }
+
+    private static double EvaluateOwnershipRisk(PackageInfo package, List<string> rationale)
+    {
+        double risk = 0;
 
         if (package.IsDeprecated is true)
         {
@@ -207,44 +292,6 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
             rationale.Add(RiskEvaluationHelpers.CreateRationale("Last published release is older than 24 months", 1.0));
         }
 
-        if (package.HasDetailedSecurityPolicy is false)
-        {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("SECURITY policy lacks detailed reporting guidance", 0.25));
-        }
-
-        if (package.HasCoordinatedDisclosure is false)
-        {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("No coordinated disclosure signal was detected", 0.25));
-        }
-
-        if (package.HasProvenanceAttestation is false)
-        {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("No provenance or attestation workflow signal was detected", 0.5));
-        }
-        else if (package.HasProvenanceAttestation is true)
-        {
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Provenance or attestation workflow signal was detected", 0.0));
-        }
-
-        if (package.HasReproducibleBuildSignal is false)
-        {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("No reproducible-build or deterministic-build signal was detected", 0.25));
-        }
-
-        if (package.HasVerifiedReleaseSignature is false)
-        {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Verified release signature signal was not detected", 0.25));
-        }
-        else if (package.HasVerifiedReleaseSignature is true)
-        {
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Verified release signature signal was detected", 0.0));
-        }
-
-        return RiskEvaluationHelpers.CreateEvaluation(risk, rationale);
+        return risk;
     }
 }

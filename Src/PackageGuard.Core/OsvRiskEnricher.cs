@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+
 namespace PackageGuard.Core;
 
 /// <summary>
@@ -87,7 +88,8 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
         {
             logger.LogDebug("Querying OSV API for {Name} {Version}", package.Name, package.Version);
             using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.osv.dev/v1/query");
-            request.Content = new StringContent(CreateRequestBody(package, ecosystem, pageToken), Encoding.UTF8, "application/json");
+            request.Content =
+                new StringContent(CreateRequestBody(package, ecosystem, pageToken), Encoding.UTF8, "application/json");
 
             using HttpResponseMessage response = await HttpClient.SendAsync(request);
             response.EnsureSuccessStatusCode();
@@ -340,7 +342,9 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
         }
 
         string[] parts = score.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return parts.Select(part => double.TryParse(part, NumberStyles.Number, CultureInfo.InvariantCulture, out double value) ? value : 0).FirstOrDefault(value => value > 0);
+        return parts.Select(part =>
+                double.TryParse(part, NumberStyles.Number, CultureInfo.InvariantCulture, out double value) ? value : 0)
+            .FirstOrDefault(value => value > 0);
     }
 
     /// <summary>

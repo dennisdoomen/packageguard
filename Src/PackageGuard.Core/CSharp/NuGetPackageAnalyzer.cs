@@ -154,7 +154,8 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         {
             if (!credentialProvidersConfigured)
             {
-                DefaultCredentialServiceUtility.SetupDefaultCredentialService(NullLogger.Instance, nonInteractive: !InteractiveRestore);
+                DefaultCredentialServiceUtility.SetupDefaultCredentialService(NullLogger.Instance,
+                    nonInteractive: !InteractiveRestore);
 
                 credentialProvidersConfigured = true;
             }

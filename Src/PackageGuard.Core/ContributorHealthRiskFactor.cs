@@ -30,12 +30,14 @@ internal sealed class ContributorHealthRiskFactor : IEvaluateRiskFactor
         if (package.RecentMaintainerCount is < 2)
         {
             risk += 1.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Very few active maintainers in the last 6 months ({package.RecentMaintainerCount})", 1.0));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                $"Very few active maintainers in the last 6 months ({package.RecentMaintainerCount})", 1.0));
         }
         else if (package.RecentMaintainerCount is < 4)
         {
             risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Limited active maintainer pool in the last 6 months ({package.RecentMaintainerCount})", 0.5));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                $"Limited active maintainer pool in the last 6 months ({package.RecentMaintainerCount})", 0.5));
         }
 
         if (package.MedianMaintainerActivityDays is > 180)

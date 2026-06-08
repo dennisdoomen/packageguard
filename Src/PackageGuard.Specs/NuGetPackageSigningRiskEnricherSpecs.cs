@@ -37,7 +37,12 @@ internal class NuGetPackageSigningRiskEnricherSpecs
     {
         string packagePath = CreatePackageArchive("Test.Package", "1.0.0", signed: true);
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
-        var package = new PackageInfo { Name = "Test.Package", Version = "1.0.0", Source = "nuget" };
+        var package = new PackageInfo
+        {
+            Name = "Test.Package",
+            Version = "1.0.0",
+            Source = "nuget"
+        };
 
         await enricher.EnrichAsync(package);
 
@@ -49,7 +54,12 @@ internal class NuGetPackageSigningRiskEnricherSpecs
     internal async Task Should_mark_package_as_unsigned_when_signature_file_is_missing()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
-        var package = new PackageInfo { Name = "Test.Package", Version = "1.0.0", Source = "nuget" };
+        var package = new PackageInfo
+        {
+            Name = "Test.Package",
+            Version = "1.0.0",
+            Source = "nuget"
+        };
 
         CreatePackageArchive("Test.Package", "1.0.0", signed: false);
         await enricher.EnrichAsync(package);
@@ -61,7 +71,12 @@ internal class NuGetPackageSigningRiskEnricherSpecs
     internal async Task Should_leave_signing_status_unknown_when_package_archive_is_missing()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
-        var package = new PackageInfo { Name = "Missing.Package", Version = "1.0.0", Source = "nuget" };
+        var package = new PackageInfo
+        {
+            Name = "Missing.Package",
+            Version = "1.0.0",
+            Source = "nuget"
+        };
 
         await enricher.EnrichAsync(package);
 
@@ -72,7 +87,12 @@ internal class NuGetPackageSigningRiskEnricherSpecs
     internal async Task Should_detect_native_binary_assets()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
-        var package = new PackageInfo { Name = "Native.Package", Version = "1.0.0", Source = "nuget" };
+        var package = new PackageInfo
+        {
+            Name = "Native.Package",
+            Version = "1.0.0",
+            Source = "nuget"
+        };
 
         CreatePackageArchive("Native.Package", "1.0.0", signed: false, includeNativeBinary: true);
         await enricher.EnrichAsync(package);
@@ -84,7 +104,12 @@ internal class NuGetPackageSigningRiskEnricherSpecs
     internal async Task Should_treat_net10_target_frameworks_as_modern()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
-        var package = new PackageInfo { Name = "Modern.Package", Version = "1.0.0", Source = "nuget" };
+        var package = new PackageInfo
+        {
+            Name = "Modern.Package",
+            Version = "1.0.0",
+            Source = "nuget"
+        };
 
         CreatePackageArchive("Modern.Package", "1.0.0", signed: false, targetFramework: "net10.0");
         await enricher.EnrichAsync(package);
@@ -93,7 +118,8 @@ internal class NuGetPackageSigningRiskEnricherSpecs
         package.HasModernTargetFrameworkSupport.Should().BeTrue();
     }
 
-    private string CreatePackageArchive(string packageId, string version, bool signed, bool includeNativeBinary = false, string targetFramework = "net9.0")
+    private string CreatePackageArchive(string packageId, string version, bool signed, bool includeNativeBinary = false,
+        string targetFramework = "net9.0")
     {
         string folder = Path.Combine(testDirectory, packageId.ToLowerInvariant(), version.ToLowerInvariant());
         Directory.CreateDirectory(folder);

@@ -38,7 +38,8 @@ internal sealed class CiHealthRiskFactor : IEvaluateRiskFactor
         if (package.HasFlakyWorkflowPattern is true)
         {
             risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("CI workflow history shows a potentially flaky failure pattern", 0.5));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale("CI workflow history shows a potentially flaky failure pattern",
+                0.5));
         }
 
         if (package.HasRecentSuccessfulWorkflowRun is false)
@@ -54,11 +55,14 @@ internal sealed class CiHealthRiskFactor : IEvaluateRiskFactor
         if (package.RequiredStatusCheckCount is 0)
         {
             risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("No required status checks were detected on the default branch", 0.5));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale("No required status checks were detected on the default branch",
+                0.5));
         }
         else if (package.RequiredStatusCheckCount is > 0)
         {
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Required status checks are configured ({package.RequiredStatusCheckCount})", 0.0));
+            rationale.Add(
+                RiskEvaluationHelpers.CreateRationale(
+                    $"Required status checks are configured ({package.RequiredStatusCheckCount})", 0.0));
         }
 
         if (package.WorkflowPlatformCount is < 2)

@@ -379,7 +379,10 @@ public class ProjectAnalyzerSpecs
             AllowList = new AllowList
             {
                 Licenses = ["mit", "apache-2.0"],
-                Packages = [new PackageSelector("FluentAssertions"), new PackageSelector("Microsoft.Testing.Extensions.CodeCoverage")]
+                Packages =
+                [
+                    new PackageSelector("FluentAssertions"), new PackageSelector("Microsoft.Testing.Extensions.CodeCoverage")
+                ]
             }
         });
 

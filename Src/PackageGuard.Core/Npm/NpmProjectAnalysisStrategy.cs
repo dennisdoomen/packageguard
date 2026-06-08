@@ -99,7 +99,8 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
             {
                 if (!policy.AllowList.Allows(package) || policy.DenyList.Denies(package))
                 {
-                    violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(),
+                    violations.Add(new PolicyViolation(package.Name, package.Version, package.License!,
+                        package.Projects.ToArray(),
                         package.Source, package.SourceUrl));
                 }
             }

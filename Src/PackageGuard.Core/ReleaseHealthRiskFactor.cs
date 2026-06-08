@@ -64,7 +64,8 @@ internal sealed class ReleaseHealthRiskFactor : IEvaluateRiskFactor
         if (package.HasSemVerReleaseTags is false)
         {
             risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Recent release tags do not consistently follow semantic versioning", 0.5));
+            rationale.Add(
+                RiskEvaluationHelpers.CreateRationale("Recent release tags do not consistently follow semantic versioning", 0.5));
         }
         else if (package.HasSemVerReleaseTags is true)
         {

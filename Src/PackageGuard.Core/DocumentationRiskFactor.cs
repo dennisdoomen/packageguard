@@ -56,6 +56,7 @@ internal sealed class DocumentationRiskFactor : IEvaluateRiskFactor
 
         bool hasAcceptableReleaseHistory = package.HasReleaseNotes is true ||
                                            (package.HasChangelog is true && package.HasDefaultChangelog is not true);
+
         if (!hasAcceptableReleaseHistory)
         {
             risk += 0.5;

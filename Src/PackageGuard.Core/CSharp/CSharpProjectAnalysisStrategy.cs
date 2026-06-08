@@ -231,7 +231,8 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
                 .Select(dependency => target.Libraries.FirstOrDefault(l =>
                     string.Equals(l.Name, dependency.Id, StringComparison.OrdinalIgnoreCase)))
                 .Where(dependencyLibrary => dependencyLibrary is not null)
-                .Select(dependencyLibrary => PackageInfo.CreatePackageKey(dependencyLibrary!.Name!, dependencyLibrary.Version!.ToNormalizedString()))
+                .Select(dependencyLibrary =>
+                    PackageInfo.CreatePackageKey(dependencyLibrary!.Name!, dependencyLibrary.Version!.ToNormalizedString()))
                 .ToArray();
 
             if (library.Version is not null && !string.IsNullOrWhiteSpace(library.Name))
@@ -270,5 +271,4 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
 
         return result;
     }
-
 }

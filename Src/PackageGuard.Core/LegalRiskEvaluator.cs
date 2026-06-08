@@ -19,7 +19,8 @@ internal sealed class LegalRiskEvaluator : IEvaluateRiskDimension
         else if (package.License.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
         {
             risk += 6.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Non-standard or unrecognized license type ({package.License})", 6.0));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Non-standard or unrecognized license type ({package.License})",
+                6.0));
         }
         else if (IsRestrictiveLicense(package.License))
         {

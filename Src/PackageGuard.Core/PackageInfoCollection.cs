@@ -108,7 +108,10 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
         {
             await using FileStream fileStream = new(cacheFilePath, FileMode.Open, FileAccess.Read);
             PackageInfo[]? cachedPackages = await MemoryPackSerializer.DeserializeAsync<PackageInfo[]>(fileStream);
-            if (cachedPackages is not null) cache = BuildCache(cachedPackages);
+            if (cachedPackages is not null)
+            {
+                cache = BuildCache(cachedPackages);
+            }
 
             logger.LogInformation("Successfully loaded the cache from {CacheFilePath}", cacheFilePath);
         }
@@ -203,7 +206,9 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
     /// </summary>
     private PackageInfo? FindCachedPackage(string name, string version, string[] sourceUrls)
     {
-        PackageInfo? package = cache.Values.FirstOrDefault(p => MatchesPackage(p, name, version, sourceUrls) && ShouldReuseCachedPackage(p));
+        PackageInfo? package =
+            cache.Values.FirstOrDefault(p => MatchesPackage(p, name, version, sourceUrls) && ShouldReuseCachedPackage(p));
+
         if (package is not null)
         {
             packages[package.GetCollectionKey()] = package;
@@ -218,8 +223,8 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
     private static bool MatchesPackage(PackageInfo package, string name, string version, string[] sourceUrls)
     {
         return package.Name == name &&
-            package.Version == version &&
-            sourceUrls.Contains(package.SourceUrl, StringComparer.OrdinalIgnoreCase);
+               package.Version == version &&
+               sourceUrls.Contains(package.SourceUrl, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -250,7 +255,10 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
     {
         MergePackageMetadata(target, source);
         MergeProjects(target, source);
-        if (source.IsUsed) target.MarkAsUsed();
+        if (source.IsUsed)
+        {
+            target.MarkAsUsed();
+        }
     }
 
     /// <summary>
@@ -259,8 +267,15 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
     /// </summary>
     private static void MergePackageMetadata(PackageInfo target, PackageInfo source)
     {
-        if (string.IsNullOrWhiteSpace(target.Source) && !string.IsNullOrWhiteSpace(source.Source)) target.Source = source.Source;
-        if (string.IsNullOrWhiteSpace(target.SourceUrl) && !string.IsNullOrWhiteSpace(source.SourceUrl)) target.SourceUrl = source.SourceUrl;
+        if (string.IsNullOrWhiteSpace(target.Source) && !string.IsNullOrWhiteSpace(source.Source))
+        {
+            target.Source = source.Source;
+        }
+
+        if (string.IsNullOrWhiteSpace(target.SourceUrl) && !string.IsNullOrWhiteSpace(source.SourceUrl))
+        {
+            target.SourceUrl = source.SourceUrl;
+        }
 
         target.RepositoryUrl ??= source.RepositoryUrl;
         target.License ??= source.License;

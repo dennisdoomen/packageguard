@@ -1,6 +1,6 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Globalization;
 using PackageGuard.Core;
 
 namespace PackageGuard;
@@ -76,7 +76,10 @@ internal static class RiskSarifReportWriter
         {
             Id = id,
             Name = name,
-            ShortDescription = new SarifMessage { Text = description },
+            ShortDescription = new SarifMessage
+            {
+                Text = description
+            },
             FullDescription = new SarifMessage
             {
                 Text = "Review the companion HTML report for the full PackageGuard rationale and evidence."
@@ -135,8 +138,14 @@ internal static class RiskSarifReportWriter
                 {
                     PhysicalLocation = new SarifPhysicalLocation
                     {
-                        ArtifactLocation = new SarifArtifactLocation { Uri = locationPath },
-                        Region = new SarifRegion { StartLine = 1 }
+                        ArtifactLocation = new SarifArtifactLocation
+                        {
+                            Uri = locationPath
+                        },
+                        Region = new SarifRegion
+                        {
+                            StartLine = 1
+                        }
                     }
                 }
             ]
@@ -174,9 +183,9 @@ internal static class RiskSarifReportWriter
         }
 
         string? projectFile = Directory.EnumerateFiles(projectPath, "*.sln").FirstOrDefault()
-            ?? Directory.EnumerateFiles(projectPath, "*.slnx").FirstOrDefault()
-            ?? Directory.EnumerateFiles(projectPath, "*.csproj").FirstOrDefault()
-            ?? Directory.EnumerateFiles(projectPath, "package.json").FirstOrDefault();
+                              ?? Directory.EnumerateFiles(projectPath, "*.slnx").FirstOrDefault()
+                              ?? Directory.EnumerateFiles(projectPath, "*.csproj").FirstOrDefault()
+                              ?? Directory.EnumerateFiles(projectPath, "package.json").FirstOrDefault();
 
         return ToSarifUri(rootPath, projectFile ?? projectPath);
     }

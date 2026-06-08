@@ -164,7 +164,8 @@ internal class YarnLockFileParser
                 if (!string.IsNullOrEmpty(version))
                 {
                     // For Yarn v2, construct resolved URL from npm registry
-                    string resolvedUrl = $"https://registry.yarnpkg.com/{packageName}/-/{packageName.Split('/').Last()}-{version}.tgz";
+                    string resolvedUrl =
+                        $"https://registry.yarnpkg.com/{packageName}/-/{packageName.Split('/').Last()}-{version}.tgz";
 
                     packages[packageName] = new YarnPackageData
                     {
@@ -262,7 +263,9 @@ internal class YarnLockFileParser
                 {
                     // Scoped package: @scope/package@version
                     var match = Regex.Match(packageDeclaration, @"^(@[^/]+/[^@]+)@");
-                    packageName = match.Success ? match.Groups[1].Value : packageDeclaration.Split('@')[0] + "/" + packageDeclaration.Split('@')[1];
+                    packageName = match.Success
+                        ? match.Groups[1].Value
+                        : packageDeclaration.Split('@')[0] + "/" + packageDeclaration.Split('@')[1];
                 }
                 else
                 {

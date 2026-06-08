@@ -148,7 +148,7 @@ public class ParallelPackageRiskEnricherSpecs
         package.HasGitHubRiskData.Should().BeTrue();
     }
 
-    private sealed class FakeRiskEnricher(System.Func<PackageInfo, bool> hasCachedData) : IEnrichPackageRisk
+    private sealed class FakeRiskEnricher(Func<PackageInfo, bool> hasCachedData) : IEnrichPackageRisk
     {
         public List<PackageInfo> EnrichedPackages { get; } = [];
 

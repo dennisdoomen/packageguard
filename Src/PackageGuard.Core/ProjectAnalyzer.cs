@@ -19,7 +19,8 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
     /// <summary>
     /// Analyzes the project at <paramref name="projectPath"/> against the configured policies and returns any violations found.
     /// </summary>
-    public async Task<PolicyViolation[]> ExecuteAnalysis(string projectPath, AnalyzerSettings settings, GetPolicyByProject getPolicyByProject)
+    public async Task<PolicyViolation[]> ExecuteAnalysis(string projectPath, AnalyzerSettings settings,
+        GetPolicyByProject getPolicyByProject)
     {
         AnalysisResult result = await ExecuteAnalysisWithRisk(projectPath, settings, getPolicyByProject);
         return result.Violations;
@@ -104,5 +105,4 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
 
         Logger.LogInformation("Risk scoring complete for {PackageCount} packages.", allPackages.Length);
     }
-
 }

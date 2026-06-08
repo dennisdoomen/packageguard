@@ -16,8 +16,19 @@ internal class DependencyHealthCountEnricherSpecs
     internal async Task Counts_stale_direct_transitive_dependency()
     {
         string depKey = PackageInfo.CreatePackageKey("Stale.Lib", "1.0.0");
-        var stale = new PackageInfo { Name = "Stale.Lib", Version = "1.0.0", PublishedAt = DateTimeOffset.UtcNow.AddMonths(-30) };
-        var root = new PackageInfo { Name = "Root", Version = "1.0.0", DependencyKeys = [depKey] };
+        var stale = new PackageInfo
+        {
+            Name = "Stale.Lib",
+            Version = "1.0.0",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-30)
+        };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [depKey]
+        };
 
         var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
         {
@@ -33,8 +44,19 @@ internal class DependencyHealthCountEnricherSpecs
     internal async Task Does_not_count_fresh_dependency_as_stale()
     {
         string depKey = PackageInfo.CreatePackageKey("Fresh.Lib", "1.0.0");
-        var fresh = new PackageInfo { Name = "Fresh.Lib", Version = "1.0.0", PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2) };
-        var root = new PackageInfo { Name = "Root", Version = "1.0.0", DependencyKeys = [depKey] };
+        var fresh = new PackageInfo
+        {
+            Name = "Fresh.Lib",
+            Version = "1.0.0",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2)
+        };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [depKey]
+        };
 
         var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
         {
@@ -58,7 +80,13 @@ internal class DependencyHealthCountEnricherSpecs
             PublishedAt = DateTimeOffset.UtcNow.AddMonths(-30),
             ContributorCount = 1
         };
-        var root = new PackageInfo { Name = "Root", Version = "1.0.0", DependencyKeys = [depKey] };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [depKey]
+        };
 
         var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
         {
@@ -82,7 +110,13 @@ internal class DependencyHealthCountEnricherSpecs
             ContributorCount = 10,
             VulnerabilityCount = 2
         };
-        var root = new PackageInfo { Name = "Root", Version = "1.0.0", DependencyKeys = [depKey] };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [depKey]
+        };
 
         var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
         {
@@ -107,7 +141,13 @@ internal class DependencyHealthCountEnricherSpecs
             VulnerabilityCount = 0,
             MaxVulnerabilitySeverity = 0
         };
-        var root = new PackageInfo { Name = "Root", Version = "1.0.0", DependencyKeys = [depKey] };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [depKey]
+        };
 
         var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
         {
@@ -124,8 +164,19 @@ internal class DependencyHealthCountEnricherSpecs
     internal async Task Counts_deprecated_transitive_dependency()
     {
         string depKey = PackageInfo.CreatePackageKey("Deprecated.Lib", "1.0.0");
-        var deprecated = new PackageInfo { Name = "Deprecated.Lib", Version = "1.0.0", IsDeprecated = true };
-        var root = new PackageInfo { Name = "Root", Version = "1.0.0", DependencyKeys = [depKey] };
+        var deprecated = new PackageInfo
+        {
+            Name = "Deprecated.Lib",
+            Version = "1.0.0",
+            IsDeprecated = true
+        };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [depKey]
+        };
 
         var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
         {
@@ -149,7 +200,13 @@ internal class DependencyHealthCountEnricherSpecs
             VulnerabilityCount = 1,
             MaxVulnerabilitySeverity = 9.0
         };
-        var root = new PackageInfo { Name = "Root", Version = "1.0.0", DependencyKeys = [depKey] };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [depKey]
+        };
 
         var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
         {
@@ -173,7 +230,13 @@ internal class DependencyHealthCountEnricherSpecs
             VulnerabilityCount = 1,
             MaxVulnerabilitySeverity = 3.0
         };
-        var root = new PackageInfo { Name = "Root", Version = "1.0.0", DependencyKeys = [depKey] };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [depKey]
+        };
 
         var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
         {
@@ -197,6 +260,7 @@ internal class DependencyHealthCountEnricherSpecs
             Version = "1.0.0",
             PublishedAt = DateTimeOffset.UtcNow.AddMonths(-30)
         };
+
         var direct = new PackageInfo
         {
             Name = "Direct.Lib",
@@ -204,7 +268,13 @@ internal class DependencyHealthCountEnricherSpecs
             PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2),
             DependencyKeys = [transitiveKey]
         };
-        var root = new PackageInfo { Name = "Root", Version = "1.0.0", DependencyKeys = [directKey] };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [directKey]
+        };
 
         var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
         {
@@ -230,9 +300,27 @@ internal class DependencyHealthCountEnricherSpecs
             Version = "1.0.0",
             PublishedAt = DateTimeOffset.UtcNow.AddMonths(-30)
         };
-        var dep1 = new PackageInfo { Name = "Dep1.Lib", Version = "1.0.0", DependencyKeys = [sharedKey] };
-        var dep2 = new PackageInfo { Name = "Dep2.Lib", Version = "1.0.0", DependencyKeys = [sharedKey] };
-        var root = new PackageInfo { Name = "Root", Version = "1.0.0", DependencyKeys = [dep1Key, dep2Key] };
+
+        var dep1 = new PackageInfo
+        {
+            Name = "Dep1.Lib",
+            Version = "1.0.0",
+            DependencyKeys = [sharedKey]
+        };
+
+        var dep2 = new PackageInfo
+        {
+            Name = "Dep2.Lib",
+            Version = "1.0.0",
+            DependencyKeys = [sharedKey]
+        };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [dep1Key, dep2Key]
+        };
 
         var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
         {
@@ -279,6 +367,7 @@ internal class DependencyHealthCountEnricherSpecs
             PublishedAt = DateTimeOffset.UtcNow.AddMonths(-30),
             DependencyKeys = [bKey]
         };
+
         var packageB = new PackageInfo
         {
             Name = "B.Lib",
@@ -286,7 +375,13 @@ internal class DependencyHealthCountEnricherSpecs
             PublishedAt = DateTimeOffset.UtcNow.AddMonths(-30),
             DependencyKeys = [aKey]
         };
-        var root = new PackageInfo { Name = "Root", Version = "1.0.0", DependencyKeys = [aKey] };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [aKey]
+        };
 
         var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
         {
