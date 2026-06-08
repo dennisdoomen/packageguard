@@ -155,8 +155,8 @@ class Build : NukeBuild
 
             Configure<DotNetRunSettings> configurator = s => s
                 .SetProjectFile(project)
+                .SetFramework("net10.0")
                 .SetConfiguration(Configuration)
-
                 .WhenNotNull(GitHubApiKey, (ss, key) => ss
                     .AddApplicationArguments($"--github-api-key={key}")
                     .AddProcessRedactedSecrets(key))
@@ -254,7 +254,7 @@ class Build : NukeBuild
             // Create ZIP file
             var zipFileName = $"PackageGuard-{SemVer}.zip";
             var zipFilePath = ArtifactsDirectory / zipFileName;
-            
+
             Information($"Creating ZIP file: {zipFilePath}");
             ZipFile.CreateFromDirectory(publishDirectory, zipFilePath, CompressionLevel.Optimal, false);
 
