@@ -1,4 +1,5 @@
 ﻿using NuGet.Versioning;
+using PackageGuard.Core.Common;
 
 namespace PackageGuard.Core;
 
@@ -27,8 +28,8 @@ public class DenyList : PackagePolicy
 
         foreach (PackageSelector selector in Packages)
         {
-            if (package.Name == selector.Id &&
-                (selector.VersionRange is null || package.SatisfiesRange(selector.Id, selector.VersionRange)))
+            if (package.Name.MatchesWildcard(selector.Id) &&
+                (selector.VersionRange is null || package.SatisfiesRange(package.Name, selector.VersionRange)))
             {
                 return true;
             }

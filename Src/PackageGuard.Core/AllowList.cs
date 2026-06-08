@@ -1,4 +1,5 @@
 ﻿using NuGet.Versioning;
+using PackageGuard.Core.Common;
 
 namespace PackageGuard.Core;
 
@@ -37,10 +38,10 @@ public class AllowList : PackagePolicy
 
         foreach (PackageSelector selector in Packages)
         {
-            if (package.Name == selector.Id)
+            if (package.Name.MatchesWildcard(selector.Id))
             {
                 if (selector.VersionRange is not null &&
-                    !package.SatisfiesRange(selector.Id, selector.VersionRange))
+                    !package.SatisfiesRange(package.Name, selector.VersionRange))
                 {
                     packageComplies = false;
                 }

@@ -63,6 +63,33 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    public async Task Can_deny_packages_using_wildcards()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
+        {
+            DenyList = new DenyList
+            {
+                Packages =
+                [
+                    new PackageSelector("Fluent*")
+                ]
+            }
+        });
+
+        // Assert
+        violations.Should().ContainEquivalentOf(new
+        {
+            PackageId = "FluentAssertions",
+            Version = Value.ThatSatisfies<string>(s => s.Should().StartWith("8.")),
+            License = "Unknown"
+        });
+    }
+
+    [TestMethod]
     public async Task Can_deny_a_specific_version()
     {
         // Arrange
@@ -331,6 +358,26 @@ public class ProjectAnalyzerSpecs
             {
                 Licenses = ["mit", "apache-2.0"],
                 Packages = [new PackageSelector("FluentAssertions"), new PackageSelector("Microsoft.Testing.Extensions.CodeCoverage")]
+            }
+        });
+
+        // Assert
+        violations.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public async Task Can_allow_packages_using_wildcards_that_violate_allowed_licenses()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit", "apache-2.0"],
+                Packages = [new PackageSelector("Fluent*"), new PackageSelector("Microsoft.Testing.Extensions.*")]
             }
         });
 
