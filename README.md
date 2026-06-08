@@ -159,7 +159,8 @@ Each configuration file should follow this JSON format:
               "MIT",
           ],
           "packages": [
-              "MyPackage/[7.0.0,8.0.0)"
+              "MyPackage/[7.0.0,8.0.0)",
+              "Microsoft.Extensions.*"
           ],
           "feeds": [
             "*dev.azure.com*"
@@ -168,7 +169,8 @@ Each configuration file should follow this JSON format:
         "deny": {
           "licenses": [],
           "packages": [
-            "ProhibitedPackage"
+            "ProhibitedPackage",
+            "Legacy.*"
           ]
         },
         "ignoredFeeds": [
@@ -221,7 +223,14 @@ The effective configuration for `WebProject` will allow:
 
 License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions, but we have special support for certain proprietary Microsoft licenses such as used by the `Microsoft.AspNet.WebApi*` packages. For those, we support using the license name `Microsoft .NET Library License`.
 
-Package names can include just the NuGet or NPM ID but may also include a [NuGet-compatible version (range)](https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort) separated by `/`. Here's a summary of the possible notations:
+Package names under `allow.packages` and `deny.packages` support wildcard patterns (`*` and `?`) and can optionally include a [NuGet-compatible version (range)](https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort) separated by `/`.
+
+Examples:
+- `Microsoft.Extensions.*` matches all package IDs starting with `Microsoft.Extensions.`
+- `MyCompany.A*` matches IDs such as `MyCompany.Abstractions`
+- `Microsoft.*/[9.0.0,10.0.0)` matches all Microsoft package IDs between version 9.0.0 (inclusive) and 10.0.0 (exclusive)
+
+Here's a summary of the version-range notations:
 
 
 | Notation        | Valid versions     |

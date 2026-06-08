@@ -54,6 +54,55 @@ public class ProjectAnalyzerSpecs
         });
 
         // Assert
+        violations.Should().ContainSingle(x => x.PackageId == "FluentAssertions");
+    }
+
+    [TestMethod]
+    public async Task Can_deny_packages_using_wildcards()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
+        {
+            DenyList = new DenyList
+            {
+                Packages =
+                [
+                    new PackageSelector("Fluent*")
+                ]
+            }
+        });
+
+        // Assert
+        violations.Should().ContainEquivalentOf(new
+        {
+            PackageId = "FluentAssertions",
+            Version = Value.ThatSatisfies<string>(s => s.Should().StartWith("8.")),
+            License = "Unknown"
+        });
+    }
+
+    [TestMethod]
+    public async Task Can_deny_packages_using_wildcards_and_version_ranges()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
+        {
+            DenyList = new DenyList
+            {
+                Packages =
+                [
+                    new PackageSelector("Fluent*", "[8.0.0,9.0.0)")
+                ]
+            }
+        });
+
+        // Assert
         violations.Should().ContainEquivalentOf(new
         {
             PackageId = "FluentAssertions",
@@ -336,6 +385,48 @@ public class ProjectAnalyzerSpecs
 
         // Assert
         violations.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public async Task Can_allow_packages_using_wildcards_that_violate_allowed_licenses()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["this-license-does-not-exist"],
+                Packages = [new PackageSelector("Fluent*")]
+            }
+        });
+
+        // Assert
+        violations.Should().NotBeEmpty();
+        violations.Should().NotContain(x => x.PackageId.StartsWith("Fluent", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
+    public async Task Can_allow_packages_using_wildcards_and_version_ranges_that_violate_allowed_licenses()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["this-license-does-not-exist"],
+                Packages = [new PackageSelector("Fluent*", "[8.0.0,9.0.0)")]
+            }
+        });
+
+        // Assert
+        violations.Should().NotBeEmpty();
+        violations.Should().NotContain(x => x.PackageId.StartsWith("Fluent", StringComparison.OrdinalIgnoreCase));
     }
 
     [TestMethod]
