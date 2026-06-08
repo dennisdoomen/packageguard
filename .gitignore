@@ -194,3 +194,7 @@ Tests/Benchmarks/BenchmarkDotNet.Artifacts/
 
 # Documentation spell check
 node_modules/
+
+# Junie AI agent files
+.junie/
+.output_errors.txt
