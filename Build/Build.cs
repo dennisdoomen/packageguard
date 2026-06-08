@@ -247,6 +247,7 @@ class Build : NukeBuild
             // Publish as platform-agnostic framework-dependent deployment
             DotNetPublish(s => s
                 .SetProject(Solution.PackageGuard)
+                .SetFramework("net10.0")
                 .SetConfiguration(Configuration)
                 .SetOutput(publishDirectory)
                 .SetVersion(SemVer));
