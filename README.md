@@ -228,6 +228,7 @@ Package names under `allow.packages` and `deny.packages` support wildcard patter
 Examples:
 - `Microsoft.Extensions.*` matches all package IDs starting with `Microsoft.Extensions.`
 - `MyCompany.A*` matches IDs such as `MyCompany.Abstractions`
+- `Microsoft.*/[9.0.0,10.0.0)` matches all Microsoft package IDs between version 9.0.0 (inclusive) and 10.0.0 (exclusive)
 
 Here's a summary of the version-range notations:
 
