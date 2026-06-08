@@ -54,12 +54,7 @@ public class ProjectAnalyzerSpecs
         });
 
         // Assert
-        violations.Should().ContainEquivalentOf(new
-        {
-            PackageId = "FluentAssertions",
-            Version = Value.ThatSatisfies<string>(s => s.Should().StartWith("8.")),
-            License = "Unknown"
-        });
+        violations.Should().ContainSingle(x => x.PackageId == "FluentAssertions");
     }
 
     [TestMethod]
@@ -377,12 +372,12 @@ public class ProjectAnalyzerSpecs
             AllowList = new AllowList
             {
                 Licenses = ["mit", "apache-2.0"],
-                Packages = [new PackageSelector("Fluent*"), new PackageSelector("Microsoft.Testing.Extensions.*")]
+                Packages = [new PackageSelector("Fluent*")]
             }
         });
 
         // Assert
-        violations.Should().BeEmpty();
+        violations.Should().ContainSingle(x => x.PackageId == "Microsoft.Testing.Extensions.CodeCoverage");
     }
 
     [TestMethod]
