@@ -1,12 +1,13 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 namespace PackageGuard.Core;
 
 /// <summary>
 /// Queries the OSV API for vulnerability data and enriches a <see cref="PackageInfo"/> with the results.
 /// </summary>
-internal sealed class OsvRiskEnricher : IEnrichPackageRisk
+internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
 {
     /// <summary>
     /// Shared HTTP client used for all OSV API requests.
@@ -44,7 +45,16 @@ internal sealed class OsvRiskEnricher : IEnrichPackageRisk
             }
         }
 
-        OsvPackageRiskResult result = await QueryAsync(package);
+        OsvPackageRiskResult result;
+        try
+        {
+            result = await QueryAsync(package);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to query OSV vulnerability data for {Name} {Version}", package.Name, package.Version);
+            return;
+        }
 
         lock (CacheLock)
         {

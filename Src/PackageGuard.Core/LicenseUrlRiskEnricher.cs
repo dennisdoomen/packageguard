@@ -40,8 +40,7 @@ internal sealed class LicenseUrlRiskEnricher(ILogger logger) : IEnrichPackageRis
         }
         catch (Exception ex)
         {
-            logger.LogDebug("Failed to validate license URL for {Name} {Version}: {Error}",
-                package.Name, package.Version, ex.Message);
+            logger.LogDebug(ex, "Failed to validate license URL for {Name} {Version}", package.Name, package.Version);
             package.HasValidLicenseUrl = false;
             package.HasValidatedLicenseUrl = true;
         }

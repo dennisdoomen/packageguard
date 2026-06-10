@@ -27,7 +27,7 @@ internal sealed class ParallelPackageRiskEnricher
             [
                 new LicenseUrlRiskEnricher(logger),
                 new NuGetPackageSigningRiskEnricher(logger),
-                new OsvRiskEnricher(),
+                new OsvRiskEnricher(logger),
                 new GitHubRepositoryRiskEnricher(logger, gitHubApiKey)
             ])
     {
