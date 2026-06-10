@@ -36,7 +36,7 @@ public class ParallelPackageRiskEnricherSpecs
     [TestCategory("Integration")]
     public async Task Osv_enricher_should_populate_vulnerability_data_for_a_real_package()
     {
-        var enricher = new OsvRiskEnricher();
+        var enricher = new OsvRiskEnricher(NullLogger.Instance);
         var package = new PackageInfo
         {
             Name = "Newtonsoft.Json",
@@ -91,7 +91,7 @@ public class ParallelPackageRiskEnricherSpecs
     [TestCategory("Integration")]
     public async Task Osv_enricher_should_detect_vulnerabilities_and_fix_data_for_a_known_vulnerable_version()
     {
-        var enricher = new OsvRiskEnricher();
+        var enricher = new OsvRiskEnricher(NullLogger.Instance);
         var package = new PackageInfo
         {
             Name = "Newtonsoft.Json",
@@ -110,7 +110,7 @@ public class ParallelPackageRiskEnricherSpecs
     [TestCategory("Integration")]
     public async Task Osv_enricher_should_query_npm_ecosystem_for_npm_packages()
     {
-        var enricher = new OsvRiskEnricher();
+        var enricher = new OsvRiskEnricher(NullLogger.Instance);
         var package = new PackageInfo
         {
             Name = "lodash",
