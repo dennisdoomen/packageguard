@@ -34,7 +34,7 @@
       </PackageReference>
       <PackageReference Include="Serilog" Version="4.3.1" />
       <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
-      <PackageReference Include="Spectre.Console" Version="0.54.0" />
+      <PackageReference Include="Spectre.Console" Version="0.56.0" />
       <PackageReference Include="Spectre.Console.Cli" Version="0.53.1" />
       <PackageReference Include="NuGet.ProjectModel" Version="7.6.0" />
       <PackageReference Include="Spectre.Console.Cli.Extensions.DependencyInjection" Version="0.23.0" />
