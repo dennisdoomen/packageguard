@@ -52,7 +52,8 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to query OSV vulnerability data for {Name} {Version}", package.Name, package.Version);
+            logger.LogWarning(ex, "Failed to query OSV vulnerability data from {OsvApiUrl} for {Name} {Version}",
+                "https://api.osv.dev/v1/query", package.Name, package.Version);
             return;
         }
 
