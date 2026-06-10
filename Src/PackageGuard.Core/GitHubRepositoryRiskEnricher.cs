@@ -271,8 +271,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         }
         catch (Exception ex)
         {
-            logger.LogDebug("Failed to fetch GitHub repository risk metadata from {RepositoryApiRoot}: {Error}",
-                repositoryApiRoot, ex.Message);
+            logger.LogDebug(ex, "Failed to fetch GitHub repository risk metadata from {RepositoryApiRoot}", repositoryApiRoot);
             return null;
         }
     }

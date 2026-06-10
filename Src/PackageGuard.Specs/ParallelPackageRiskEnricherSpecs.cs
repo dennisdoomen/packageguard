@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -36,7 +37,7 @@ public class ParallelPackageRiskEnricherSpecs
     [TestCategory("Integration")]
     public async Task Osv_enricher_should_populate_vulnerability_data_for_a_real_package()
     {
-        var enricher = new OsvRiskEnricher();
+        var enricher = new OsvRiskEnricher(NullLogger.Instance);
         var package = new PackageInfo
         {
             Name = "Newtonsoft.Json",
@@ -72,7 +73,8 @@ public class ParallelPackageRiskEnricherSpecs
     [TestCategory("Integration")]
     public async Task GitHub_enricher_should_populate_repository_data_for_a_well_known_package()
     {
-        var enricher = new GitHubRepositoryRiskEnricher(NullLogger.Instance, gitHubApiKey: null);
+        var enricher = new GitHubRepositoryRiskEnricher(NullLogger.Instance,
+            gitHubApiKey: Environment.GetEnvironmentVariable("GITHUB_API_KEY"));
         var package = new PackageInfo
         {
             Name = "Newtonsoft.Json",
@@ -91,7 +93,7 @@ public class ParallelPackageRiskEnricherSpecs
     [TestCategory("Integration")]
     public async Task Osv_enricher_should_detect_vulnerabilities_and_fix_data_for_a_known_vulnerable_version()
     {
-        var enricher = new OsvRiskEnricher();
+        var enricher = new OsvRiskEnricher(NullLogger.Instance);
         var package = new PackageInfo
         {
             Name = "Newtonsoft.Json",
@@ -110,7 +112,7 @@ public class ParallelPackageRiskEnricherSpecs
     [TestCategory("Integration")]
     public async Task Osv_enricher_should_query_npm_ecosystem_for_npm_packages()
     {
-        var enricher = new OsvRiskEnricher();
+        var enricher = new OsvRiskEnricher(NullLogger.Instance);
         var package = new PackageInfo
         {
             Name = "lodash",
@@ -128,7 +130,8 @@ public class ParallelPackageRiskEnricherSpecs
     [TestCategory("Integration")]
     public async Task Full_enrichment_pipeline_should_populate_all_network_risk_signals_for_a_real_package()
     {
-        var enricher = new ParallelPackageRiskEnricher(NullLogger.Instance, gitHubApiKey: null);
+        var enricher = new ParallelPackageRiskEnricher(NullLogger.Instance,
+            gitHubApiKey: Environment.GetEnvironmentVariable("GITHUB_API_KEY"));
         var package = new PackageInfo
         {
             Name = "Newtonsoft.Json",
