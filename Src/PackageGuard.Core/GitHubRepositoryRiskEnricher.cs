@@ -269,6 +269,11 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 LastReleaseAt = releaseData.LastReleaseAt
             };
         }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            logger.LogWarning(ex, "Failed to fetch GitHub repository risk metadata from {RepositoryApiRoot}", repositoryApiRoot);
+            return null;
+        }
         catch (Exception ex)
         {
             logger.LogDebug(ex, "Failed to fetch GitHub repository risk metadata from {RepositoryApiRoot}", repositoryApiRoot);
