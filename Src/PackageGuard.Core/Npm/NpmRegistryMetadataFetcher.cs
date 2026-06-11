@@ -313,8 +313,8 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
         }
         catch (Exception ex)
         {
-            logger.LogDebug("Failed to fetch download count for {Name} {Version}: {Error}",
-                package.Name, package.Version, ex.Message);
+            logger.LogWarning(ex, "Failed to fetch download count for {Name} {Version}",
+                package.Name, package.Version);
         }
     }
 
