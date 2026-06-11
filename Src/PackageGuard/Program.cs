@@ -9,10 +9,14 @@ using Spectre.Console.Cli.Extensions.DependencyInjection;
 using Vertical.SpectreLogger;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
+bool verbose = args.Contains("--verbose", StringComparer.OrdinalIgnoreCase)
+            || args.Contains("-v", StringComparer.OrdinalIgnoreCase);
+LogLevel minLogLevel = verbose ? LogLevel.Debug : LogLevel.Information;
+
 var services = new ServiceCollection();
 
 services.AddLogging(configure => configure
-    .SetMinimumLevel(LogLevel.Debug)
+    .SetMinimumLevel(minLogLevel)
     .AddSerilog()
     .AddSpectreConsole(b => b
         .ConfigureProfile(LogLevel.Trace, p => p.OutputTemplate = "[grey35]{Message}{NewLine}{Exception}[/]")
@@ -20,7 +24,7 @@ services.AddLogging(configure => configure
         .ConfigureProfile(LogLevel.Information, p => p.OutputTemplate = "[grey85]{Message}{NewLine}{Exception}[/]")
         .ConfigureProfile(LogLevel.Warning, p => p.OutputTemplate = "[gold1]{Message}{NewLine}{Exception}[/]")
         .ConfigureProfile(LogLevel.Error, p => p.OutputTemplate = "[white on red1]{Message}{NewLine}{Exception}[/]")
-        .SetMinimumLevel(LogLevel.Debug)));
+        .SetMinimumLevel(minLogLevel)));
 
 services.AddSingleton<ILogger>(sp => sp
     .GetRequiredService<ILoggerFactory>()
