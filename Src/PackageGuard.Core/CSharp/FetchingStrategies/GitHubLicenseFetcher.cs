@@ -1,13 +1,14 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 
 namespace PackageGuard.Core.CSharp.FetchingStrategies;
 
 /// <summary>
 /// Fetches licenses using GitHub metadata and an optional GitHub API key to prevent rate limiting.
 /// </summary>
-public class GitHubLicenseFetcher(string? gitHubApiKey) : IFetchLicense
+public class GitHubLicenseFetcher(ILogger logger, string? gitHubApiKey) : IFetchLicense
 {
     private static readonly HttpClient HttpClient = new();
 
@@ -24,6 +25,7 @@ public class GitHubLicenseFetcher(string? gitHubApiKey) : IFetchLicense
 
             if (url is not null)
             {
+                logger.LogDebug("Fetching GitHub license from {Url}", url);
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
                 if (gitHubApiKey is not null)
                 {

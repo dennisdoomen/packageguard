@@ -284,6 +284,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     /// <summary>Sends an authenticated GET request and parses the JSON response.</summary>
     private async Task<JsonDocument> GetJsonAsync(string url)
     {
+        logger.LogDebug("GET {Url}", url);
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
 
@@ -1086,8 +1087,9 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     {
         try
         {
-            using HttpResponseMessage response = await HttpClient.GetAsync(
-                $"https://api.securityscorecards.dev/projects/github.com/{owner}/{repo}");
+            string scorecardUrl = $"https://api.securityscorecards.dev/projects/github.com/{owner}/{repo}";
+            logger.LogDebug("GET {Url}", scorecardUrl);
+            using HttpResponseMessage response = await HttpClient.GetAsync(scorecardUrl);
             response.EnsureSuccessStatusCode();
 
             using JsonDocument scorecardDoc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());

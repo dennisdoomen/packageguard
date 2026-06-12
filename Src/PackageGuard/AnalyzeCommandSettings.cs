@@ -101,6 +101,11 @@ internal class AnalyzeCommandSettings : CommandSettings
     [CommandOption("--report-risk|--reportrisk")]
     public bool ReportRisk { get; set; }
 
+    [Description("Enable verbose (debug-level) logging output. Combine with --report-risk to see individual HTTP calls to GitHub, OSV, and npm registries.")]
+    [CommandOption("-v|--verbose")]
+    [DefaultValue(false)]
+    public bool Verbose { get; set; }
+
     /// <summary>
     /// Returns the report risk output path when overridden via the
     /// <see cref="ReportRiskPathOverrideEnvironmentVariable"/> environment variable, or <c>null</c> if not set.

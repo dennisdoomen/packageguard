@@ -176,6 +176,7 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 
         foreach (SourceRepository nuGetSource in projectNuGetSources)
         {
+            logger.LogDebug("Querying {SourceUrl} for {Name} {Version}", nuGetSource.PackageSource.Source, packageName, packageVersion);
             var metadataResource = await nuGetSource.GetResourceAsync<PackageMetadataResource>();
 
             IPackageSearchMetadata[] packageMetadata = (await metadataResource.GetMetadataAsync(

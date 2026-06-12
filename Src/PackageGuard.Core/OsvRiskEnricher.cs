@@ -85,6 +85,7 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
 
         do
         {
+            logger.LogDebug("Querying OSV API for {Name} {Version}", package.Name, package.Version);
             using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.osv.dev/v1/query");
             request.Content = new StringContent(CreateRequestBody(package, ecosystem, pageToken), Encoding.UTF8, "application/json");
 

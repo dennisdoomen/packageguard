@@ -32,6 +32,11 @@ internal sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeComma
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown";
         logger.LogHeader($"PackageGuard v{version}");
 
+        if (settings.Verbose)
+        {
+            logger.LogInformation("Verbose logging enabled — debug-level output is active");
+        }
+
         var licenseFetcher = new LicenseFetcher(logger, settings.GitHubApiKey);
         var riskEvaluator = new RiskEvaluator(logger);
         var analyzer = new ProjectAnalyzer(licenseFetcher, riskEvaluator)

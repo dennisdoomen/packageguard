@@ -302,6 +302,7 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
         {
             string packageName = Uri.EscapeDataString(package.Name);
             string downloadsUrl = $"https://api.npmjs.org/downloads/point/last-month/{packageName}";
+            logger.LogDebug("Fetching download count from {Url}", downloadsUrl);
             string jsonContent = await HttpClient.GetStringAsync(downloadsUrl);
             using JsonDocument doc = JsonDocument.Parse(jsonContent);
 

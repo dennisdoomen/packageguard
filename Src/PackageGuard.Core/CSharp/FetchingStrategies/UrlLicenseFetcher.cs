@@ -16,6 +16,7 @@ public class UrlLicenseFetcher(ILogger logger) : IFetchLicense
         {
             try
             {
+                logger.LogDebug("Fetching license text from {Url}", package.LicenseUrl);
                 string licenseText = await HttpClient.GetStringAsync(package.LicenseUrl);
 
                 if (licenseText.Contains("MIT license", StringComparison.OrdinalIgnoreCase))

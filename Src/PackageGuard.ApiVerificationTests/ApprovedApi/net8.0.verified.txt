@@ -266,7 +266,7 @@ namespace PackageGuard.Core.CSharp.FetchingStrategies
 {
     public class GitHubLicenseFetcher : PackageGuard.Core.CSharp.FetchingStrategies.IFetchLicense
     {
-        public GitHubLicenseFetcher(string? gitHubApiKey) { }
+        public GitHubLicenseFetcher(Microsoft.Extensions.Logging.ILogger logger, string? gitHubApiKey) { }
         public System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.PackageInfo package) { }
     }
     public interface IFetchLicense

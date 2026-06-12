@@ -32,6 +32,7 @@ internal sealed class LicenseUrlRiskEnricher(ILogger logger) : IEnrichPackageRis
 
         try
         {
+            logger.LogDebug("Validating license URL {Url}", package.LicenseUrl);
             using HttpResponseMessage response = await HttpClient.GetAsync(package.LicenseUrl,
                 HttpCompletionOption.ResponseHeadersRead);
 
