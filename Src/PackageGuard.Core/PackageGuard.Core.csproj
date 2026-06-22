@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="CliWrap" Version="3.10.2" />
-    <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
+    <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
     <PackageReference Include="MemoryPack" Version="1.21.4" />
     <PackageReference Include="Microsoft.Build" Version="17.14.28" />
     <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />
