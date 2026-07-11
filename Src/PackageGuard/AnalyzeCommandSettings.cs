@@ -11,7 +11,7 @@ namespace PackageGuard;
 /// caching, npm scanning, and risk reporting output.
 /// </summary>
 [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
-internal class AnalyzeCommandSettings : CommandSettings
+public class AnalyzeCommandSettings : CommandSettings
 {
     /// <summary>
     /// The default name of the PackageGuard configuration file.
