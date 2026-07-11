@@ -6,35 +6,39 @@ using PackageGuard;
 using Serilog;
 using Spectre.Console.Cli;
 using Spectre.Console.Cli.Extensions.DependencyInjection;
-using Vertical.SpectreLogger;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 bool verbose = args.Contains("--verbose", StringComparer.OrdinalIgnoreCase)
             || args.Contains("-v", StringComparer.OrdinalIgnoreCase);
 LogLevel minLogLevel = verbose ? LogLevel.Debug : LogLevel.Information;
+Serilog.Events.LogEventLevel serilogLevel = minLogLevel == LogLevel.Debug
+    ? Serilog.Events.LogEventLevel.Debug
+    : Serilog.Events.LogEventLevel.Information;
 
 var services = new ServiceCollection();
 
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Is(serilogLevel)
+    .WriteTo.Console()
+    .CreateLogger();
+
 services.AddLogging(configure => configure
     .SetMinimumLevel(minLogLevel)
-    .AddSerilog()
-    .AddSpectreConsole(b => b
-        .ConfigureProfile(LogLevel.Trace, p => p.OutputTemplate = "[grey35]{Message}{NewLine}{Exception}[/]")
-        .ConfigureProfile(LogLevel.Debug, p => p.OutputTemplate = "[grey46]{Message}{NewLine}{Exception}[/]")
-        .ConfigureProfile(LogLevel.Information, p => p.OutputTemplate = "[grey85]{Message}{NewLine}{Exception}[/]")
-        .ConfigureProfile(LogLevel.Warning, p => p.OutputTemplate = "[gold1]{Message}{NewLine}{Exception}[/]")
-        .ConfigureProfile(LogLevel.Error, p => p.OutputTemplate = "[white on red1]{Message}{NewLine}{Exception}[/]")
-        .SetMinimumLevel(minLogLevel)));
+    .AddSerilog());
 
 services.AddSingleton<ILogger>(sp => sp
     .GetRequiredService<ILoggerFactory>()
     .CreateLogger("PackageGuard"));
+using ServiceProvider serviceProvider = services.BuildServiceProvider();
+ILogger logger = serviceProvider.GetRequiredService<ILogger>();
 
 using var registrar = new DependencyInjectionRegistrar(services);
 
-var app = new CommandApp<AnalyzeCommand>(registrar);
+var app = new CommandApp<AnalyzeCommand>(registrar).WithData(logger);
 app.Configure(c =>
-    c.CaseSensitivity(CaseSensitivity.None));
+{
+    c.CaseSensitivity(CaseSensitivity.None);
+});
 
 string? previousReportRiskPath = Environment.GetEnvironmentVariable(AnalyzeCommandSettings.ReportRiskPathOverrideEnvironmentVariable);
 (string[] normalizedArgs, string? reportRiskPath) = ReportRiskArgumentNormalizer.Normalize(args);
