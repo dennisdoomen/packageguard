@@ -42,10 +42,10 @@ public class ProjectAnalyzerSpecs
         violations.Should().ContainEquivalentOf(new
         {
             FeedName = "npm",
-            FeedUrl = "https://registry.npmjs.org/cookie/-/cookie-0.5.0.tgz",
+            FeedUrl = "https://registry.npmjs.org/cookie/-/cookie-0.7.2.tgz",
             License = "MIT",
             PackageId = "cookie",
-            Version = "0.5.0"
+            Version = "0.7.2"
         });
     }
 
