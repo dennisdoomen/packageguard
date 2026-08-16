@@ -3,6 +3,7 @@ using System.Reflection;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core;
+using PackageGuard.Core.Sbom;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -52,12 +53,19 @@ public sealed class AnalyzeCommand : AsyncCommand<AnalyzeCommandSettings>
             getPolicy = loader.GetEffectiveConfigurationForProject;
         }
 
+        bool sbomRequested = !string.IsNullOrWhiteSpace(settings.Sbom);
         AnalyzerSettings analyzerSettings = settings.ToCoreSettings();
         (PolicyViolation[] violations, PackageInfo[] packages) =
-            await RunAnalysisAsync(analyzer, settings, analyzerSettings, getPolicy);
+            await RunAnalysisAsync(analyzer, settings, analyzerSettings, getPolicy, sbomRequested);
 
         logger.LogHeader("Completing analysis");
 
+        if (sbomRequested && packages.Length > 0)
+        {
+            WriteSbom(settings, packages, logger);
+        }
+
+        // Write risk reports before reporting violations so they are always generated when requested
         if (settings.ReportRisk && packages.Length > 0)
         {
             await WriteRiskReportsAsync(logger, settings, packages);
@@ -77,9 +85,10 @@ public sealed class AnalyzeCommand : AsyncCommand<AnalyzeCommandSettings>
         ProjectAnalyzer analyzer,
         AnalyzeCommandSettings settings,
         AnalyzerSettings analyzerSettings,
-        GetPolicyByProject getPolicy)
+        GetPolicyByProject getPolicy,
+        bool sbomRequested)
     {
-        if (settings.ReportRisk)
+        if (settings.ReportRisk || sbomRequested)
         {
             var result = await analyzer.ExecuteAnalysisWithRisk(settings.ProjectPath, analyzerSettings, getPolicy);
             return (result.Violations, result.Packages);
@@ -145,6 +154,20 @@ public sealed class AnalyzeCommand : AsyncCommand<AnalyzeCommandSettings>
 
         AnsiConsole.MarkupLine("[green3_1]No policy violations found.[/]");
         return SuccessExitCode;
+    }
+
+    /// <summary>
+    /// Writes the SBOM for <paramref name="packages"/> in the requested format
+    /// (CycloneDX or SPDX) to <see cref="AnalyzeCommandSettings.SbomOutput"/>.
+    /// </summary>
+    private static void WriteSbom(AnalyzeCommandSettings settings, PackageInfo[] packages, ILogger logger)
+    {
+        logger.LogHeader("Writing SBOM");
+
+        SbomWriter.Write(packages, settings.ProjectPath, settings.Sbom!, settings.SbomOutput!);
+
+        AnsiConsole.MarkupLine($"SBOM ({settings.Sbom!.ToLowerInvariant()}): [blue]{Markup.Escape(settings.SbomOutput!)}[/]");
+        AnsiConsole.MarkupLine("");
     }
 
     /// <summary>

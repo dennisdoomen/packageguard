@@ -55,7 +55,12 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
     {
         if (package.License is null && package.LicenseUrl is not null)
         {
-            package.License = cache.Values.FirstOrDefault(x => x.LicenseUrl == package.LicenseUrl)?.License;
+            PackageInfo? match = cache.Values.FirstOrDefault(x => x.LicenseUrl == package.LicenseUrl);
+            package.License = match?.License;
+            if (match?.License is not null)
+            {
+                package.LicenseEvidence = match.LicenseEvidence;
+            }
         }
     }
 
@@ -278,7 +283,12 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
         }
 
         target.RepositoryUrl ??= source.RepositoryUrl;
-        target.License ??= source.License;
+        if (target.License is null && source.License is not null)
+        {
+            target.License = source.License;
+            target.LicenseEvidence = source.LicenseEvidence;
+        }
+
         target.LicenseUrl ??= source.LicenseUrl;
     }
 

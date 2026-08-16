@@ -42,6 +42,11 @@ public class GitHubLicenseFetcher(ILogger logger, string? gitHubApiKey) : IFetch
                 {
                     package.License = null;
                 }
+
+                if (package.License is not null)
+                {
+                    package.LicenseEvidence = LicenseEvidence.Concluded;
+                }
             }
         }
     }

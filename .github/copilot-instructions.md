@@ -170,6 +170,17 @@ PackageGuard uses hierarchical JSON configuration:
 3. Ensure existing tests still pass
 4. Run `AcceptApiChanges` if public API changed
 
+### Adding a New SBOM Format
+
+PackageGuard's `--sbom` feature computes a shared, format-agnostic model once (`PackageGuard.Core.Sbom.SbomModelBuilder` builds an `SbomModel` from purls, the dependency graph, license evidence, and OSV vulnerability data) and renders it once per format, so a new format only needs a renderer:
+
+1. Add a new `internal static class <Format>SbomWriter` in `Src/PackageGuard/`, with a single `Build(SbomModel model)` entry point, following the hand-rolled `[JsonPropertyName]` DTO style used by `CycloneDxSbomWriter.cs`/`SpdxSbomWriter.cs`/`RiskSarifReportWriter.cs` - do not add a third-party SBOM library dependency.
+2. Wire the new format into `AnalyzeCommandSettings.Validate()` (accepted `--sbom` values) and `AnalyzeCommand.WriteSbom(...)`.
+3. Add a corresponding `*SbomWriterSpecs.cs` in `Src/PackageGuard.Specs/Sbom/`, asserting structure via `JsonDocument.Parse` (no golden files), reusing the same `SbomModelBuilder.Build(...)` fixtures as the existing writer specs.
+4. Update the SBOM section of `README.md`.
+
+If a new ecosystem is added to PackageGuard (beyond NuGet/npm), also extend `PackageUrlBuilder`'s ecosystem-to-purl-type mapping and `SbomModelBuilder.EcosystemsWithAccurateGraph` if that ecosystem builds a real dependency graph.
+
 ## Pull Request Guidelines
 
 1. **Target** the `develop` branch (not `main`)

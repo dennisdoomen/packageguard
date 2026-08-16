@@ -87,6 +87,7 @@ internal class NpmLockFileParser
                 Name = packageName,
                 Version = packageEntry.Version,
                 License = packageEntry.License,
+                LicenseEvidence = packageEntry.License is not null ? LicenseEvidence.Declared : LicenseEvidence.Unknown,
                 Source = "npm",
                 SourceUrl = packageEntry.Resolved ?? "https://registry.npmjs.org",
                 DependencyDepth = Math.Max(1, packagePath.Split("node_modules/", StringSplitOptions.RemoveEmptyEntries).Length)

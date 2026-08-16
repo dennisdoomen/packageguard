@@ -2,6 +2,7 @@ using System.ComponentModel;
 using JetBrains.Annotations;
 using PackageGuard.Core;
 using Pathy;
+using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace PackageGuard;
@@ -105,6 +106,39 @@ public class AnalyzeCommandSettings : CommandSettings
     [CommandOption("-v|--verbose")]
     [DefaultValue(false)]
     public bool Verbose { get; set; }
+
+    [Description(
+        "Generate a Software Bill of Materials for the resolved dependency graph, in the given format: cyclonedx or spdx. Requires --sbom-output.")]
+    [CommandOption("--sbom")]
+    public string? Sbom { get; set; }
+
+    [Description("The output file path for the generated SBOM. Required when --sbom is specified.")]
+    [CommandOption("--sbom-output|--sbomoutput")]
+    public string? SbomOutput { get; set; }
+
+    /// <summary>
+    /// Validates that <see cref="Sbom"/>, when specified, is a supported format and is paired with <see cref="SbomOutput"/>.
+    /// </summary>
+    public override ValidationResult Validate()
+    {
+        if (string.IsNullOrWhiteSpace(Sbom))
+        {
+            return ValidationResult.Success();
+        }
+
+        if (!Sbom.Equals("cyclonedx", StringComparison.OrdinalIgnoreCase) &&
+            !Sbom.Equals("spdx", StringComparison.OrdinalIgnoreCase))
+        {
+            return ValidationResult.Error($"--sbom must be either \"cyclonedx\" or \"spdx\", but was \"{Sbom}\".");
+        }
+
+        if (string.IsNullOrWhiteSpace(SbomOutput))
+        {
+            return ValidationResult.Error("--sbom-output must be specified when --sbom is used.");
+        }
+
+        return ValidationResult.Success();
+    }
 
     /// <summary>
     /// Returns the report risk output path when overridden via the

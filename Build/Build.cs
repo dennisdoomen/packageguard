@@ -173,6 +173,24 @@ class Build : FalloutBuild
                 .SetProcessEnvironmentVariable(PackageGuardReportDirectoryEnvironmentVariable, reportDirectory)
                 .AddApplicationArguments("--report-risk")
                 .AddApplicationArguments($"--configpath={RootDirectory / ".packageguard" / "config.json"}"));
+
+            AbsolutePath sbomFile = reportDirectory / "packageguard.cyclonedx.json";
+
+            Information("Running PackageGuard with SBOM generation in Cyclone DX format");
+            DotNetRun(s => configurator(s)
+                .AddApplicationArguments("--sbom=cyclonedx")
+                .AddApplicationArguments($"--sbom-output={sbomFile}"));
+
+            Assert.FileExists(sbomFile, $"Expected PackageGuard to generate an SBOM at {sbomFile}");
+
+            sbomFile = reportDirectory / "packageguard.spdx.json";
+
+            Information("Running PackageGuard with SBOM generation in SPDX format");
+            DotNetRun(s => configurator(s)
+                .AddApplicationArguments("--sbom=spdx")
+                .AddApplicationArguments($"--sbom-output={sbomFile}"));
+
+            Assert.FileExists(sbomFile, $"Expected PackageGuard to generate an SBOM at {sbomFile}");
         });
 
     Target CodeCoverage => _ => _

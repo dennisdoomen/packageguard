@@ -1,4 +1,5 @@
-﻿[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("PackageGuard.Specs")]
+﻿[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("PackageGuard")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("PackageGuard.Specs")]
 namespace PackageGuard.Core
 {
     public class AllowList : PackageGuard.Core.PackagePolicy
@@ -35,6 +36,12 @@ namespace PackageGuard.Core
         public bool Prerelease { get; set; }
     }
     public delegate PackageGuard.Core.ProjectPolicy GetPolicyByProject(string projectPath);
+    public enum LicenseEvidence
+    {
+        Unknown = 0,
+        Declared = 1,
+        Concluded = 2,
+    }
     public sealed class LicenseFetcher
     {
         public LicenseFetcher(Microsoft.Extensions.Logging.ILogger logger, string? gitHubApiKey = null) { }
@@ -46,6 +53,15 @@ namespace PackageGuard.Core
         Npm = 1,
         Yarn = 2,
         Pnpm = 3,
+    }
+    [MemoryPack.MemoryPackable(MemoryPack.GenerateType.Object)]
+    public class OsvVulnerabilityRecord : MemoryPack.IMemoryPackFormatterRegister, MemoryPack.IMemoryPackable<PackageGuard.Core.OsvVulnerabilityRecord>
+    {
+        public OsvVulnerabilityRecord() { }
+        public string[] Aliases { get; set; }
+        public string Id { get; set; }
+        public string[] References { get; set; }
+        public double Severity { get; set; }
     }
     [MemoryPack.MemoryPackable(MemoryPack.GenerateType.Object)]
     public class PackageInfo : MemoryPack.IMemoryPackFormatterRegister, MemoryPack.IMemoryPackable<PackageGuard.Core.PackageInfo>
@@ -110,6 +126,7 @@ namespace PackageGuard.Core
         public System.DateTimeOffset? LatestStablePublishedAt { get; set; }
         public string? LatestStableVersion { get; set; }
         public string? License { get; set; }
+        public PackageGuard.Core.LicenseEvidence LicenseEvidence { get; set; }
         public string? LicenseUrl { get; set; }
         public double? MajorReleaseRatio { get; set; }
         public double MaxVulnerabilitySeverity { get; set; }
@@ -156,6 +173,7 @@ namespace PackageGuard.Core
         public double? VerifiedCommitRatio { get; set; }
         public string Version { get; set; }
         public double? VersionUpdateLagDays { get; set; }
+        public PackageGuard.Core.OsvVulnerabilityRecord[] Vulnerabilities { get; set; }
         public int VulnerabilityCount { get; set; }
         public double? WorkflowFailureRate { get; set; }
         public int? WorkflowPlatformCount { get; set; }
