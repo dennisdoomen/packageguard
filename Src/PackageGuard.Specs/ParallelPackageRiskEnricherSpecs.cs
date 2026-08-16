@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
@@ -11,6 +12,12 @@ namespace PackageGuard.Specs;
 [TestClass]
 public class ParallelPackageRiskEnricherSpecs
 {
+    // TEMPORARY: diagnostic logger to surface the swallowed exception behind the
+    // intermittent GitHub-enrichment CI failures. Revert once root-caused.
+    private static readonly ILogger DiagnosticLogger = LoggerFactory
+        .Create(b => b.AddConsole().SetMinimumLevel(LogLevel.Trace))
+        .CreateLogger("GitHubDiagnostics");
+
     [TestMethod]
     public async Task Skips_enrichers_that_already_have_cached_data()
     {
@@ -73,7 +80,7 @@ public class ParallelPackageRiskEnricherSpecs
     [TestCategory("Integration")]
     public async Task GitHub_enricher_should_populate_repository_data_for_a_well_known_package()
     {
-        var enricher = new GitHubRepositoryRiskEnricher(NullLogger.Instance,
+        var enricher = new GitHubRepositoryRiskEnricher(DiagnosticLogger,
             gitHubApiKey: Environment.GetEnvironmentVariable("GITHUB_API_KEY"));
         var package = new PackageInfo
         {
@@ -130,7 +137,7 @@ public class ParallelPackageRiskEnricherSpecs
     [TestCategory("Integration")]
     public async Task Full_enrichment_pipeline_should_populate_all_network_risk_signals_for_a_real_package()
     {
-        var enricher = new ParallelPackageRiskEnricher(NullLogger.Instance,
+        var enricher = new ParallelPackageRiskEnricher(DiagnosticLogger,
             gitHubApiKey: Environment.GetEnvironmentVariable("GITHUB_API_KEY"));
         var package = new PackageInfo
         {
