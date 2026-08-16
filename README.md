@@ -466,9 +466,9 @@ You can also build, run the unit tests and package the code using the following 
 
 `build.ps1`
 
-Or, if you have, the [Nuke tool installed](https://nuke.build/docs/getting-started/installation/):
+Or, if you have, the [Fallout tool installed](https://docs.fallout.build/docs/getting-started/installation/):
 
-`nuke`
+`fallout`
 
 Also try using `--help` to see all the available options or `--plan` to see what the scripts does.
 
@@ -491,7 +491,7 @@ This library uses [Semantic Versioning](https://semver.org/) to give meaning to 
 This library wouldn't have been possible without the following tools, packages and companies:
 
 * [Spectre.Console](https://spectreconsole.net/) - a .NET library that makes it easier to create beautiful console applications.
-* [Nuke](https://nuke.build/) - Smart automation for DevOps teams and CI/CD pipelines by [Matthias Koch](https://github.com/matkoch)
+* [Fallout](https://fallout.build/) - .NET build automation, the hard-fork successor to [Nuke](https://nuke.build/) by [Matthias Koch](https://github.com/matkoch)
 * [CliWrap](https://github.com/Tyrrrz/CliWrap) - Library for running command-line processes by [Oleksii Holub](https://github.com/Tyrrrz)
 * [Coverlet](https://github.com/coverlet-coverage/coverlet) - Cross platform code coverage for .NET by [Toni Solarin-Sodara](https://github.com/tonerdo)
 * [GitVersion](https://gitversion.net/) - From git log to SemVer in no time

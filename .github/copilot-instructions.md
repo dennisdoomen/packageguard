@@ -10,14 +10,14 @@ PackageGuard is a .NET tool that scans NuGet dependencies against allow/deny lis
 - **Src/PackageGuard.Core** - Core library with analysis engine
 - **Src/PackageGuard.Specs** - Unit tests using MSTest
 - **Src/PackageGuard.ApiVerificationTests** - API verification tests using Verify
-- **Build/** - Nuke build configuration
+- **Build/** - Fallout build configuration
 - **.packageguard/** - Configuration files for self-scanning
 
 ## Technology Stack
 
 - **.NET 8.0** - Primary target framework
 - **C# 12** - Language version
-- **Nuke** - Build automation system
+- **Fallout** - Build automation system
 - **MSTest** - Testing framework
 - **FluentAssertions** - Assertion library for tests
 - **Verify** - Snapshot testing tool
@@ -27,7 +27,7 @@ PackageGuard is a .NET tool that scans NuGet dependencies against allow/deny lis
 
 ### Building the Project
 
-Use the Nuke build system:
+Use the Fallout build system:
 ```bash
 # Windows
 ./build.ps1
@@ -36,9 +36,9 @@ Use the Nuke build system:
 ./build.sh
 ```
 
-Or using the Nuke global tool:
+Or using the Fallout global tool:
 ```bash
-nuke
+fallout
 ```
 
 ### Running Tests
@@ -198,6 +198,6 @@ PackageGuard uses hierarchical JSON configuration:
 
 - [C# Coding Guidelines](https://csharpcodingguidelines.com/)
 - [Contributing Guide](CONTRIBUTING.md)
-- [Nuke Build Documentation](https://nuke.build/)
+- [Fallout Build Documentation](https://docs.fallout.build/)
 - [FluentAssertions Documentation](https://fluentassertions.com/)
 - [Verify Documentation](https://github.com/VerifyTests/Verify)

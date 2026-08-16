@@ -10,12 +10,12 @@ This file contains detailed guidance for AI agents working in the PackageGuard r
 # Full build (compile, test, package)
 ./build.ps1
 
-# Or with the Nuke global tool
-nuke
+# Or with the Fallout global tool
+fallout
 
 # See all available build targets
-nuke --help
-nuke --plan
+fallout --help
+fallout --plan
 ```
 
 ### Run tests
@@ -60,7 +60,7 @@ PackageGuard is a .NET global CLI tool (target: .NET 9) that analyzes NuGet and 
 | `Src/PackageGuard.Core` | Platform-agnostic analysis engine (NuGet package on NuGet.org) |
 | `Src/PackageGuard.Specs` | MSTest unit tests; uses real `.csproj`/`package.json` fixtures under `TestCases/` |
 | `Src/PackageGuard.ApiVerificationTests` | Verify snapshot tests that lock the public API surface |
-| `Build/` | Nuke build project |
+| `Build/` | Fallout build project |
 
 ### Core analysis flow
 
