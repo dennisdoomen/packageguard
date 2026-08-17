@@ -31,7 +31,7 @@ jobs:
       with:
         version: 10
 
-    - name: Run NUKE
+    - name: Run Fallout
       run: ./build.ps1
       env:
         NuGetApiKey: ${{ secrets.NUGETAPIKEY }}
