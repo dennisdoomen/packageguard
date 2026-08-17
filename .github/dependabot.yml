@@ -22,3 +22,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # Verify.DiffPlex versions beyond 3.1.2 require a newer Verify core package
+      # than the one Verify.Xunit 31.12.5 was built against, which causes a
+      # MethodAccessException in the API approval tests at runtime (see PR #204
+      # and PR #228). Remove this once Verify.Xunit ships a release compatible
+      # with a newer Verify.DiffPlex, and bump both together.
+      - dependency-name: "Verify.DiffPlex"
+        versions: [">3.1.2"]
