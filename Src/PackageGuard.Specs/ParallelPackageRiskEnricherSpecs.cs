@@ -12,8 +12,11 @@ namespace PackageGuard.Specs;
 [TestClass]
 public class ParallelPackageRiskEnricherSpecs
 {
-    // TEMPORARY: diagnostic logger to surface the swallowed exception behind the
-    // intermittent GitHub-enrichment CI failures. Revert once root-caused.
+    // GitHubRepositoryRiskEnricher swallows most exceptions and just leaves
+    // HasGitHubRiskData false, so these two live-network tests are otherwise
+    // undiagnosable when GitHub API calls intermittently fail in CI (rate
+    // limiting, transient errors, etc.). A real logger surfaces the actual
+    // status code/exception in the test output instead of a bare "found False".
     private static readonly ILogger DiagnosticLogger = LoggerFactory
         .Create(b => b.AddConsole().SetMinimumLevel(LogLevel.Trace))
         .CreateLogger("GitHubDiagnostics");
