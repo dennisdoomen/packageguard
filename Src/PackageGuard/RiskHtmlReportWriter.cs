@@ -207,6 +207,7 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine("    .detail-list { list-style: none; padding-left: 0; }");
         builder.AppendLine("    .detail-list li { padding: 4px 0; }");
         builder.AppendLine("    .label { color: #475569; font-weight: 600; }");
+        builder.AppendLine("    .rationale-list strong { color: #991b1b; }");
         builder.AppendLine("    .meta { color: #64748b; }");
         builder.AppendLine("    code { font-family: Cascadia Code, Consolas, monospace; }");
         builder.AppendLine(
@@ -741,7 +742,7 @@ internal static class RiskHtmlReportWriter
             if (licenseFileUrl is not null)
             {
                 return
-                    $"<a href=\"{Encode(licenseFileUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(rationale)}</a>";
+                    $"<a href=\"{Encode(licenseFileUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{FormatRationaleText(rationale)}</a>";
             }
         }
 
@@ -751,7 +752,7 @@ internal static class RiskHtmlReportWriter
             if (repositoryUrl is not null)
             {
                 return
-                    $"<a href=\"{Encode(repositoryUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(rationale)}</a>";
+                    $"<a href=\"{Encode(repositoryUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{FormatRationaleText(rationale)}</a>";
             }
         }
 
@@ -760,7 +761,8 @@ internal static class RiskHtmlReportWriter
             string? readmeUrl = TryGetReadmeUrl(package);
             if (readmeUrl is not null)
             {
-                return $"<a href=\"{Encode(readmeUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(rationale)}</a>";
+                return
+                    $"<a href=\"{Encode(readmeUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{FormatRationaleText(rationale)}</a>";
             }
         }
 
@@ -770,7 +772,7 @@ internal static class RiskHtmlReportWriter
             if (contributingGuideUrl is not null)
             {
                 return
-                    $"<a href=\"{Encode(contributingGuideUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(rationale)}</a>";
+                    $"<a href=\"{Encode(contributingGuideUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{FormatRationaleText(rationale)}</a>";
             }
         }
 
@@ -780,7 +782,7 @@ internal static class RiskHtmlReportWriter
             if (releaseHistoryUrl is not null)
             {
                 return
-                    $"<a href=\"{Encode(releaseHistoryUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(rationale)}</a>";
+                    $"<a href=\"{Encode(releaseHistoryUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{FormatRationaleText(rationale)}</a>";
             }
         }
 
@@ -790,11 +792,36 @@ internal static class RiskHtmlReportWriter
             if (scorecardUrl is not null)
             {
                 return
-                    $"<a href=\"{Encode(scorecardUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{Encode(rationale)}</a>";
+                    $"<a href=\"{Encode(scorecardUrl)}\" target=\"_blank\" rel=\"noreferrer noopener\">{FormatRationaleText(rationale)}</a>";
             }
         }
 
-        return Encode(rationale);
+        return FormatRationaleText(rationale);
+    }
+
+    /// <summary>
+    /// Matches the trailing "(+score)" contribution suffix that <see cref="RiskEvaluationHelpers.CreateRationale"/>
+    /// appends to a rationale description.
+    /// </summary>
+    private static readonly Regex ContributionSuffixPattern = new(@"\(\+(?<value>\d+(?:\.\d+)?)\)$", RegexOptions.Compiled);
+
+    /// <summary>
+    /// HTML-encodes a rationale string, rendering its trailing "(+score)" contribution in bold when that
+    /// contribution is greater than zero, so the signals that actually increased the risk score stand out.
+    /// </summary>
+    private static string FormatRationaleText(string rationale)
+    {
+        Match match = ContributionSuffixPattern.Match(rationale);
+        if (!match.Success || !double.TryParse(
+                match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double contribution) ||
+            contribution <= 0)
+        {
+            return Encode(rationale);
+        }
+
+        string description = rationale[..match.Index];
+        string contributionSuffix = rationale[match.Index..];
+        return $"{Encode(description)}<strong>{Encode(contributionSuffix)}</strong>";
     }
 
     /// <summary>
