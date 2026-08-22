@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using PackageGuard.Core;
+using PackageGuard.Core.Package;
 
 namespace PackageGuard;
 

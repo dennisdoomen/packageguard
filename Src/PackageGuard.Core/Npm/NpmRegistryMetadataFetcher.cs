@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NuGet.Versioning;
 using PackageGuard.Core.Common;
+using PackageGuard.Core.Package;
 
 namespace PackageGuard.Core.Npm;
 

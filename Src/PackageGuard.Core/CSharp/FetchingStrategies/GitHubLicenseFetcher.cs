@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using PackageGuard.Core.Package;
 
 namespace PackageGuard.Core.CSharp.FetchingStrategies;
 

@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NuGet.Versioning;
 using PackageGuard.Core;
 using PackageGuard.Core.CSharp;
+using PackageGuard.Core.Package;
 using Pathy;
 
 namespace PackageGuard.Specs.CSharp;

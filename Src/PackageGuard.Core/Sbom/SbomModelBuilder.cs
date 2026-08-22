@@ -1,3 +1,5 @@
+using PackageGuard.Core.Package;
+
 namespace PackageGuard.Core.Sbom;
 
 /// <summary>

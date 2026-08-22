@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using PackageGuard.Core;
+using PackageGuard.Core.CSharp;
 using Pathy;
 using PublicApiGenerator;
 using VerifyTests;
