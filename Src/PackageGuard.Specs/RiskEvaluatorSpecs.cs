@@ -221,7 +221,7 @@ internal class RiskEvaluatorSpecs
             .Contain(item => item.Contains("Low package popularity (500 downloads)"));
 
         package.RiskDimensions.OperationalRiskRationale.Should()
-            .Contain(item => item.Contains("Dimension score capped at 10.0/10"));
+            .Contain(item => item.Contains("Dimension score capped at 10/10"));
     }
 
     [TestMethod]

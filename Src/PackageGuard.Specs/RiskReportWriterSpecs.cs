@@ -105,6 +105,10 @@ internal sealed class RiskReportWriterSpecs
         string html = await File.ReadAllTextAsync(reportPaths.HtmlPath);
         html.Should().Contain("PackageGuard Risk Report");
         html.Should().Contain("Contoso.Security");
+        html.Should().Contain("<span class=\"score-pill risk-medium\">47.5/100</span>");
+        html.Should().Contain("<span class=\"score-pill risk-low\">1/10</span>");
+        html.Should().Contain("<span class=\"score-pill risk-high\">6/10</span>");
+        html.Should().Contain("<span class=\"score-pill risk-medium\">4/10</span>");
         html.Should().Contain(@"src\Contoso.App\Contoso.App.csproj");
         html.Should().Contain(@"frontend\package.json");
         html.Should().Contain("<span class=\"label\">Used by:</span>");

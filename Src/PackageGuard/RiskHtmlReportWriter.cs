@@ -969,7 +969,7 @@ internal static class RiskHtmlReportWriter
             _ => "risk-low"
         };
 
-        return $"<span class=\"score-pill {cssClass}\">{Encode(FormatDecimal(score))}/100</span>";
+        return $"<span class=\"score-pill {cssClass}\">{Encode(FormatTotalScore(score))}/100</span>";
     }
 
     /// <summary>
@@ -986,7 +986,7 @@ internal static class RiskHtmlReportWriter
             _ => "risk-low"
         };
 
-        return $"<span class=\"score-pill {cssClass}\">{Encode(FormatDecimal(score))}/10</span>";
+        return $"<span class=\"score-pill {cssClass}\">{Encode(FormatTotalScore(score))}/10</span>";
     }
 
     /// <summary>
@@ -1035,6 +1035,16 @@ internal static class RiskHtmlReportWriter
     /// Formats a decimal value to one decimal place using the invariant culture.
     /// </summary>
     private static string FormatDecimal(double value) => value.ToString("0.0", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Formats a total risk score (overall or per-dimension) to one decimal place, dropping the decimal
+    /// entirely when the value is a round number so e.g. "7.0/10" reads as "7/10".
+    /// </summary>
+    private static string FormatTotalScore(double value)
+    {
+        string formatted = FormatDecimal(value);
+        return formatted.EndsWith(".0", StringComparison.Ordinal) ? formatted[..^2] : formatted;
+    }
 
     /// <summary>
     /// Returns a human-readable license string for display, noting when the license is missing,
