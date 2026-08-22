@@ -1,4 +1,5 @@
 using PackageGuard.Core.Package;
+using Pathy;
 
 namespace PackageGuard.Core.Sbom;
 
@@ -103,12 +104,14 @@ internal static class SbomModelBuilder
     /// </summary>
     private static string ResolveRootName(string projectPath)
     {
-        if (File.Exists(projectPath))
+        if (string.IsNullOrEmpty(projectPath))
         {
             return Path.GetFileNameWithoutExtension(projectPath);
         }
 
-        if (!Directory.Exists(projectPath))
+        ChainablePath path = ChainablePath.From(projectPath);
+
+        if (path.IsFile || !path.IsDirectory)
         {
             return Path.GetFileNameWithoutExtension(projectPath);
         }
@@ -120,6 +123,6 @@ internal static class SbomModelBuilder
 
         return candidate is not null
             ? Path.GetFileNameWithoutExtension(candidate)
-            : new DirectoryInfo(projectPath).Name;
+            : path.Name;
     }
 }

@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using PackageGuard.Core;
 using PackageGuard.Core.Package;
+using Pathy;
 
 namespace PackageGuard;
 
@@ -57,9 +58,9 @@ internal static class RiskHtmlReportWriter
             return ResolveConfiguredReportPaths(projectPath, reportLocation);
         }
 
-        string reportDirectory = Path.Combine(Path.GetTempPath(), "PackageGuard", "reports");
+        ChainablePath reportDirectory = ChainablePath.Temp / "PackageGuard" / "reports";
 
-        Directory.CreateDirectory(reportDirectory);
+        reportDirectory.CreateDirectoryRecursively();
 
         return CreateGeneratedReportPaths(projectPath, reportDirectory);
     }
@@ -72,30 +73,32 @@ internal static class RiskHtmlReportWriter
     {
         if (LooksLikeDirectoryPath(reportLocation))
         {
-            Directory.CreateDirectory(reportLocation);
-            return CreateGeneratedReportPaths(projectPath, reportLocation);
+            ChainablePath directory = ChainablePath.From(reportLocation);
+            directory.CreateDirectoryRecursively();
+            return CreateGeneratedReportPaths(projectPath, directory);
         }
 
-        string fullPath = Path.GetFullPath(reportLocation);
-        string? parentDirectory = Path.GetDirectoryName(fullPath);
-        if (!string.IsNullOrWhiteSpace(parentDirectory))
+        ChainablePath fullPath = ChainablePath.From(reportLocation).ToAbsolute();
+        ChainablePath parentDirectory = fullPath.Directory;
+        if (parentDirectory != ChainablePath.Empty)
         {
-            Directory.CreateDirectory(parentDirectory);
+            parentDirectory.CreateDirectoryRecursively();
         }
 
-        string extension = Path.GetExtension(fullPath);
+        string extension = fullPath.Extension;
         string fileStem = string.IsNullOrWhiteSpace(extension)
             ? fullPath
-            : Path.Combine(Path.GetDirectoryName(fullPath) ?? string.Empty, Path.GetFileNameWithoutExtension(fullPath));
+            : parentDirectory / Path.GetFileNameWithoutExtension(fullPath.Name);
 
+        string fullPathAsString = fullPath;
         string htmlPath = extension.Equals(".sarif", StringComparison.OrdinalIgnoreCase)
             ? $"{fileStem}.html"
             : string.IsNullOrWhiteSpace(extension) || extension.Equals(".html", StringComparison.OrdinalIgnoreCase)
                 ? $"{fileStem}.html"
-                : fullPath;
+                : fullPathAsString;
 
         string sarifPath = extension.Equals(".sarif", StringComparison.OrdinalIgnoreCase)
-            ? fullPath
+            ? fullPathAsString
             : $"{fileStem}.sarif";
 
         return new RiskReportPaths(htmlPath, sarifPath);
@@ -107,21 +110,22 @@ internal static class RiskHtmlReportWriter
     /// </summary>
     private static bool LooksLikeDirectoryPath(string reportLocation)
     {
-        if (Directory.Exists(reportLocation))
+        ChainablePath path = ChainablePath.From(reportLocation);
+        if (path.IsDirectory)
         {
             return true;
         }
 
         return reportLocation.EndsWith(Path.DirectorySeparatorChar) ||
                reportLocation.EndsWith(Path.AltDirectorySeparatorChar) ||
-               string.IsNullOrWhiteSpace(Path.GetExtension(reportLocation));
+               string.IsNullOrWhiteSpace(path.Extension);
     }
 
     /// <summary>
     /// Creates timestamped HTML and SARIF report file paths inside <paramref name="reportDirectory"/>,
     /// using a sanitised form of the project name as the file stem.
     /// </summary>
-    private static RiskReportPaths CreateGeneratedReportPaths(string projectPath, string reportDirectory)
+    private static RiskReportPaths CreateGeneratedReportPaths(string projectPath, ChainablePath reportDirectory)
     {
         string projectName = Path.GetFileNameWithoutExtension(projectPath);
         if (string.IsNullOrWhiteSpace(projectName))
@@ -134,8 +138,8 @@ internal static class RiskHtmlReportWriter
 
         string fileNamePrefix = $"{sanitizedProjectName}-risk-report-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}";
         return new RiskReportPaths(
-            Path.Combine(reportDirectory, $"{fileNamePrefix}.html"),
-            Path.Combine(reportDirectory, $"{fileNamePrefix}.sarif"));
+            reportDirectory / $"{fileNamePrefix}.html",
+            reportDirectory / $"{fileNamePrefix}.sarif");
     }
 
     /// <summary>
@@ -175,7 +179,7 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine("<head>");
         builder.AppendLine("  <meta charset=\"utf-8\">");
         builder.AppendLine("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-        builder.AppendLine($"  <title>{Encode(Path.GetFileName(projectPath))} - PackageGuard Risk Report</title>");
+        builder.AppendLine($"  <title>{Encode(ChainablePath.From(projectPath).Name)} - PackageGuard Risk Report</title>");
         builder.AppendLine("  <style>");
         builder.AppendLine(
             "    body { font-family: Segoe UI, Arial, sans-serif; margin: 0; background: #f8fafc; color: #0f172a; }");
@@ -1123,6 +1127,6 @@ internal static class RiskHtmlReportWriter
             return projectPath;
         }
 
-        return Path.Combine(projectPath, "package.json");
+        return ChainablePath.From(projectPath) / "package.json";
     }
 }

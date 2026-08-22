@@ -8,6 +8,7 @@ using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using PackageGuard.Core.Common;
 using PackageGuard.Core.Package;
+using Pathy;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace PackageGuard.Core.CSharp;
@@ -281,8 +282,8 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 
         foreach (string version in EnumerateVersionCandidates(packageVersion))
         {
-            string nuspecPath = Path.Combine(globalPackagesFolder, packageId, version, $"{packageId}.nuspec");
-            if (!File.Exists(nuspecPath))
+            ChainablePath nuspecPath = ChainablePath.From(globalPackagesFolder) / packageId / version / $"{packageId}.nuspec";
+            if (!nuspecPath.IsFile)
             {
                 continue;
             }

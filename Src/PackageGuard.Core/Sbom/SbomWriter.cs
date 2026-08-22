@@ -1,4 +1,5 @@
 using PackageGuard.Core.Package;
+using Pathy;
 
 namespace PackageGuard.Core.Sbom;
 
@@ -21,10 +22,10 @@ internal static class SbomWriter
             ? SpdxSbomWriter.Build(model)
             : CycloneDxSbomWriter.Build(model);
 
-        string? outputDirectory = Path.GetDirectoryName(Path.GetFullPath(outputPath));
-        if (!string.IsNullOrEmpty(outputDirectory))
+        ChainablePath outputDirectory = ChainablePath.From(outputPath).ToAbsolute().Directory;
+        if (outputDirectory != ChainablePath.Empty)
         {
-            Directory.CreateDirectory(outputDirectory);
+            outputDirectory.CreateDirectoryRecursively();
         }
 
         File.WriteAllText(outputPath, json);

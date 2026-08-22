@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using NuGet.Configuration;
 using NuGet.Versioning;
 using PackageGuard.Core.Package;
+using Pathy;
 
 namespace PackageGuard.Core.Risk.Enrichment;
 
@@ -87,8 +88,8 @@ internal sealed class NuGetPackageSigningRiskEnricher(ILogger logger, string? gl
         string packageId = package.Name.ToLowerInvariant();
         foreach (string version in EnumerateVersionCandidates(package.Version))
         {
-            string path = Path.Combine(globalPackagesFolder, packageId, version, $"{packageId}.{version}.nupkg");
-            if (File.Exists(path))
+            ChainablePath path = ChainablePath.From(globalPackagesFolder) / packageId / version / $"{packageId}.{version}.nupkg";
+            if (path.IsFile)
             {
                 return path;
             }

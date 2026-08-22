@@ -89,7 +89,7 @@ public class CSharpProjectScanner(ILogger logger)
 
             var solutionPath = solution.Value;
             // Parse .sln file using Microsoft.Build
-            var solutionFile = SolutionFile.Parse(Path.GetFullPath(solutionPath, Environment.CurrentDirectory));
+            var solutionFile = SolutionFile.Parse(solutionPath.ToAbsolute());
             foreach (ProjectInSolution? project in solutionFile.ProjectsInOrder)
             {
                 if (project.ProjectType == SolutionProjectType.KnownToBeMSBuildFormat)
