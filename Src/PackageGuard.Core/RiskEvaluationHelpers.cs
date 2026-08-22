@@ -21,7 +21,7 @@ internal static class RiskEvaluationHelpers
 
         if (risk > cappedRisk)
         {
-            rationale.Add($"Dimension score capped at {FormatScore(cappedRisk)}/10");
+            rationale.Add($"Dimension score capped at {FormatTotalScore(cappedRisk)}/10");
         }
 
         return new RiskDimensionEvaluation(cappedRisk, rationale.ToArray());
@@ -38,6 +38,16 @@ internal static class RiskEvaluationHelpers
     /// </summary>
     internal static string FormatScore(double value) =>
         value.ToString("0.0", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Formats a total risk score to one decimal place, dropping the decimal entirely when the value is a
+    /// round number so e.g. "10.0/10" reads as "10/10".
+    /// </summary>
+    internal static string FormatTotalScore(double value)
+    {
+        string formatted = FormatScore(value);
+        return formatted.EndsWith(".0", StringComparison.Ordinal) ? formatted[..^2] : formatted;
+    }
 
     /// <summary>
     /// Formats a decimal value as a percentage string using invariant culture.

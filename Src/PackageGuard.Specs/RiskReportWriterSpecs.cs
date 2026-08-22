@@ -105,6 +105,10 @@ internal sealed class RiskReportWriterSpecs
         string html = await File.ReadAllTextAsync(reportPaths.HtmlPath);
         html.Should().Contain("PackageGuard Risk Report");
         html.Should().Contain("Contoso.Security");
+        html.Should().Contain("<span class=\"score-pill risk-medium\">47.5/100</span>");
+        html.Should().Contain("<span class=\"score-pill risk-low\">1/10</span>");
+        html.Should().Contain("<span class=\"score-pill risk-high\">6/10</span>");
+        html.Should().Contain("<span class=\"score-pill risk-medium\">4/10</span>");
         html.Should().Contain(@"src\Contoso.App\Contoso.App.csproj");
         html.Should().Contain(@"frontend\package.json");
         html.Should().Contain("<span class=\"label\">Used by:</span>");
@@ -119,7 +123,11 @@ internal sealed class RiskReportWriterSpecs
 
         html.Should()
             .Contain(
-                "<a href=\"https://securityscorecards.dev/viewer/?uri=github.com/contoso/contoso-security\" target=\"_blank\" rel=\"noreferrer noopener\">OpenSSF Scorecard score is low (4.0) (+1.5)</a>");
+                "<a href=\"https://securityscorecards.dev/viewer/?uri=github.com/contoso/contoso-security\" target=\"_blank\" rel=\"noreferrer noopener\">OpenSSF Scorecard score is low (4.0) <strong>(+1.5)</strong></a>");
+
+        html.Should().Contain("A security fix is available for a known vulnerability <strong>(+0.5)</strong>");
+        html.Should().NotContain("Permissive license (MIT) <strong>(+0.0)</strong>");
+        html.Should().Contain("Permissive license (MIT) (+0.0)");
 
         html.Should()
             .Contain(
