@@ -6,7 +6,7 @@
 <div align="center">
 
 [![](https://img.shields.io/github/actions/workflow/status/dennisdoomen/packageguard/build.yml?branch=main)](https://github.com/dennisdoomen/packageguard/actions?query=branch%3amain)
-[![Coveralls branch](https://img.shields.io/coverallsCoverage/github/dennisdoomen/packageguard?branch=main)](https://coveralls.io/github/dennisdoomen/packageguard?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/dennisdoomen/packageguard/badge.svg?branch=main)](https://coveralls.io/github/dennisdoomen/packageguard?branch=main)
 [![](https://img.shields.io/github/release/dennisdoomen/packageguard.svg?label=latest%20release&color=007edf)](https://github.com/dennisdoomen/packageguard/releases/latest)
 [![](https://img.shields.io/nuget/dt/packageguard.svg?label=downloads&color=007edf&logo=nuget)](https://www.nuget.org/packages/packageguard)
 [![](https://img.shields.io/librariesio/dependents/nuget/packageguard.svg?label=dependent%20libraries)](https://libraries.io/nuget/packageguard)
@@ -17,7 +17,7 @@
 [![open issues](https://img.shields.io/github/issues/dennisdoomen/packageguard)](https://github.com/dennisdoomen/packageguard/issues)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](https://makeapullrequest.com)
 ![](https://img.shields.io/badge/release%20strategy-githubflow-orange.svg)
-![Static Badge](https://img.shields.io/badge/8.0-dummy?label=dotnet&color=%235027d5)
+![Static Badge](https://img.shields.io/badge/9.0+10.0-dummy?label=dotnet&color=%235027d5)
 
 
 <a href="#about">About</a> •
