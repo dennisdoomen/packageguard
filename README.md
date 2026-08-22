@@ -38,6 +38,19 @@
 
 PackageGuard is a fully open-source tool to scan the NuGet, NPM, PNPM and Yarn dependencies of your codebase against a deny- or allowlist so to control the open-source licenses that you want to allow or certain versions of certain packages you want to enforce or avoid. 
 
+At a glance, PackageGuard can:
+
+- Scan **NuGet, NPM, PNPM and Yarn** dependencies across your entire solution or codebase
+- Enforce **allow- and deny-lists** for open-source licenses, specific packages, and package versions
+- Discover configuration **hierarchically**, merging solution-, project-, and repository-level policies
+- Resolve **licenses** from NuGet/npm metadata, GitHub repositories, and other sources through a chain of fetchers
+- Assess **risk** for every package across legal, security, and operational dimensions (e.g. vulnerabilities, maintenance activity, signing) via `--report-risk`
+- Generate a **colored console summary**, a self-contained **HTML report**, and a **SARIF file** for CI integration
+- Produce a standards-compliant **Software Bill of Materials (SBOM)** in **CycloneDX** or **SPDX** JSON format via `--sbom`
+- Include **vulnerability data** (from OSV) in the SBOM when combined with `--report-risk`
+- **Cache** package, license, and risk data (`--use-caching`) to speed up repeated scans, with configurable cache freshness
+- Run as a **.NET global tool** or a **portable, cross-platform** (Windows/Linux/macOS) deployment
+
 ### What's so special about that?
 
 I've noticed that the commercial solutions for this are usually very expensive and have functionality that smaller companies may not need. Hopefully this little tools fills the gap between tools like GitHub's Dependabot and expensive commercial products like Blackduck, SNYK  and others.
