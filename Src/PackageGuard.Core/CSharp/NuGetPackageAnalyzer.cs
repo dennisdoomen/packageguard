@@ -7,6 +7,7 @@ using NuGet.Credentials;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using PackageGuard.Core.Common;
+using PackageGuard.Core.Package;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace PackageGuard.Core.CSharp;

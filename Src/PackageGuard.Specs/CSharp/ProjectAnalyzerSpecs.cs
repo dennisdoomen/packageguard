@@ -6,6 +6,8 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
+using PackageGuard.Core.CSharp;
+using PackageGuard.Core.Policy;
 using Pathy;
 
 namespace PackageGuard.Specs.CSharp;

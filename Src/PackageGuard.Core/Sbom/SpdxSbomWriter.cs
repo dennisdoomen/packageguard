@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using PackageGuard.Core.Package;
 
 namespace PackageGuard.Core.Sbom;
 

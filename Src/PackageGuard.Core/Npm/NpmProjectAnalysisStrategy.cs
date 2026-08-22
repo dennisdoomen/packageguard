@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core.Common;
+using PackageGuard.Core.Package;
+using PackageGuard.Core.Policy;
 using Pathy;
-using static PackageGuard.Core.NpmPackageManager;
+using static PackageGuard.Core.Npm.NpmPackageManager;
 
 namespace PackageGuard.Core.Npm;
 

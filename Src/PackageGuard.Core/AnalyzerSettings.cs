@@ -1,3 +1,4 @@
+using PackageGuard.Core.Npm;
 using Pathy;
 
 namespace PackageGuard.Core;

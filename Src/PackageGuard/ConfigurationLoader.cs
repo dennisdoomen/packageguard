@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core;
+using PackageGuard.Core.Policy;
 using Pathy;
 
 namespace PackageGuard;

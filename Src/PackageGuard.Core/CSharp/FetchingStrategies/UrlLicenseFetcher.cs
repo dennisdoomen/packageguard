@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using PackageGuard.Core.Package;
 
 namespace PackageGuard.Core.CSharp.FetchingStrategies;
 

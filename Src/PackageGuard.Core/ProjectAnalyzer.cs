@@ -3,6 +3,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 using PackageGuard.Core.Common;
 using PackageGuard.Core.CSharp;
 using PackageGuard.Core.Npm;
+using PackageGuard.Core.Package;
+using PackageGuard.Core.Policy;
+using PackageGuard.Core.Risk;
+using PackageGuard.Core.Risk.Enrichment;
 
 namespace PackageGuard.Core;
 

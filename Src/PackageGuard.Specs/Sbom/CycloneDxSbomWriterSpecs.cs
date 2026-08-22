@@ -3,6 +3,7 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
+using PackageGuard.Core.Package;
 using PackageGuard.Core.Sbom;
 
 namespace PackageGuard.Specs.Sbom;

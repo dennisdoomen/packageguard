@@ -6,6 +6,8 @@ using FluentAssertions;
 using JetBrains.Annotations;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
+using PackageGuard.Core.Package;
+using PackageGuard.Core.Risk;
 
 namespace PackageGuard.Specs;
 

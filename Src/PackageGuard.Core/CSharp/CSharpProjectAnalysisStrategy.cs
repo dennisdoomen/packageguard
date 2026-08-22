@@ -2,6 +2,8 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using NuGet.ProjectModel;
 using PackageGuard.Core.Common;
+using PackageGuard.Core.Package;
+using PackageGuard.Core.Policy;
 
 namespace PackageGuard.Core.CSharp;
 
