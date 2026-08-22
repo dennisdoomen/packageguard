@@ -180,12 +180,14 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
             logger.LogDebug("Querying {SourceUrl} for {Name} {Version}", nuGetSource.PackageSource.Source, packageName, packageVersion);
             var metadataResource = await nuGetSource.GetResourceAsync<PackageMetadataResource>();
 
-            IPackageSearchMetadata[] packageMetadata = (await metadataResource.GetMetadataAsync(
+            IEnumerable<IPackageSearchMetadata> packageSearchMetadatas = await metadataResource!.GetMetadataAsync(
                 packageName,
                 includePrerelease: true,
                 includeUnlisted: true,
                 sourceCacheContext: new SourceCacheContext(), NullLogger.Instance,
-                token: CancellationToken.None))?.ToArray() ?? [];
+                token: CancellationToken.None);
+
+            IPackageSearchMetadata[] packageMetadata = packageSearchMetadatas?.ToArray() ?? [];
 
             IPackageSearchMetadata? packageInfo =
                 packageMetadata.FirstOrDefault(p =>
