@@ -59,7 +59,6 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         PackageInfoCollection packages)
     {
         SourceRepository[] projectNuGetSources = GetNuGetSources(projectPath);
-        NuspecMetadata? nuspecMetadata = TryReadNuspecMetadata(projectPath, packageName, packageVersion);
 
         PackageInfo? package = packages.Find(packageName, packageVersion.ToNormalizedString(), projectNuGetSources);
         if (package is not null)
@@ -68,30 +67,40 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         }
         else
         {
+            // Fetch the package metadata from NuGet sources.
             package = await RetrievePackageMetadata(projectNuGetSources, packageName, packageVersion);
             if (package is not null)
             {
                 package = packages.Add(package);
+                NuspecMetadata? nuspecMetadata = TryReadNuspecMetadata(projectPath, packageName, packageVersion);
 
-                package.License ??= nuspecMetadata?.License;
+                // If the license information is not explicitly specified in the package, but the metadata does contain it,
+                // assume that the license is declared.
+                if (package.License is null && nuspecMetadata?.License is not null)
+                {
+                    package.License = nuspecMetadata.License;
+                    package.LicenseEvidence = LicenseEvidence.Declared;
+                }
 
+                // If the license information is still not explicitly specified in the package,
+                // try to fetch it from an external source.
                 if (package.License is null)
                 {
                     await licenseFetcher.AmendWithMissingLicenseInformation(package);
                 }
-            }
-            else
-            {
-                logger.LogWarning("Package {Name} {Version} not found in any of the sources", packageName, packageVersion);
-            }
-        }
 
-        if (package is not null && !string.IsNullOrWhiteSpace(nuspecMetadata?.RepositoryUrl))
-        {
-            package.RepositoryUrl = nuspecMetadata.RepositoryUrl;
+                if (nuspecMetadata?.RepositoryUrl.IsNotNullOrWhiteSpace() == true)
+                {
+                    package.RepositoryUrl = nuspecMetadata.RepositoryUrl;
+                }
+            }
         }
 
         package?.TrackAsUsedInProject(projectPath);
+        if (package is null)
+        {
+            logger.LogWarning("Package {Name} {Version} not found in any of the sources", packageName, packageVersion);
+        }
     }
 
     /// <summary>
@@ -177,7 +186,9 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 
         foreach (SourceRepository nuGetSource in projectNuGetSources)
         {
-            logger.LogDebug("Querying {SourceUrl} for {Name} {Version}", nuGetSource.PackageSource.Source, packageName, packageVersion);
+            logger.LogDebug("Querying {SourceUrl} for {Name} {Version}", nuGetSource.PackageSource.Source, packageName,
+                packageVersion);
+
             var metadataResource = await nuGetSource.GetResourceAsync<PackageMetadataResource>();
 
             IEnumerable<IPackageSearchMetadata> packageSearchMetadatas = await metadataResource!.GetMetadataAsync(
@@ -217,6 +228,9 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
                     Version = packageInfo.Identity.Version.ToNormalizedString(),
                     RepositoryUrl = packageInfo.ProjectUrl?.ToString(),
                     License = packageInfo.LicenseMetadata?.License,
+                    LicenseEvidence = packageInfo.LicenseMetadata?.License is not null
+                        ? LicenseEvidence.Declared
+                        : LicenseEvidence.Unknown,
                     LicenseUrl = packageInfo.LicenseUrl?.ToString(),
                     IsDeprecated = LooksDeprecated(packageInfo),
                     PublishedAt = packageInfo.Published,

@@ -32,6 +32,12 @@ public partial class PackageInfo
     public string? License { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the license was declared by the package's own
+    /// metadata or concluded from external evidence such as a GitHub repository scan.
+    /// </summary>
+    public LicenseEvidence LicenseEvidence { get; set; }
+
+    /// <summary>
     /// Gets or sets the source URL where the license text or license metadata can be retrieved.
     /// </summary>
     public string? LicenseUrl { get; set; }
@@ -137,6 +143,12 @@ public partial class PackageInfo
     /// <c>modified</c> timestamp within the last 90 days.
     /// </summary>
     public bool HasPatchedVulnerabilityInLast90Days { get; set; }
+
+    /// <summary>
+    /// Gets or sets the individual OSV vulnerability records found for this package version. Only populated
+    /// when <see cref="AnalyzerSettings.ReportRisk"/> is enabled; empty otherwise.
+    /// </summary>
+    public OsvVulnerabilityRecord[] Vulnerabilities { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the shortest dependency depth discovered for this package in the analyzed graph.
@@ -660,7 +672,7 @@ public partial class PackageInfo
     /// <summary>
     /// Determines the package ecosystem used when building dependency keys.
     /// </summary>
-    private string GetPackageEcosystem()
+    internal string GetPackageEcosystem()
     {
         if (Source.Equals("npm", StringComparison.OrdinalIgnoreCase) ||
             SourceUrl.Contains("npmjs.org", StringComparison.OrdinalIgnoreCase) ||

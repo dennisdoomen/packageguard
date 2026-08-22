@@ -83,6 +83,7 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
         bool hasPatchedRecent = false;
         bool hasAvailableFix = false;
         List<double> fixDays = [];
+        List<OsvVulnerabilityRecord> vulnerabilityRecords = [];
 
         do
         {
@@ -103,7 +104,8 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
                 foreach (JsonElement vulnerability in vulnerabilities.EnumerateArray())
                 {
                     vulnerabilityCount++;
-                    maxSeverity = Math.Max(maxSeverity, ReadSeverity(vulnerability));
+                    double severity = ReadSeverity(vulnerability);
+                    maxSeverity = Math.Max(maxSeverity, severity);
 
                     if (HasFix(vulnerability) && IsRecentlyModified(vulnerability))
                     {
@@ -120,6 +122,8 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
                     {
                         fixDays.Add(daysToFix.Value);
                     }
+
+                    vulnerabilityRecords.Add(ReadVulnerabilityRecord(vulnerability, severity));
                 }
             }
 
@@ -135,8 +139,67 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
             MaxSeverity = maxSeverity,
             HasPatchedVulnerabilityInLast90Days = hasPatchedRecent,
             HasAvailableSecurityFix = hasAvailableFix,
-            MedianVulnerabilityFixDays = ComputeMedian(fixDays)
+            MedianVulnerabilityFixDays = ComputeMedian(fixDays),
+            Vulnerabilities = vulnerabilityRecords
         };
+    }
+
+    /// <summary>
+    /// Extracts the identifier, aliases, severity, and reference URLs for a single OSV vulnerability entry.
+    /// </summary>
+    private static OsvVulnerabilityRecord ReadVulnerabilityRecord(JsonElement vulnerability, double severity)
+    {
+        return new OsvVulnerabilityRecord
+        {
+            Id = ReadString(vulnerability, "id") ?? "",
+            Aliases = ReadStringArray(vulnerability, "aliases"),
+            Severity = severity,
+            References = ReadReferenceUrls(vulnerability)
+        };
+    }
+
+    /// <summary>
+    /// Reads the string-valued property identified by <paramref name="propertyName"/> from <paramref name="element"/>;
+    /// returns <see langword="null"/> if the property is absent.
+    /// </summary>
+    private static string? ReadString(JsonElement element, string propertyName)
+    {
+        return element.TryGetProperty(propertyName, out JsonElement property) ? property.GetString() : null;
+    }
+
+    /// <summary>
+    /// Reads the string-array property identified by <paramref name="propertyName"/> from <paramref name="element"/>,
+    /// dropping any null entries; returns an empty array if the property is absent.
+    /// </summary>
+    private static string[] ReadStringArray(JsonElement element, string propertyName)
+    {
+        if (!element.TryGetProperty(propertyName, out JsonElement property) || property.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return property.EnumerateArray()
+            .Select(item => item.GetString())
+            .Where(value => value is not null)
+            .Select(value => value!)
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Extracts the "url" of every entry in the vulnerability's "references" array, dropping entries without one.
+    /// </summary>
+    private static string[] ReadReferenceUrls(JsonElement vulnerability)
+    {
+        if (!vulnerability.TryGetProperty("references", out JsonElement references) || references.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return references.EnumerateArray()
+            .Select(reference => reference.TryGetProperty("url", out JsonElement urlElement) ? urlElement.GetString() : null)
+            .Where(url => url is not null)
+            .Select(url => url!)
+            .ToArray();
     }
 
     /// <summary>
@@ -171,6 +234,7 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
         package.HasPatchedVulnerabilityInLast90Days = result.HasPatchedVulnerabilityInLast90Days;
         package.HasAvailableSecurityFix = result.HasAvailableSecurityFix;
         package.MedianVulnerabilityFixDays = result.MedianVulnerabilityFixDays;
+        package.Vulnerabilities = result.Vulnerabilities.ToArray();
         package.HasOsvRiskData = true;
     }
 
@@ -425,5 +489,10 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
         /// Median number of days from vulnerability publication to fix, or <see langword="null"/> if no fix data is available.
         /// </summary>
         public double? MedianVulnerabilityFixDays { get; init; }
+
+        /// <summary>
+        /// The individual vulnerability records found for the package.
+        /// </summary>
+        public IReadOnlyList<OsvVulnerabilityRecord> Vulnerabilities { get; init; } = [];
     }
 }

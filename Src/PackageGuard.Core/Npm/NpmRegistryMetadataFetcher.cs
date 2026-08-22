@@ -148,6 +148,11 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
                 package.License = licenseElement.GetString();
             }
 
+            if (package.License is not null)
+            {
+                package.LicenseEvidence = LicenseEvidence.Declared;
+            }
+
             logger.LogDebug("Found license for {Name}: {License}", package.Name, package.License);
         }
 

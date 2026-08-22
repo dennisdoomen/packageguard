@@ -22,18 +22,22 @@ public class UrlLicenseFetcher(ILogger logger) : IFetchLicense
                 if (licenseText.Contains("MIT license", StringComparison.OrdinalIgnoreCase))
                 {
                     package.License = "MIT";
+                    package.LicenseEvidence = LicenseEvidence.Concluded;
                 }
                 else if (licenseText.Contains("Apache License", StringComparison.OrdinalIgnoreCase))
                 {
                     package.License = "Apache-2.0";
+                    package.LicenseEvidence = LicenseEvidence.Concluded;
                 }
                 else if (licenseText.Contains("GNU General Public License", StringComparison.OrdinalIgnoreCase))
                 {
                     package.License = "GPL-3.0";
+                    package.LicenseEvidence = LicenseEvidence.Concluded;
                 }
                 else if (licenseText.Contains("MICROSOFT SOFTWARE LICENSE TERMS", StringComparison.OrdinalIgnoreCase))
                 {
                     package.License = "Microsoft .NET Library License";
+                    package.LicenseEvidence = LicenseEvidence.Concluded;
                 }
                 else
                 {

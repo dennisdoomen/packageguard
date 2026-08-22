@@ -21,11 +21,13 @@ internal class CorrectMisbehavingPackagesFetcher : IFetchLicense
             }
 
             package.License ??= "MIT";
+            package.LicenseEvidence = LicenseEvidence.Declared;
         }
 
         if (package.Name.Equals("NETStandard.Library", StringComparison.InvariantCultureIgnoreCase))
         {
             package.License ??= "MIT";
+            package.LicenseEvidence = LicenseEvidence.Declared;
             package.RepositoryUrl = "https://github.com/dotnet/standard";
         }
 

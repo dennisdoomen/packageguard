@@ -116,6 +116,9 @@ public class ParallelPackageRiskEnricherSpecs
         package.HasOsvRiskData.Should().BeTrue();
         package.VulnerabilityCount.Should().BeGreaterThan(0, "Newtonsoft.Json 12.0.3 has known CVEs in the OSV database");
         package.HasAvailableSecurityFix.Should().BeTrue("a patched version exists for this vulnerability");
+        package.Vulnerabilities.Should().HaveCount(package.VulnerabilityCount,
+            "every aggregated vulnerability count should have a matching individual record for SBOM reporting");
+        package.Vulnerabilities.Should().OnlyContain(v => !string.IsNullOrWhiteSpace(v.Id));
     }
 
     [TestMethod]
