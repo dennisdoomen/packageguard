@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using PackageGuard.Core;
 using PackageGuard.Core.Package;
+using Pathy;
 
 namespace PackageGuard;
 
@@ -159,26 +160,27 @@ internal static class RiskSarifReportWriter
     /// </summary>
     private static string ResolveLocationPath(string projectPath)
     {
-        string rootPath = ResolveRootPath(projectPath);
+        ChainablePath path = ChainablePath.From(projectPath);
+        string rootPath = ResolveRootPath(path);
 
-        if (File.Exists(projectPath))
+        if (path.IsFile)
         {
-            return ToSarifUri(rootPath, projectPath);
+            return ToSarifUri(rootPath, path);
         }
 
-        if (!Directory.Exists(projectPath))
+        if (!path.IsDirectory)
         {
-            return ToSarifUri(rootPath, projectPath);
+            return ToSarifUri(rootPath, path);
         }
 
-        string[] preferredFiles =
+        ChainablePath[] preferredFiles =
         [
-            Path.Combine(projectPath, ".packageguard", "config.json"),
-            Path.Combine(projectPath, "packageguard.config.json")
+            path / ".packageguard" / "config.json",
+            path / "packageguard.config.json"
         ];
 
-        string? preferred = preferredFiles.FirstOrDefault(File.Exists);
-        if (preferred is not null)
+        ChainablePath preferred = preferredFiles.FirstOrDefault(candidate => candidate.IsFile, ChainablePath.Empty);
+        if (preferred != ChainablePath.Empty)
         {
             return ToSarifUri(rootPath, preferred);
         }
@@ -194,17 +196,17 @@ internal static class RiskSarifReportWriter
     /// <summary>
     /// Returns the absolute root directory to use when computing relative SARIF URIs.
     /// </summary>
-    private static string ResolveRootPath(string projectPath)
+    private static string ResolveRootPath(ChainablePath path)
     {
-        if (Directory.Exists(projectPath))
+        if (path.IsDirectory)
         {
-            return Path.GetFullPath(projectPath);
+            return path.ToAbsolute();
         }
 
-        string? directory = Path.GetDirectoryName(projectPath);
-        return string.IsNullOrWhiteSpace(directory)
+        ChainablePath directory = path.Directory;
+        return directory == ChainablePath.Empty
             ? Directory.GetCurrentDirectory()
-            : Path.GetFullPath(directory);
+            : directory.ToAbsolute();
     }
 
     /// <summary>
@@ -231,7 +233,7 @@ internal static class RiskSarifReportWriter
     {
         relativeUri = null;
 
-        string relativePath = Path.GetRelativePath(rootPath, fullPath);
+        string relativePath = ChainablePath.From(fullPath).AsRelativeTo(ChainablePath.From(rootPath));
         if (relativePath.StartsWith("..", StringComparison.Ordinal))
         {
             return false;
@@ -275,7 +277,7 @@ internal static class RiskSarifReportWriter
             return projectPath;
         }
 
-        return Path.Combine(projectPath, "package.json");
+        return ChainablePath.From(projectPath) / "package.json";
     }
 
     /// <summary>
