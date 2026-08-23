@@ -36,12 +36,12 @@ public class GitHubLicenseFetcher : IFetchLicense
     }
 
     /// <summary>
-    /// Resolves the SPDX identifier of the package's license from the license endpoint of its GitHub repository.
+    /// Resolves the SPDX identifier of the package's license from the metadata of its GitHub repository.
     /// </summary>
     /// <param name="package">The package to amend with license information.</param>
     public async Task FetchLicenseAsync(PackageInfo package)
     {
-        string? url = GetGitHubLicenseUrl(package.RepositoryUrl);
+        string? url = GetRepositoryApiUrl(package.RepositoryUrl);
         if (url is null)
         {
             return;
@@ -77,10 +77,15 @@ public class GitHubLicenseFetcher : IFetchLicense
     }
 
     /// <summary>
-    /// Builds the GitHub license endpoint URL for a repository URL, or returns <see langword="null"/> when the URL
+    /// Builds the GitHub repository endpoint URL for a repository URL, or returns <see langword="null"/> when the URL
     /// does not point at GitHub.
     /// </summary>
-    private static string? GetGitHubLicenseUrl(string? repositoryUrl)
+    /// <remarks>
+    /// The repository resource carries the same <c>license.spdx_id</c> as the dedicated license endpoint, and it is
+    /// the resource risk enrichment reads as well. Asking for this one means the two phases share a single response
+    /// rather than each spending a request.
+    /// </remarks>
+    private static string? GetRepositoryApiUrl(string? repositoryUrl)
     {
         if (repositoryUrl is null)
         {
@@ -103,6 +108,12 @@ public class GitHubLicenseFetcher : IFetchLicense
             return null;
         }
 
-        return $"https://api.github.com/repos/{match.Groups["owner"].Value}/{match.Groups["repo"].Value}/license";
+        string repository = match.Groups["repo"].Value.TrimEnd('.');
+        if (repository.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
+        {
+            repository = repository[..^4];
+        }
+
+        return $"https://api.github.com/repos/{match.Groups["owner"].Value}/{repository}";
     }
 }

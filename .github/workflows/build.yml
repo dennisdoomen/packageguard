@@ -35,7 +35,10 @@ jobs:
       run: ./build.ps1
       env:
         NuGetApiKey: ${{ secrets.NUGETAPIKEY }}
-        GitHubApiKey: ${{ secrets.GITHUB_TOKEN }}
+        # Read both by the build, for the GitHubApiKey parameter, and by the integration tests, to authenticate
+        # against api.github.com. Unauthenticated callers get 60 requests per hour, shared with every other job on
+        # the runner's IP.
+        GITHUB_API_KEY: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Check for 'lcov.info' existence
       id: check_files

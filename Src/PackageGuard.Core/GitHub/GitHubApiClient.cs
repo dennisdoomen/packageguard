@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
@@ -50,6 +51,11 @@ internal sealed class GitHubApiClient : IDisposable
     private static readonly TimeSpan MaxThrottleWait = TimeSpan.FromSeconds(90);
 
     /// <summary>
+    /// The endpoint of GitHub's GraphQL API.
+    /// </summary>
+    private const string GraphQlUrl = "https://api.github.com/graphql";
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="GitHubApiClient"/> class.
     /// </summary>
     /// <param name="logger">The logger to report throttling and request failures to.</param>
@@ -79,6 +85,128 @@ internal sealed class GitHubApiClient : IDisposable
             {
                 return isExhausted;
             }
+        }
+    }
+
+    /// <summary>
+    /// Indicates whether the GraphQL API is available. GitHub rejects unauthenticated GraphQL requests outright, so
+    /// callers fall back to the REST API when no token is configured.
+    /// </summary>
+    public bool SupportsGraphQl => !string.IsNullOrWhiteSpace(apiKey);
+
+    /// <summary>
+    /// Runs a GraphQL query and returns its <c>data</c> element, or <see langword="null"/> when the query could not
+    /// be run or came back with errors.
+    /// </summary>
+    /// <param name="query">The GraphQL query document.</param>
+    /// <param name="variables">The query variables, serialised as the GraphQL <c>variables</c> object.</param>
+    /// <param name="cancellationToken">Cancels the request.</param>
+    public async Task<JsonDocument?> PostGraphQlAsync(string query, IReadOnlyDictionary<string, object> variables,
+        CancellationToken cancellationToken = default)
+    {
+        if (!SupportsGraphQl || IsExhausted)
+        {
+            return null;
+        }
+
+        for (int attempt = 1; attempt <= MaxAttempts; attempt++)
+        {
+            GitHubAttemptResult result = await SendGraphQlOnceAsync(query, variables, cancellationToken);
+            if (result.IsFinal)
+            {
+                return ParseGraphQlPayload(result.Body);
+            }
+
+            if (!await WaitBeforeRetryAsync(GraphQlUrl, result, attempt, cancellationToken))
+            {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Sends a single GraphQL request, mapping the response onto an attempt result.
+    /// </summary>
+    private async Task<GitHubAttemptResult> SendGraphQlOnceAsync(string query,
+        IReadOnlyDictionary<string, object> variables, CancellationToken cancellationToken)
+    {
+        await concurrencyGate.WaitAsync(cancellationToken);
+        try
+        {
+            using HttpRequestMessage request = CreateGraphQlRequest(query, variables);
+            using HttpResponseMessage response = await httpClient.SendAsync(request, cancellationToken);
+            rateLimit.Update(response.Headers);
+
+            return response.IsSuccessStatusCode
+                ? GitHubAttemptResult.Final(await response.Content.ReadAsStringAsync(cancellationToken))
+                : InterpretFailure(GraphQlUrl, response);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException &&
+                                  !cancellationToken.IsCancellationRequested)
+        {
+            logger.LogDebug(ex, "GraphQL request failed");
+            return GitHubAttemptResult.Retryable();
+        }
+        finally
+        {
+            concurrencyGate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Builds the POST request carrying the GraphQL query and its variables.
+    /// </summary>
+    private HttpRequestMessage CreateGraphQlRequest(string query, IReadOnlyDictionary<string, object> variables)
+    {
+        string payload = JsonSerializer.Serialize(new { query, variables });
+
+        HttpRequestMessage request = new(HttpMethod.Post, GraphQlUrl)
+        {
+            Content = new StringContent(payload, Encoding.UTF8, "application/json")
+        };
+
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+        return request;
+    }
+
+    /// <summary>
+    /// Parses a GraphQL response, returning its <c>data</c> element and discarding responses that report errors.
+    /// </summary>
+    private JsonDocument? ParseGraphQlPayload(string? body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            return null;
+        }
+
+        try
+        {
+            using JsonDocument payload = JsonDocument.Parse(body);
+            LogGraphQlErrors(payload);
+
+            return payload.RootElement.TryGetProperty("data", out JsonElement data) &&
+                   data.ValueKind == JsonValueKind.Object
+                ? JsonDocument.Parse(data.GetRawText())
+                : null;
+        }
+        catch (JsonException ex)
+        {
+            logger.LogDebug(ex, "GraphQL returned a malformed response");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Reports the errors a GraphQL response carried, which can accompany partial data.
+    /// </summary>
+    private void LogGraphQlErrors(JsonDocument payload)
+    {
+        if (payload.RootElement.TryGetProperty("errors", out JsonElement errors) &&
+            errors.ValueKind == JsonValueKind.Array)
+        {
+            logger.LogDebug("GraphQL reported errors: {Errors}", errors.GetRawText());
         }
     }
 
@@ -120,6 +248,12 @@ internal sealed class GitHubApiClient : IDisposable
     private async Task<string?> GetStringAsync(string url, GitHubRequestImportance importance,
         CancellationToken cancellationToken = default)
     {
+        string? alreadyFetched = responseCache.FindFreshBody(url);
+        if (alreadyFetched is not null)
+        {
+            return alreadyFetched;
+        }
+
         if (!ShouldAttempt(url, importance))
         {
             return null;

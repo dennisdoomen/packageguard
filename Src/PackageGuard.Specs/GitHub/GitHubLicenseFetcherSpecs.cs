@@ -99,7 +99,7 @@ public class GitHubLicenseFetcherSpecs
     }
 
     [TestMethod]
-    public async Task Asks_the_license_endpoint_of_the_repository_named_by_the_package()
+    public async Task Reads_the_license_from_the_repository_resource_that_risk_enrichment_needs_as_well()
     {
         // Arrange
         var handler = ScriptedHttpMessageHandler.AlwaysReturns(() => ScriptedResponse.Json(LicenseBody));
@@ -108,7 +108,21 @@ public class GitHubLicenseFetcherSpecs
         await FetchAsync(handler, CreatePackage());
 
         // Assert
-        handler.RequestedUrls.Single().Should().Be("https://api.github.com/repos/acme/widget/license");
+        handler.RequestedUrls.Single().Should().Be("https://api.github.com/repos/acme/widget",
+            "asking the dedicated license endpoint would spend a request on what this response already carries");
+    }
+
+    [TestMethod]
+    public async Task Strips_the_git_suffix_from_a_repository_url()
+    {
+        // Arrange
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() => ScriptedResponse.Json(LicenseBody));
+
+        // Act
+        await FetchAsync(handler, CreatePackage("Acme.Widget", "https://github.com/acme/widget.git"));
+
+        // Assert
+        handler.RequestedUrls.Single().Should().Be("https://api.github.com/repos/acme/widget");
     }
 
     private static async Task FetchAsync(ScriptedHttpMessageHandler handler, PackageInfo package)

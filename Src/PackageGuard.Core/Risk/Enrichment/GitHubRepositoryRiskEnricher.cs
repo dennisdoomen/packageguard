@@ -26,6 +26,39 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     /// <summary>Client for the OpenSSF Scorecard API, which is not subject to the GitHub rate limit.</summary>
     private static readonly HttpClient ScorecardHttpClient = new() { Timeout = TimeSpan.FromSeconds(20) };
 
+    /// <summary>
+    /// The number of most recently closed pull requests the contribution and reviewer metrics are based on.
+    /// </summary>
+    private const int PullRequestQualitySampleSize = 30;
+
+    /// <summary>
+    /// The number of pull requests whose reviews are read. Each one costs a request, and the reviewer counts stop
+    /// moving well before the sample is exhausted.
+    /// </summary>
+    private const int ReviewSampleSize = 20;
+
+    /// <summary>
+    /// The number of open bug issues whose comments are read to measure maintainer response time. Each one costs a
+    /// request, and a median over this many issues is as informative as one over a hundred.
+    /// </summary>
+    private const int IssueResponseSampleSize = 20;
+
+    /// <summary>
+    /// The number of recently closed bug issues whose timeline is read to spot reopenings.
+    /// </summary>
+    private const int ReopenedIssueSampleSize = 20;
+
+    /// <summary>
+    /// The number of recently closed bug issues that are listed, before they are narrowed to the last 90 days.
+    /// </summary>
+    private const int ClosedIssueSampleSize = 50;
+
+    /// <summary>
+    /// The number of workflow files that are downloaded. The signals read from them are keyword matches that
+    /// saturate after a handful of files.
+    /// </summary>
+    private const int WorkflowFileSampleSize = 5;
+
     private readonly ILogger logger;
     private readonly GitHubApiClient apiClient;
 
@@ -236,11 +269,9 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         Task<GitHubReleaseData> releaseDataTask = GetReleaseDataAsync(repositoryApiRoot);
         Task<GitHubReadmeData> readmeTask = TryGetReadmeDataAsync(repositoryApiRoot);
         Task<string[]> rootFilesTask = GetRootFilesAsync(repositoryApiRoot, defaultBranch);
-        Task<GitHubIssueData> issueDataTask = GetIssueDataAsync(repositoryApiRoot);
+        Task<GitHubActivityData> activityTask = GetActivityDataAsync(repositoryApiRoot, ownerContext);
         Task<GitHubContributorData> contributorDataTask = GetContributorDataAsync(repositoryApiRoot);
         Task<GitHubCommitHealthData> commitHealthTask = GetCommitHealthDataAsync(repositoryApiRoot, defaultBranch);
-        Task<double?> medianPrMergeDaysTask = GetMedianPullRequestMergeDaysAsync(repositoryApiRoot);
-        Task<GitHubPullRequestQualityData> pullRequestQualityTask = GetPullRequestQualityDataAsync(repositoryApiRoot);
         Task<GitHubWorkflowData> workflowDataTask = GetWorkflowDataAsync(repositoryApiRoot, defaultBranch);
         Task<GitHubBranchProtectionData> branchProtectionTask =
             GetBranchProtectionDataAsync(repositoryApiRoot, defaultBranch);
@@ -265,16 +296,17 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
             ? TryGetLatestCommitDateAsync(repositoryApiRoot, rootFiles.First(IsChangelogFile), defaultBranch)
             : Task.FromResult<DateTimeOffset?>(null);
 
-        await Task.WhenAll(releaseDataTask, readmeTask, issueDataTask, contributorDataTask, commitHealthTask,
-            pullRequestQualityTask, medianPrMergeDaysTask, workflowDataTask, branchProtectionTask, scorecardTask,
+        await Task.WhenAll(releaseDataTask, readmeTask, activityTask, contributorDataTask, commitHealthTask,
+            workflowDataTask, branchProtectionTask, scorecardTask,
             changelogTask, securityPolicyTask, workflowFileSignalsTask, readmeUpdatedTask, changelogUpdatedTask);
 
         GitHubReleaseData releaseData = await releaseDataTask;
         GitHubReadmeData readmeData = await readmeTask;
-        GitHubIssueData issueData = await issueDataTask;
+        GitHubActivityData activityData = await activityTask;
+        GitHubIssueData issueData = activityData.IssueData;
         GitHubContributorData contributorData = await contributorDataTask;
         GitHubCommitHealthData commitHealthData = await commitHealthTask;
-        GitHubPullRequestQualityData pullRequestQualityData = await pullRequestQualityTask;
+        GitHubPullRequestQualityData pullRequestQualityData = activityData.PullRequestQualityData;
         GitHubWorkflowData workflowData = await workflowDataTask;
         GitHubBranchProtectionData branchProtectionData = await branchProtectionTask;
         GitHubChangelogData changelogData = await changelogTask;
@@ -310,7 +342,7 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
             ClosedBugIssueCountLast90Days = issueData.ClosedBugIssueCountLast90Days,
             ReopenedBugIssueCountLast90Days = issueData.ReopenedBugIssueCountLast90Days,
             IssueTriageWithinSevenDaysRate = issueData.TriageWithinSevenDaysRate,
-            MedianPullRequestMergeDays = await medianPrMergeDaysTask,
+            MedianPullRequestMergeDays = pullRequestQualityData.MedianMergeDays,
             ExternalContributionRate = pullRequestQualityData.ExternalContributionRate,
             UniqueReviewerCount = pullRequestQualityData.UniqueReviewerCount,
             ReviewerDiversityRatio = pullRequestQualityData.ReviewerDiversityRatio,
@@ -461,6 +493,146 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         };
     }
 
+    /// <summary>
+    /// Collects the issue and pull request metrics, preferring the GraphQL API because it answers in a single
+    /// request what the REST API only exposes one issue and one pull request at a time.
+    /// </summary>
+    private async Task<GitHubActivityData> GetActivityDataAsync(string repositoryApiRoot,
+        RepositoryOwnerContext ownerContext)
+    {
+        GitHubRepositoryActivity? activity = await TryGetActivityViaGraphQlAsync(ownerContext);
+        if (activity is not null)
+        {
+            return new GitHubActivityData(BuildIssueData(activity), BuildPullRequestQualityData(activity));
+        }
+
+        Task<GitHubIssueData> issueDataTask = GetIssueDataAsync(repositoryApiRoot);
+        Task<GitHubPullRequestQualityData> pullRequestDataTask = GetPullRequestDataAsync(repositoryApiRoot);
+        await Task.WhenAll(issueDataTask, pullRequestDataTask);
+
+        return new GitHubActivityData(await issueDataTask, await pullRequestDataTask);
+    }
+
+    /// <summary>
+    /// Runs the repository activity query, returning <see langword="null"/> when GraphQL is unavailable because no
+    /// token is configured, or when the query did not come back with a repository.
+    /// </summary>
+    private async Task<GitHubRepositoryActivity?> TryGetActivityViaGraphQlAsync(RepositoryOwnerContext ownerContext)
+    {
+        if (!apiClient.SupportsGraphQl)
+        {
+            return null;
+        }
+
+        Dictionary<string, object> variables = new()
+        {
+            ["owner"] = ownerContext.OwnerLogin,
+            ["name"] = ownerContext.RepositoryName,
+            ["issueSampleSize"] = IssueResponseSampleSize,
+            ["closedIssueSampleSize"] = ClosedIssueSampleSize,
+            ["pullRequestSampleSize"] = PullRequestQualitySampleSize
+        };
+
+        using JsonDocument? data = await apiClient.PostGraphQlAsync(GitHubGraphQlQuery.RepositoryActivity, variables);
+        return data is null ? null : GitHubRepositoryActivityReader.Read(data.RootElement);
+    }
+
+    /// <summary>Builds the issue health metrics from the activity returned by the GraphQL query.</summary>
+    private static GitHubIssueData BuildIssueData(GitHubRepositoryActivity activity)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        GitHubIssueSnapshot[] openIssues = activity.OpenBugIssues
+            .Select(issue => new GitHubIssueSnapshot
+            {
+                CreatedAt = issue.CreatedAt,
+                IsCritical = issue.Labels.Any(IsCriticalLabelName)
+            })
+            .ToArray();
+
+        GitHubIssueResponseData[] responses = activity.OpenBugIssues
+            .Select(MeasureResponse)
+            .ToArray();
+
+        GitHubActivityClosedIssue[] closedIssues = activity.ClosedBugIssues
+            .Where(issue => issue.ClosedAt >= now.AddDays(-90))
+            .ToArray();
+
+        return BuildIssueData(activity.OpenBugIssueCount, openIssues, responses, closedIssues, now);
+    }
+
+    /// <summary>Assembles the issue health metrics from the sampled issues and their measured responses.</summary>
+    private static GitHubIssueData BuildIssueData(int openBugIssueCount, GitHubIssueSnapshot[] openIssues,
+        GitHubIssueResponseData[] responses, GitHubActivityClosedIssue[] closedIssues, DateTimeOffset now)
+    {
+        GitHubIssueResponsiveness responsiveness = openIssues.Length == 0
+            ? new GitHubIssueResponsiveness()
+            : BuildResponsiveness(openIssues, responses);
+
+        return new GitHubIssueData
+        {
+            OpenBugIssueCount = openBugIssueCount,
+            StaleCriticalBugIssueCount =
+                openIssues.Count(issue => issue.IsCritical && issue.CreatedAt < now.AddMonths(-6)),
+            MedianIssueResponseDays = responsiveness.MedianResponseDays,
+            MedianCriticalIssueResponseDays = responsiveness.MedianCriticalResponseDays,
+            IssueResponseCoverage = responsiveness.ResponseCoverage,
+            MedianOpenBugAgeDays = ComputeMedian(openIssues.Select(issue => (now - issue.CreatedAt).TotalDays).ToList()),
+            ClosedBugIssueCountLast90Days = closedIssues.Length,
+            ReopenedBugIssueCountLast90Days =
+                closedIssues.Take(ReopenedIssueSampleSize).Count(issue => issue.WasReopened),
+            TriageWithinSevenDaysRate = responsiveness.TriageWithinSevenDaysRate
+        };
+    }
+
+    /// <summary>Finds the first maintainer comment on an issue and turns it into a response time.</summary>
+    private static GitHubIssueResponseData MeasureResponse(GitHubActivityIssue issue)
+    {
+        DateTimeOffset? firstMaintainerComment = issue.Comments
+            .Where(comment => IsMaintainerAssociation(comment.AuthorAssociation))
+            .Select(comment => comment.CreatedAt)
+            .OrderBy(createdAt => createdAt)
+            .Cast<DateTimeOffset?>()
+            .FirstOrDefault();
+
+        return firstMaintainerComment is null
+            ? new GitHubIssueResponseData()
+            : new GitHubIssueResponseData
+            {
+                HasMaintainerResponse = true,
+                ResponseDays = (firstMaintainerComment.Value - issue.CreatedAt).TotalDays
+            };
+    }
+
+    /// <summary>Builds the pull request metrics from the activity returned by the GraphQL query.</summary>
+    private static GitHubPullRequestQualityData BuildPullRequestQualityData(GitHubRepositoryActivity activity)
+    {
+        GitHubActivityPullRequest[] merged = activity.ClosedPullRequests.Where(pr => pr.IsMerged).ToArray();
+        double? medianMergeDays = ComputeMedian(merged
+            .Select(pr => (pr.MergedAt!.Value - pr.CreatedAt).TotalDays)
+            .ToList());
+
+        GitHubActivityPullRequest[] sample = merged.Take(PullRequestQualitySampleSize).ToArray();
+        if (sample.Length == 0)
+        {
+            return new GitHubPullRequestQualityData { MedianMergeDays = medianMergeDays };
+        }
+
+        int uniqueReviewerCount = sample
+            .SelectMany(pr => pr.ReviewerLogins)
+            .Where(login => !IsBotIdentity(login))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
+
+        return new GitHubPullRequestQualityData
+        {
+            ExternalContributionRate =
+                sample.Count(pr => IsExternalAuthorAssociation(pr.AuthorAssociation)) / (double)sample.Length,
+            UniqueReviewerCount = uniqueReviewerCount,
+            ReviewerDiversityRatio = uniqueReviewerCount / (double)sample.Length,
+            MedianMergeDays = medianMergeDays
+        };
+    }
+
     /// <summary>Fetches open and closed bug issues and computes issue health metrics.</summary>
     private async Task<GitHubIssueData> GetIssueDataAsync(string repositoryApiRoot)
     {
@@ -473,11 +645,31 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         }
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
-        List<double> responseDays = [];
-        List<double> criticalResponseDays = [];
-        List<double> openBugAgeDays = [];
+        GitHubIssueSnapshot[] openIssues = ReadOpenIssues(issuesDoc.RootElement, now);
+        GitHubIssueResponsiveness responsiveness = await MeasureIssueResponsivenessAsync(openIssues);
 
-        GitHubIssueSnapshot[] openIssues = issuesDoc.RootElement.EnumerateArray()
+        GitHubClosedIssueSnapshot[] closedIssues = await GetClosedBugIssuesAsync(repositoryApiRoot);
+        int reopenedBugCount = await CountReopenedIssuesAsync(repositoryApiRoot,
+            closedIssues.Take(ReopenedIssueSampleSize).ToArray());
+
+        return new GitHubIssueData
+        {
+            OpenBugIssueCount = openIssues.Length,
+            StaleCriticalBugIssueCount =
+                openIssues.Count(issue => issue.IsCritical && issue.CreatedAt < now.AddMonths(-6)),
+            MedianIssueResponseDays = responsiveness.MedianResponseDays,
+            MedianCriticalIssueResponseDays = responsiveness.MedianCriticalResponseDays,
+            IssueResponseCoverage = responsiveness.ResponseCoverage,
+            MedianOpenBugAgeDays = ComputeMedian(openIssues.Select(issue => (now - issue.CreatedAt).TotalDays).ToList()),
+            ClosedBugIssueCountLast90Days = closedIssues.Length,
+            ReopenedBugIssueCountLast90Days = reopenedBugCount,
+            TriageWithinSevenDaysRate = responsiveness.TriageWithinSevenDaysRate
+        };
+    }
+
+    /// <summary>Reads the open bug issues out of an issue listing, leaving out the pull requests GitHub mixes in.</summary>
+    private static GitHubIssueSnapshot[] ReadOpenIssues(JsonElement issues, DateTimeOffset now) =>
+        issues.EnumerateArray()
             .Where(issue => !issue.TryGetProperty("pull_request", out _))
             .Select(issue => new GitHubIssueSnapshot
             {
@@ -495,51 +687,44 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
             })
             .ToArray();
 
-        int staleCriticalBugCount = openIssues.Count(issue => issue.IsCritical && issue.CreatedAt < now.AddMonths(-6));
-        openBugAgeDays.AddRange(openIssues.Select(issue => (now - issue.CreatedAt).TotalDays));
-
-        using var throttler = new SemaphoreSlim(8);
-        Task<GitHubIssueResponseData>[] responseTasks = openIssues
-            .Select(async issue =>
-            {
-                await throttler.WaitAsync();
-                try
-                {
-                    return await TryGetIssueResponseDataAsync(issue);
-                }
-                finally
-                {
-                    throttler.Release();
-                }
-            })
-            .ToArray();
-
-        GitHubIssueResponseData[] responseResults = await Task.WhenAll(responseTasks);
-        responseDays.AddRange(responseResults
-            .Where(result => result.ResponseDays.HasValue)
-            .Select(result => result.ResponseDays!.Value));
-
-        criticalResponseDays.AddRange(openIssues.Zip(responseResults)
-            .Where(pair => pair.First.IsCritical && pair.Second.ResponseDays.HasValue)
-            .Select(pair => pair.Second.ResponseDays!.Value));
-
-        int respondedIssueCount = responseResults.Count(result => result.HasMaintainerResponse);
-        int triagedWithinSevenDaysCount = responseResults.Count(result => result.ResponseDays is <= 7);
-
-        GitHubClosedIssueSnapshot[] closedIssues = await GetClosedBugIssuesAsync(repositoryApiRoot);
-        int reopenedBugCount = await CountReopenedIssuesAsync(repositoryApiRoot, closedIssues.Take(20).ToArray());
-
-        return new GitHubIssueData
+    /// <summary>
+    /// Measures how quickly maintainers respond, from the comments on a bounded sample of the open bug issues. Reading
+    /// the comments costs one request per issue, so the sample is capped; the rates are relative to the sample.
+    /// </summary>
+    private async Task<GitHubIssueResponsiveness> MeasureIssueResponsivenessAsync(GitHubIssueSnapshot[] openIssues)
+    {
+        GitHubIssueSnapshot[] sample = openIssues.Take(IssueResponseSampleSize).ToArray();
+        if (sample.Length == 0)
         {
-            OpenBugIssueCount = openIssues.Length,
-            StaleCriticalBugIssueCount = staleCriticalBugCount,
-            MedianIssueResponseDays = ComputeMedian(responseDays),
-            MedianCriticalIssueResponseDays = ComputeMedian(criticalResponseDays),
-            IssueResponseCoverage = openIssues.Length > 0 ? respondedIssueCount / (double)openIssues.Length : null,
-            MedianOpenBugAgeDays = ComputeMedian(openBugAgeDays),
-            ClosedBugIssueCountLast90Days = closedIssues.Length,
-            ReopenedBugIssueCountLast90Days = reopenedBugCount,
-            TriageWithinSevenDaysRate = openIssues.Length > 0 ? triagedWithinSevenDaysCount / (double)openIssues.Length : null
+            return new GitHubIssueResponsiveness();
+        }
+
+        GitHubIssueResponseData[] responses =
+            await Task.WhenAll(sample.Select(TryGetIssueResponseDataAsync));
+
+        return BuildResponsiveness(sample, responses);
+    }
+
+    /// <summary>Turns the per-issue response measurements into the aggregate issue responsiveness metrics.</summary>
+    private static GitHubIssueResponsiveness BuildResponsiveness(GitHubIssueSnapshot[] sample,
+        GitHubIssueResponseData[] responses)
+    {
+        List<double> responseDays = responses
+            .Where(response => response.ResponseDays.HasValue)
+            .Select(response => response.ResponseDays!.Value)
+            .ToList();
+
+        List<double> criticalResponseDays = sample.Zip(responses)
+            .Where(pair => pair.First.IsCritical && pair.Second.ResponseDays.HasValue)
+            .Select(pair => pair.Second.ResponseDays!.Value)
+            .ToList();
+
+        return new GitHubIssueResponsiveness
+        {
+            MedianResponseDays = ComputeMedian(responseDays),
+            MedianCriticalResponseDays = ComputeMedian(criticalResponseDays),
+            ResponseCoverage = responses.Count(response => response.HasMaintainerResponse) / (double)sample.Length,
+            TriageWithinSevenDaysRate = responses.Count(response => response.ResponseDays is <= 7) / (double)sample.Length
         };
     }
 
@@ -581,31 +766,66 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         }
     }
 
-    /// <summary>Fetches merged PRs and computes median merge time in days.</summary>
-    private async Task<double?> GetMedianPullRequestMergeDaysAsync(string repositoryApiRoot)
+    /// <summary>
+    /// Collects every pull request metric from a single listing of the repository's closed pull requests.
+    /// </summary>
+    private async Task<GitHubPullRequestQualityData> GetPullRequestDataAsync(string repositoryApiRoot)
+    {
+        try
+        {
+            GitHubPullRequestSnapshot[] mergedPullRequests = await GetMergedPullRequestsAsync(repositoryApiRoot);
+            return await GetPullRequestQualityDataAsync(repositoryApiRoot, mergedPullRequests);
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or KeyNotFoundException)
+        {
+            logger.LogDebug(ex, "Failed to read pull request data from {RepositoryApiRoot}", repositoryApiRoot);
+            return new GitHubPullRequestQualityData();
+        }
+    }
+
+    /// <summary>
+    /// Reads the merged pull requests among the 100 most recently closed ones. Both the merge-time metric and the
+    /// review metrics come out of this single response; they used to request the same endpoint twice, once with a
+    /// page size of 100 and once with a page size of 30.
+    /// </summary>
+    private async Task<GitHubPullRequestSnapshot[]> GetMergedPullRequestsAsync(string repositoryApiRoot)
     {
         using JsonDocument? pullsDoc =
             await GetJsonAsync($"{repositoryApiRoot}/pulls?state=closed&sort=updated&direction=desc&per_page=100");
 
         if (pullsDoc?.RootElement.ValueKind != JsonValueKind.Array)
         {
-            return null;
+            return [];
         }
 
-        List<double> mergeDays = pullsDoc.RootElement.EnumerateArray()
-            .Where(pr => pr.TryGetProperty("merged_at", out JsonElement mergedAtElement) &&
-                         mergedAtElement.ValueKind == JsonValueKind.String)
-            .Select(pr =>
-            {
-                DateTimeOffset? createdAt = TryReadDate(pr, "created_at");
-                DateTimeOffset? mergedAt = TryReadDate(pr, "merged_at");
-                return createdAt.HasValue && mergedAt.HasValue ? (mergedAt.Value - createdAt.Value).TotalDays : (double?)null;
-            })
-            .Where(days => days.HasValue)
-            .Select(days => days!.Value)
-            .ToList();
+        return pullsDoc.RootElement.EnumerateArray()
+            .Select(ReadPullRequestSnapshot)
+            .Where(snapshot => snapshot.IsMerged)
+            .ToArray();
+    }
 
-        return ComputeMedian(mergeDays);
+    /// <summary>Reads the fields of a closed pull request that feed the merge-time and quality metrics.</summary>
+    private static GitHubPullRequestSnapshot ReadPullRequestSnapshot(JsonElement pullRequest, int closedIndex)
+    {
+        DateTimeOffset? createdAt = TryReadDate(pullRequest, "created_at");
+        DateTimeOffset? mergedAt = TryReadDate(pullRequest, "merged_at");
+
+        return new GitHubPullRequestSnapshot
+        {
+            Number = pullRequest.TryGetProperty("number", out JsonElement numberElement) &&
+                     numberElement.TryGetInt32(out int number)
+                ? number
+                : 0,
+            AuthorAssociation = pullRequest.TryGetProperty("author_association", out JsonElement association)
+                ? association.GetString()
+                : null,
+            IsMerged = pullRequest.TryGetProperty("merged_at", out JsonElement mergedAtElement) &&
+                       mergedAtElement.ValueKind == JsonValueKind.String,
+            ClosedIndex = closedIndex,
+            MergeDays = createdAt.HasValue && mergedAt.HasValue
+                ? (mergedAt.Value - createdAt.Value).TotalDays
+                : null
+        };
     }
 
     /// <summary>Fetches releases and computes semver/interval/correction metrics.</summary>
@@ -700,74 +920,55 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         }
     }
 
-    /// <summary>Fetches merged PRs and computes external contribution and reviewer diversity metrics.</summary>
-    private async Task<GitHubPullRequestQualityData> GetPullRequestQualityDataAsync(string repositoryApiRoot)
+    /// <summary>
+    /// Computes the merge-time, external contribution, and reviewer diversity metrics from the pull requests that
+    /// were already fetched.
+    /// </summary>
+    private async Task<GitHubPullRequestQualityData> GetPullRequestQualityDataAsync(string repositoryApiRoot,
+        GitHubPullRequestSnapshot[] mergedPullRequests)
     {
-        try
+        double? medianMergeDays = ComputeMedian(mergedPullRequests
+            .Where(pullRequest => pullRequest.MergeDays.HasValue)
+            .Select(pullRequest => pullRequest.MergeDays!.Value)
+            .ToList());
+
+        GitHubPullRequestSnapshot[] sample = mergedPullRequests
+            .Where(pullRequest => pullRequest is
+            {
+                Number: > 0, ClosedIndex: < PullRequestQualitySampleSize
+            })
+            .ToArray();
+
+        if (sample.Length == 0)
         {
-            using JsonDocument? pullsDoc =
-                await GetJsonAsync($"{repositoryApiRoot}/pulls?state=closed&sort=updated&direction=desc&per_page=30");
-
-            if (pullsDoc?.RootElement.ValueKind != JsonValueKind.Array)
-            {
-                return new GitHubPullRequestQualityData();
-            }
-
-            GitHubPullRequestSnapshot[] mergedPulls = pullsDoc.RootElement.EnumerateArray()
-                .Where(pr => pr.TryGetProperty("merged_at", out JsonElement mergedAtElement) &&
-                             mergedAtElement.ValueKind == JsonValueKind.String)
-                .Select(pr => new GitHubPullRequestSnapshot
-                {
-                    Number = pr.TryGetProperty("number", out JsonElement numberElement) &&
-                             numberElement.TryGetInt32(out int number)
-                        ? number
-                        : 0,
-                    AuthorAssociation = pr.TryGetProperty("author_association", out JsonElement associationElement)
-                        ? associationElement.GetString()
-                        : null
-                })
-                .Where(pr => pr.Number > 0)
-                .ToArray();
-
-            if (mergedPulls.Length == 0)
-            {
-                return new GitHubPullRequestQualityData();
-            }
-
-            int externalContributionCount = mergedPulls.Count(pr => IsExternalAuthorAssociation(pr.AuthorAssociation));
-            HashSet<string> uniqueReviewers = [];
-
-            using var throttler = new SemaphoreSlim(6);
-            Task<string[]>[] reviewTasks = mergedPulls.Take(20).Select(async pr =>
-            {
-                await throttler.WaitAsync();
-                try
-                {
-                    return await GetReviewerLoginsAsync(repositoryApiRoot, pr.Number);
-                }
-                finally
-                {
-                    throttler.Release();
-                }
-            }).ToArray();
-
-            string[][] reviewResults = await Task.WhenAll(reviewTasks);
-            foreach (string reviewer in reviewResults.SelectMany(result => result))
-            {
-                uniqueReviewers.Add(reviewer);
-            }
-
-            return new GitHubPullRequestQualityData
-            {
-                ExternalContributionRate = externalContributionCount / (double)mergedPulls.Length,
-                UniqueReviewerCount = uniqueReviewers.Count,
-                ReviewerDiversityRatio = mergedPulls.Length > 0 ? uniqueReviewers.Count / (double)mergedPulls.Length : null
-            };
+            return new GitHubPullRequestQualityData { MedianMergeDays = medianMergeDays };
         }
-        catch
+
+        int externalContributionCount = sample.Count(pullRequest =>
+            IsExternalAuthorAssociation(pullRequest.AuthorAssociation));
+
+        int uniqueReviewerCount = await CountUniqueReviewersAsync(repositoryApiRoot, sample);
+
+        return new GitHubPullRequestQualityData
         {
-            return new GitHubPullRequestQualityData();
-        }
+            ExternalContributionRate = externalContributionCount / (double)sample.Length,
+            UniqueReviewerCount = uniqueReviewerCount,
+            ReviewerDiversityRatio = uniqueReviewerCount / (double)sample.Length,
+            MedianMergeDays = medianMergeDays
+        };
+    }
+
+    /// <summary>
+    /// Counts the distinct reviewers across a bounded sample of pull requests, one request per pull request.
+    /// </summary>
+    private async Task<int> CountUniqueReviewersAsync(string repositoryApiRoot, GitHubPullRequestSnapshot[] sample)
+    {
+        IEnumerable<Task<string[]>> reviewTasks = sample
+            .Take(ReviewSampleSize)
+            .Select(pullRequest => GetReviewerLoginsAsync(repositoryApiRoot, pullRequest.Number));
+
+        string[][] reviewResults = await Task.WhenAll(reviewTasks);
+        return reviewResults.SelectMany(logins => logins).Distinct(StringComparer.OrdinalIgnoreCase).Count();
     }
 
     /// <summary>Fetches recent workflow runs and computes failure/flaky metrics.</summary>
@@ -870,15 +1071,34 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         };
     }
 
+    /// <summary>
+    /// Returns the path of the repository's security policy, or <see langword="null"/> when the root listing shows
+    /// there is none. GitHub also honours the policy under <c>.github</c>, but only probe for it when that directory
+    /// exists: a request for a file that is not there costs the same against the rate limit as one that is.
+    /// </summary>
+    private static string? FindSecurityPolicyPath(string[] rootFiles)
+    {
+        string? rootPolicy = rootFiles.FirstOrDefault(file =>
+            file.Equals("SECURITY.md", StringComparison.OrdinalIgnoreCase) ||
+            file.Equals("SECURITY", StringComparison.OrdinalIgnoreCase));
+
+        if (rootPolicy is not null)
+        {
+            return rootPolicy;
+        }
+
+        return rootFiles.Contains(".github", StringComparer.OrdinalIgnoreCase) ? ".github/SECURITY.md" : null;
+    }
+
     /// <summary>Reads SECURITY.md and checks detail/disclosure quality.</summary>
     private async Task<GitHubSecurityPolicyData> GetSecurityPolicyDataAsync(string repositoryApiRoot, string defaultBranch,
         string[] rootFiles)
     {
-        string? securityPolicyPath = rootFiles.FirstOrDefault(file =>
-            file.Equals("SECURITY.md", StringComparison.OrdinalIgnoreCase) ||
-            file.Equals("SECURITY", StringComparison.OrdinalIgnoreCase));
-
-        securityPolicyPath ??= ".github/SECURITY.md";
+        string? securityPolicyPath = FindSecurityPolicyPath(rootFiles);
+        if (securityPolicyPath is null)
+        {
+            return new GitHubSecurityPolicyData();
+        }
 
         string content = await TryGetFileContentAsync(repositoryApiRoot, securityPolicyPath, defaultBranch);
         if (string.IsNullOrWhiteSpace(content))
@@ -1078,6 +1298,20 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         }
     }
 
+    /// <summary>
+    /// Reads the Dependabot configuration, but only when the workflows do not already prove that dependency updates
+    /// are automated. Most repositories do not have the file, and asking for it costs a request either way.
+    /// </summary>
+    private Task<string> GetDependabotConfigAsync(string repositoryApiRoot, string defaultBranch, string workflowContent)
+    {
+        bool alreadyKnown = workflowContent.Contains("dependabot", StringComparison.OrdinalIgnoreCase) ||
+                            workflowContent.Contains("renovate", StringComparison.OrdinalIgnoreCase);
+
+        return alreadyKnown
+            ? Task.FromResult(string.Empty)
+            : TryGetFileContentAsync(repositoryApiRoot, ".github/dependabot.yml", defaultBranch);
+    }
+
     /// <summary>Reads workflow YAML files and detects signals for testing, coverage, reproducibility, and dependency automation.</summary>
     private async Task<GitHubWorkflowFileSignals> GetWorkflowFileSignalsAsync(string repositoryApiRoot, string defaultBranch,
         string[] rootFiles)
@@ -1096,13 +1330,14 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
                 .Select(item => TryReadString(item, "path"))
                 .Where(path => !string.IsNullOrWhiteSpace(path))
                 .Select(path => path!)
+                .Take(WorkflowFileSampleSize)
                 .ToArray();
 
             string[] contents =
                 await Task.WhenAll(paths.Select(path => TryGetFileContentAsync(repositoryApiRoot, path, defaultBranch)));
 
             string combined = string.Join("\n", contents).ToLowerInvariant();
-            string dependabotConfig = await TryGetFileContentAsync(repositoryApiRoot, ".github/dependabot.yml", defaultBranch);
+            string dependabotConfig = await GetDependabotConfigAsync(repositoryApiRoot, defaultBranch, combined);
 
             HashSet<string> platforms = [];
             if (combined.Contains("ubuntu", StringComparison.OrdinalIgnoreCase))
@@ -1329,16 +1564,14 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         file.Equals("NEWS.md", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Returns true if the issue label name indicates critical severity or a security issue.</summary>
-    private static bool IsCriticalLabel(JsonElement label)
-    {
-        string name = label.TryGetProperty("name", out JsonElement nameElement)
-            ? nameElement.GetString() ?? string.Empty
-            : string.Empty;
+    private static bool IsCriticalLabel(JsonElement label) => IsCriticalLabelName(
+        label.TryGetProperty("name", out JsonElement nameElement) ? nameElement.GetString() ?? string.Empty : string.Empty);
 
-        return name.Contains("critical", StringComparison.OrdinalIgnoreCase) ||
-               name.Contains("security", StringComparison.OrdinalIgnoreCase) ||
-               name.Contains("sev1", StringComparison.OrdinalIgnoreCase);
-    }
+    /// <summary>Returns true if a label name marks an issue as critical.</summary>
+    private static bool IsCriticalLabelName(string name) =>
+        name.Contains("critical", StringComparison.OrdinalIgnoreCase) ||
+        name.Contains("security", StringComparison.OrdinalIgnoreCase) ||
+        name.Contains("sev1", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Tries to read whether a GitHub release has a verified signature.</summary>
     private static bool? TryReadVerifiedReleaseSignature(JsonElement release)
@@ -1907,6 +2140,29 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         public double? MedianMaintainerActivityDays { get; init; }
     }
 
+    /// <summary>The issue and pull request metrics of a repository, however they were collected.</summary>
+    /// <param name="IssueData">The issue health metrics.</param>
+    /// <param name="PullRequestQualityData">The pull request merge-time and review metrics.</param>
+    private sealed record GitHubActivityData(
+        GitHubIssueData IssueData,
+        GitHubPullRequestQualityData PullRequestQualityData);
+
+    /// <summary>The issue responsiveness metrics measured over a sample of the open bug issues.</summary>
+    private sealed class GitHubIssueResponsiveness
+    {
+        /// <summary>The median number of days before a maintainer first responded.</summary>
+        public double? MedianResponseDays { get; init; }
+
+        /// <summary>The median number of days before a maintainer first responded to a critical issue.</summary>
+        public double? MedianCriticalResponseDays { get; init; }
+
+        /// <summary>The fraction of sampled issues that received a maintainer response.</summary>
+        public double? ResponseCoverage { get; init; }
+
+        /// <summary>The fraction of sampled issues that received a response within seven days.</summary>
+        public double? TriageWithinSevenDaysRate { get; init; }
+    }
+
     /// <summary>Lightweight snapshot of a GitHub pull request.</summary>
     private sealed class GitHubPullRequestSnapshot
     {
@@ -1915,6 +2171,15 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
 
         /// <summary>The author association of the pull request author (e.g. OWNER, MEMBER, CONTRIBUTOR, NONE).</summary>
         public string? AuthorAssociation { get; init; }
+
+        /// <summary>Indicates whether the pull request was merged rather than closed unmerged.</summary>
+        public bool IsMerged { get; init; }
+
+        /// <summary>The position of the pull request in the list of most recently closed ones, starting at zero.</summary>
+        public int ClosedIndex { get; init; }
+
+        /// <summary>The number of days between opening and merging the pull request, when it was merged.</summary>
+        public double? MergeDays { get; init; }
     }
 
     /// <summary>Aggregated pull request quality metrics.</summary>
@@ -1928,5 +2193,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
 
         /// <summary>The ratio of unique reviewers to total recently merged pull requests.</summary>
         public double? ReviewerDiversityRatio { get; init; }
+
+        /// <summary>The median number of days between opening and merging a pull request.</summary>
+        public double? MedianMergeDays { get; init; }
     }
 }

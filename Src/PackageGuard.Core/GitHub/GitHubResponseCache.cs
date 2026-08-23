@@ -59,6 +59,17 @@ internal sealed class GitHubResponseCache(ILogger logger)
     }
 
     /// <summary>
+    /// Returns the body of a response the API already confirmed during this run, or <see langword="null"/> when the
+    /// URL has not been requested yet. Several components ask for the same repository, and GitHub data does not
+    /// change over the course of a single run.
+    /// </summary>
+    public string? FindFreshBody(string url)
+    {
+        GitHubResponseCacheEntry? entry = Find(url);
+        return entry is { IsFreshThisRun: true, IsNotFound: false } ? entry.Body : null;
+    }
+
+    /// <summary>
     /// Stores a successful response body and its entity tag.
     /// </summary>
     public void StoreResponse(string url, string? eTag, string body)
@@ -181,6 +192,7 @@ internal sealed class GitHubResponseCache(ILogger logger)
             update(entry);
             entry.StoredAt = DateTimeOffset.UtcNow;
             entry.IsUsed = true;
+            entry.IsFreshThisRun = true;
         }
     }
 

@@ -40,4 +40,11 @@ internal sealed partial class GitHubResponseCacheEntry
     /// </summary>
     [MemoryPackIgnore]
     public bool IsUsed { get; set; }
+
+    /// <summary>
+    /// Indicates that the API confirmed this body during the current run, which means it can be handed to further
+    /// callers without asking GitHub again.
+    /// </summary>
+    [MemoryPackIgnore]
+    public bool IsFreshThisRun { get; set; }
 }

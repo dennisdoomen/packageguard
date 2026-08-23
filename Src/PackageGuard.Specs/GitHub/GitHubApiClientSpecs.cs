@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -90,23 +91,59 @@ public class GitHubApiClientSpecs
     }
 
     [TestMethod]
-    public async Task Replays_the_cached_body_when_the_resource_did_not_change()
+    public async Task Serves_a_repeated_request_from_the_response_it_already_received()
     {
         // Arrange
-        var handler = new ScriptedHttpMessageHandler((_, attempt) => attempt == 1
-            ? ScriptedResponse.Json("""{"name":"widget"}""", eTag: "\"abc123\"")
-            : ScriptedResponse.NotModified());
-
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() => ScriptedResponse.Json("""{"name":"widget"}"""));
         var cache = new GitHubResponseCache(NullLogger.Instance);
         using var client = new GitHubApiClient(NullLogger.Instance, apiKey: null, cache, handler);
         await client.GetJsonAsync(Url);
 
         // Act
-        using JsonDocument revalidated = await client.GetJsonAsync(Url);
+        using JsonDocument repeated = await client.GetJsonAsync(Url);
 
         // Assert
-        revalidated!.RootElement.GetProperty("name").GetString().Should().Be("widget");
-        handler.Requests.Last().Headers.IfNoneMatch.ToString().Should().Be("\"abc123\"");
+        repeated.Should().NotBeNull();
+        repeated!.RootElement.GetProperty("name").GetString().Should().Be("widget");
+        handler.RequestCount.Should().Be(1, "GitHub data does not change over the course of a single run");
+    }
+
+    [TestMethod]
+    public async Task Revalidates_a_persisted_body_with_a_conditional_request_on_a_later_run()
+    {
+        // Arrange
+        string cacheFilePath = Path.Combine(Path.GetTempPath(), $"packageguard-{Guid.NewGuid():N}.bin");
+        var firstRunHandler = ScriptedHttpMessageHandler.AlwaysReturns(() =>
+            ScriptedResponse.Json("""{"name":"widget"}""", eTag: "\"abc123\""));
+
+        var firstRunCache = new GitHubResponseCache(NullLogger.Instance);
+        using (var firstRunClient = new GitHubApiClient(NullLogger.Instance, null, firstRunCache, firstRunHandler))
+        {
+            await firstRunClient.GetJsonAsync(Url);
+        }
+
+        await firstRunCache.SaveAsync(cacheFilePath);
+
+        var laterRunCache = new GitHubResponseCache(NullLogger.Instance);
+        await laterRunCache.LoadAsync(cacheFilePath);
+
+        var laterRunHandler = ScriptedHttpMessageHandler.AlwaysReturns(ScriptedResponse.NotModified);
+        using var laterRunClient = new GitHubApiClient(NullLogger.Instance, null, laterRunCache, laterRunHandler);
+
+        try
+        {
+            // Act
+            using JsonDocument revalidated = await laterRunClient.GetJsonAsync(Url);
+
+            // Assert
+            revalidated.Should().NotBeNull();
+            revalidated!.RootElement.GetProperty("name").GetString().Should().Be("widget");
+            laterRunHandler.Requests.Single().Headers.IfNoneMatch.ToString().Should().Be("\"abc123\"");
+        }
+        finally
+        {
+            File.Delete(cacheFilePath);
+        }
     }
 
     [TestMethod]
