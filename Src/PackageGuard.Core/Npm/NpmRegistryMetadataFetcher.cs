@@ -9,12 +9,35 @@ namespace PackageGuard.Core.Npm;
 /// <summary>
 /// Fetches license, license URL, and repository URL information from the NPM registry.
 /// </summary>
-public class NpmRegistryMetadataFetcher(ILogger logger)
+public class NpmRegistryMetadataFetcher
 {
     /// <summary>
     /// The shared HTTP client used to query the NPM registry.
     /// </summary>
-    private static readonly HttpClient HttpClient = new();
+    private static readonly HttpClient SharedHttpClient = new();
+
+    private readonly ILogger logger;
+    private readonly HttpClient httpClient;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NpmRegistryMetadataFetcher"/> class.
+    /// </summary>
+    /// <param name="logger">The logger to report fetch problems to.</param>
+    public NpmRegistryMetadataFetcher(ILogger logger) : this(logger, SharedHttpClient)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NpmRegistryMetadataFetcher"/> class that sends its requests
+    /// through the given client.
+    /// </summary>
+    /// <param name="logger">The logger to report fetch problems to.</param>
+    /// <param name="httpClient">The client to send registry requests through.</param>
+    internal NpmRegistryMetadataFetcher(ILogger logger, HttpClient httpClient)
+    {
+        this.logger = logger;
+        this.httpClient = httpClient;
+    }
 
     /// <summary>
     /// Registry responses already received during this run, keyed by registry URL. A package that is referenced at
@@ -117,7 +140,7 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
         }
 
         logger.LogDebug("Fetching NPM package metadata from {Url}", registryUrl);
-        string jsonContent = await HttpClient.GetStringAsync(registryUrl);
+        string jsonContent = await httpClient.GetStringAsync(registryUrl);
 
         lock (PackumentLock)
         {
@@ -498,7 +521,7 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
         try
         {
             logger.LogDebug("Fetching download counts from {Url}", downloadsUrl);
-            return JsonDocument.Parse(await HttpClient.GetStringAsync(downloadsUrl));
+            return JsonDocument.Parse(await httpClient.GetStringAsync(downloadsUrl));
         }
         catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
         {
