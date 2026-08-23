@@ -471,13 +471,15 @@ If PackageGuard finds new packages in your project or solution that did not exis
 
 ### Github rate limiting issues
 
-If you're running into errors from GitHub like 
-
-  `Response status code does not indicate success: 403 (rate limit exceeded).`
-
-it means PackageGuard has ran into the [rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api?apiVersion=2022-11-28) of `api.github.com` while trying to fetch license information from certain repositories. You can solve that by either waiting an hour or creating a GitHub Personal Access Token with the `public_repo` scope. You can find more information about those tokens [here](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps).
+PackageGuard reads license and risk information from `api.github.com`, which applies [rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api?apiVersion=2022-11-28) per caller. Unauthenticated callers get 60 requests per hour, which is not enough for anything but the smallest project. Create a GitHub Personal Access Token with the `public_repo` scope to raise that to 5000 requests per hour. You can find more information about those tokens [here](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps).
 
 After having generated such a token, pass it to PackageGuard through its `github-api-key` option or set-up an environment variable named `GITHUB_API_KEY`.
+
+If the limit does run out, PackageGuard reports a warning like
+
+  `The GitHub API rate limit is exhausted and resets in 42 minutes.`
+
+and finishes the analysis without the GitHub-based signals, instead of failing. Run it again after the reset to fill in what was left out. Combine this with `--use-caching` so that the work already done is not repeated: alongside the package cache, PackageGuard stores the GitHub responses it received under `.packageguard\github-responses.bin` and revalidates them with conditional requests, which GitHub does not charge against the rate limit of an authenticated caller.
 
 ## Roadmap
 
