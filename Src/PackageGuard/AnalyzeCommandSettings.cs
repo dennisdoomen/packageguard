@@ -89,7 +89,7 @@ public class AnalyzeCommandSettings : CommandSettings
     public bool ScanNuGet { get; set; }
 
     [Description(
-        "Explicitly specify the package manager to use (npm, yarn, pnpm). If not specified, it will detect it automatically.")]
+        "Explicitly specify the package manager to use (npm, yarn, pnpm), or None to disable NPM scanning entirely. If not specified, it will detect it automatically.")]
     [CommandOption("--npm")]
     public NpmPackageManager? NpmPackageManager { get; set; }
 
