@@ -35,7 +35,7 @@ internal sealed class GitHubRateLimit
     /// <summary>
     /// The moment at which the current rate limit window resets, or <see langword="null"/> when unknown.
     /// </summary>
-    public DateTimeOffset? ResetsAt
+    private DateTimeOffset? ResetsAt
     {
         get
         {
@@ -50,7 +50,7 @@ internal sealed class GitHubRateLimit
     /// The number of requests held back for essential calls. Optional calls are skipped once the remaining budget
     /// drops to this level, so that the signals that matter most still get through.
     /// </summary>
-    public int Reserve
+    private int Reserve
     {
         get
         {

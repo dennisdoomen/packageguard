@@ -51,7 +51,7 @@ public class GitHubRepositoryRiskEnricherCachingSpecs
         var enricher = new GitHubRepositoryRiskEnricher(NullLogger.Instance, client);
 
         // Act
-        await enricher.EnrichAsync(CreatePackage("Acme.Widget.Core", "https://github.com/acme/widget"));
+        await enricher.EnrichAsync(CreatePackage("Acme.Widget.Core"));
         await enricher.EnrichAsync(CreatePackage("Contoso.Gadget", "https://github.com/contoso/gadget"));
 
         // Assert

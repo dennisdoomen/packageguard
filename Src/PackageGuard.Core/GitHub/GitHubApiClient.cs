@@ -24,6 +24,11 @@ internal sealed class GitHubApiClient : IDisposable
     private readonly SemaphoreSlim concurrencyGate = new(MaxConcurrentRequests);
     private readonly Lock exhaustionLock = new();
 
+    /// <summary>
+    /// The rate limit budget as last reported by the API.
+    /// </summary>
+    private readonly GitHubRateLimit rateLimit = new();
+
     private bool isExhausted;
     private bool hasLoggedExhaustion;
 
@@ -64,16 +69,6 @@ internal sealed class GitHubApiClient : IDisposable
     }
 
     /// <summary>
-    /// The rate limit budget as last reported by the API.
-    /// </summary>
-    public GitHubRateLimit RateLimit { get; } = new();
-
-    /// <summary>
-    /// The conditional-request cache backing this client.
-    /// </summary>
-    public GitHubResponseCache ResponseCache => responseCache;
-
-    /// <summary>
     /// Indicates whether the rate limit budget is spent and no further requests will be attempted this run.
     /// </summary>
     public bool IsExhausted
@@ -99,7 +94,7 @@ internal sealed class GitHubApiClient : IDisposable
         CancellationToken cancellationToken = default)
     {
         string? body = await GetStringAsync(url, importance, cancellationToken);
-        if (body is null || body.Length == 0)
+        if (string.IsNullOrEmpty(body))
         {
             return null;
         }
@@ -122,7 +117,7 @@ internal sealed class GitHubApiClient : IDisposable
     /// <param name="url">The absolute GitHub API URL to request.</param>
     /// <param name="importance">How valuable the request is when the budget runs low.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
-    public async Task<string?> GetStringAsync(string url, GitHubRequestImportance importance,
+    private async Task<string?> GetStringAsync(string url, GitHubRequestImportance importance,
         CancellationToken cancellationToken = default)
     {
         if (!ShouldAttempt(url, importance))
@@ -159,10 +154,10 @@ internal sealed class GitHubApiClient : IDisposable
             return false;
         }
 
-        if (importance == GitHubRequestImportance.Optional && RateLimit.IsInReserve())
+        if (importance == GitHubRequestImportance.Optional && rateLimit.IsInReserve())
         {
             logger.LogDebug("Skipping optional GitHub request {Url}; only {Remaining} requests left before the reset",
-                url, RateLimit.Remaining);
+                url, rateLimit.Remaining);
 
             return false;
         }
@@ -202,7 +197,7 @@ internal sealed class GitHubApiClient : IDisposable
         logger.LogDebug("GET {Url}", url);
         using HttpRequestMessage request = CreateRequest(url, cached?.ETag);
         using HttpResponseMessage response = await httpClient.SendAsync(request, cancellationToken);
-        RateLimit.Update(response.Headers);
+        rateLimit.Update(response.Headers);
 
         if (response.StatusCode == HttpStatusCode.NotModified && cached is not null)
         {
@@ -258,13 +253,13 @@ internal sealed class GitHubApiClient : IDisposable
     private async Task<bool> WaitBeforeRetryAsync(string url, GitHubAttemptResult result, int attempt,
         CancellationToken cancellationToken)
     {
-        if (!result.IsThrottled)
+        if (!result.WasThrottled)
         {
             await Task.Delay(TimeSpan.FromSeconds(attempt), cancellationToken);
             return true;
         }
 
-        TimeSpan delay = result.RetryAfter ?? RateLimit.TimeUntilReset(DateTimeOffset.UtcNow) ??
+        TimeSpan delay = result.RetryAfter ?? rateLimit.TimeUntilReset(DateTimeOffset.UtcNow) ??
             TimeSpan.FromSeconds(attempt * 2);
 
         if (delay > MaxThrottleWait)
@@ -401,9 +396,9 @@ internal sealed class GitHubApiClient : IDisposable
     /// </summary>
     /// <param name="IsFinal">Indicates that no further attempt should be made.</param>
     /// <param name="Body">The response body when the attempt succeeded.</param>
-    /// <param name="IsThrottled">Indicates that GitHub rejected the attempt because of a rate limit.</param>
+    /// <param name="WasThrottled">Indicates that GitHub rejected the attempt because of a rate limit.</param>
     /// <param name="RetryAfter">The delay GitHub asked the caller to wait, when it supplied one.</param>
-    private sealed record GitHubAttemptResult(bool IsFinal, string? Body, bool IsThrottled, TimeSpan? RetryAfter)
+    private sealed record GitHubAttemptResult(bool IsFinal, string? Body, bool WasThrottled, TimeSpan? RetryAfter)
     {
         /// <summary>
         /// Creates a result that ends the retry loop.

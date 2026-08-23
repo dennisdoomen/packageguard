@@ -132,13 +132,21 @@ public class GitHubApiClientSpecs
         var handler = ScriptedHttpMessageHandler.AlwaysReturns(() => ScriptedResponse.Json("{}"));
         using var client = new GitHubApiClient(NullLogger.Instance, apiKey: null, responseCache: null, handler);
 
+        Task<JsonDocument>[] requests = Enumerable.Range(0, 60)
+            .Select(index => client.GetJsonAsync($"https://api.github.com/repos/acme/widget/pulls/{index}"))
+            .ToArray();
+
         // Act
-        await Task.WhenAll(Enumerable.Range(0, 60)
-            .Select(index => client.GetJsonAsync($"https://api.github.com/repos/acme/widget/pulls/{index}")));
+        JsonDocument[] responses = await Task.WhenAll(requests);
 
         // Assert
         handler.RequestCount.Should().Be(60);
         handler.PeakConcurrentRequestCount.Should().BeLessThanOrEqualTo(8);
+
+        foreach (JsonDocument response in responses)
+        {
+            response.Dispose();
+        }
     }
 
     [TestMethod]

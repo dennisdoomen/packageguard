@@ -343,8 +343,7 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     }
 
     /// <summary>Requests a document that the repository's risk profile depends on.</summary>
-    private Task<JsonDocument?> GetJsonAsync(string url) =>
-        apiClient.GetJsonAsync(url, GitHubRequestImportance.Essential);
+    private Task<JsonDocument?> GetJsonAsync(string url) => apiClient.GetJsonAsync(url);
 
     /// <summary>
     /// Requests a document that refines a single risk signal. Requests like these are dropped once the rate limit

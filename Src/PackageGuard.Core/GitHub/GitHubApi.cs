@@ -72,23 +72,6 @@ internal static class GitHubApi
     }
 
     /// <summary>
-    /// Discards the shared client and cache. Only used by the tests, to keep rate limit state from leaking between them.
-    /// </summary>
-    internal static void Reset()
-    {
-        lock (SharedLock)
-        {
-            foreach (GitHubApiClient client in ClientsByApiKey.Values)
-            {
-                client.Dispose();
-            }
-
-            ClientsByApiKey.Clear();
-            responseCache = null;
-        }
-    }
-
-    /// <summary>
     /// Returns the shared response cache, creating it on first use.
     /// </summary>
     private static GitHubResponseCache GetOrCreateResponseCache(ILogger logger)
