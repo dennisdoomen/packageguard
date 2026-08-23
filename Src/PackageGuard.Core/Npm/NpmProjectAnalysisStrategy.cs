@@ -69,6 +69,8 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
             var parser = new PnpmLockFileParser(logger);
             await parser.CollectPackageMetadata(lockFile.ToString(), packages);
         }
+
+        await metadataFetcher.ResolveDownloadCountsAsync();
     }
 
     private void DetectPackageManager(string projectOrSolutionPath, AnalyzerSettings settings)

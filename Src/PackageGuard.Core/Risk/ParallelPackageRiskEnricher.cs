@@ -56,6 +56,8 @@ internal sealed class ParallelPackageRiskEnricher
             return;
         }
 
+        await PrimeAsync(packageArray);
+
         await Parallel.ForEachAsync(packageArray,
             new ParallelOptions
             {
@@ -73,5 +75,18 @@ internal sealed class ParallelPackageRiskEnricher
                     await enricher.EnrichAsync(package);
                 }
             });
+    }
+
+    /// <summary>
+    /// Gives every enricher whose upstream API supports it the chance to look up the whole set of packages at once,
+    /// which turns one request per package into a handful of bulk requests.
+    /// </summary>
+    /// <param name="packages">The packages that are about to be enriched.</param>
+    private async Task PrimeAsync(IReadOnlyCollection<PackageInfo> packages)
+    {
+        foreach (IPrimeRiskData primer in enrichers.OfType<IPrimeRiskData>())
+        {
+            await primer.PrimeAsync(packages);
+        }
     }
 }
