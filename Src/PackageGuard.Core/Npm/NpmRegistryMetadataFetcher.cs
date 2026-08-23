@@ -9,12 +9,66 @@ namespace PackageGuard.Core.Npm;
 /// <summary>
 /// Fetches license, license URL, and repository URL information from the NPM registry.
 /// </summary>
-public class NpmRegistryMetadataFetcher(ILogger logger)
+public class NpmRegistryMetadataFetcher
 {
     /// <summary>
     /// The shared HTTP client used to query the NPM registry.
     /// </summary>
-    private static readonly HttpClient HttpClient = new();
+    private static readonly HttpClient SharedHttpClient = new();
+
+    private readonly ILogger logger;
+    private readonly HttpClient httpClient;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NpmRegistryMetadataFetcher"/> class.
+    /// </summary>
+    /// <param name="logger">The logger to report fetch problems to.</param>
+    public NpmRegistryMetadataFetcher(ILogger logger) : this(logger, SharedHttpClient)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="NpmRegistryMetadataFetcher"/> class that sends its requests
+    /// through the given client.
+    /// </summary>
+    /// <param name="logger">The logger to report fetch problems to.</param>
+    /// <param name="httpClient">The client to send registry requests through.</param>
+    internal NpmRegistryMetadataFetcher(ILogger logger, HttpClient httpClient)
+    {
+        this.logger = logger;
+        this.httpClient = httpClient;
+    }
+
+    /// <summary>
+    /// Registry responses already received during this run, keyed by registry URL. A package that is referenced at
+    /// more than one version otherwise downloads the same document once per version.
+    /// </summary>
+    private static readonly Dictionary<string, string> PackumentsByUrl = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Guards access to <see cref="PackumentsByUrl"/>.
+    /// </summary>
+    private static readonly Lock PackumentLock = new();
+
+    /// <summary>
+    /// The packages whose download count still has to be looked up.
+    /// </summary>
+    private readonly List<PackageInfo> pendingDownloadCounts = [];
+
+    /// <summary>
+    /// Guards access to <see cref="pendingDownloadCounts"/>.
+    /// </summary>
+    private readonly Lock pendingDownloadCountsLock = new();
+
+    /// <summary>
+    /// The number of package names the NPM downloads API accepts in a single bulk lookup.
+    /// </summary>
+    private const int MaxNamesPerBulkLookup = 128;
+
+    /// <summary>
+    /// The number of scoped download-count lookups that are in flight at the same time.
+    /// </summary>
+    private const int MaxConcurrentScopedLookups = 8;
 
     /// <summary>
     /// One or more NuGet or NPM feeds that should be completely ignored during the analysis.
@@ -50,16 +104,14 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
                 return;
             }
 
-            logger.LogDebug("Fetching NPM package metadata from {Url}", registryUrl);
-
-            string jsonContent = await HttpClient.GetStringAsync(registryUrl);
+            string jsonContent = await GetPackumentAsync(registryUrl);
             using JsonDocument doc = JsonDocument.Parse(jsonContent);
             JsonElement root = doc.RootElement;
 
             ParseVersionMetadata(package, root);
             ParsePackageMetadata(package, root);
 
-            await FetchDownloadCountAsync(package);
+            QueueDownloadCount(package);
         }
         catch (HttpRequestException ex)
         {
@@ -70,6 +122,53 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
         {
             logger.LogWarning("Failed to parse NPM package metadata for {Name} {Version}: {Error}",
                 package.Name, package.Version, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Returns the registry document for <paramref name="registryUrl"/>, downloading it only the first time it is
+    /// asked for during this run.
+    /// </summary>
+    private async Task<string> GetPackumentAsync(string registryUrl)
+    {
+        lock (PackumentLock)
+        {
+            if (PackumentsByUrl.TryGetValue(registryUrl, out string? cached))
+            {
+                return cached;
+            }
+        }
+
+        logger.LogDebug("Fetching NPM package metadata from {Url}", registryUrl);
+        string jsonContent = await httpClient.GetStringAsync(registryUrl);
+
+        lock (PackumentLock)
+        {
+            PackumentsByUrl[registryUrl] = jsonContent;
+        }
+
+        return jsonContent;
+    }
+
+    /// <summary>
+    /// Discards the registry documents cached during this run. Only used by the tests.
+    /// </summary>
+    internal static void ClearPackumentCache()
+    {
+        lock (PackumentLock)
+        {
+            PackumentsByUrl.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Records that the package still needs a download count, which is looked up in bulk afterwards.
+    /// </summary>
+    private void QueueDownloadCount(PackageInfo package)
+    {
+        lock (pendingDownloadCountsLock)
+        {
+            pendingDownloadCounts.Add(package);
         }
     }
 
@@ -317,32 +416,136 @@ public class NpmRegistryMetadataFetcher(ILogger logger)
     }
 
     /// <summary>
-    /// Fetches the last-month download count for the package from the NPM downloads API
-    /// and stores it on <see cref="PackageInfo.DownloadCount"/>.
+    /// Populates <see cref="PackageInfo.DownloadCount"/> for every package whose metadata was fetched, asking the NPM
+    /// downloads API for up to <see cref="MaxNamesPerBulkLookup"/> packages at a time.
     /// </summary>
-    /// <param name="package">The package whose download count should be populated.</param>
-    private async Task FetchDownloadCountAsync(PackageInfo package)
+    /// <remarks>
+    /// The downloads API takes a comma-separated list of names, which turns one request per package into one request
+    /// per 128. Scoped names are not accepted in a bulk lookup and are still asked for one at a time.
+    /// </remarks>
+    public async Task ResolveDownloadCountsAsync()
     {
-        try
+        PackageInfo[] pending = TakePendingDownloadCounts();
+        if (pending.Length == 0)
         {
-            string packageName = Uri.EscapeDataString(package.Name);
-            string downloadsUrl = $"https://api.npmjs.org/downloads/point/last-month/{packageName}";
-            logger.LogDebug("Fetching download count from {Url}", downloadsUrl);
-            string jsonContent = await HttpClient.GetStringAsync(downloadsUrl);
-            using JsonDocument doc = JsonDocument.Parse(jsonContent);
-
-            if (doc.RootElement.TryGetProperty("downloads", out JsonElement downloadsElement) &&
-                downloadsElement.TryGetInt64(out long downloadCount))
-            {
-                package.DownloadCount = downloadCount;
-            }
+            return;
         }
-        catch (Exception ex)
+
+        logger.LogDebug("Fetching download counts for {Count} NPM packages", pending.Length);
+
+        await ResolveBulkDownloadCountsAsync(pending.Where(package => !IsScoped(package.Name)).ToArray());
+        await ResolveScopedDownloadCountsAsync(pending.Where(package => IsScoped(package.Name)).ToArray());
+    }
+
+    /// <summary>
+    /// Removes and returns the packages that are still waiting for a download count.
+    /// </summary>
+    private PackageInfo[] TakePendingDownloadCounts()
+    {
+        lock (pendingDownloadCountsLock)
         {
-            logger.LogWarning(ex, "Failed to fetch download count for {Name} {Version}",
-                package.Name, package.Version);
+            PackageInfo[] pending = pendingDownloadCounts.ToArray();
+            pendingDownloadCounts.Clear();
+            return pending;
         }
     }
+
+    /// <summary>
+    /// Looks up the unscoped packages in batches, keyed by name in the response.
+    /// </summary>
+    private async Task ResolveBulkDownloadCountsAsync(PackageInfo[] packages)
+    {
+        foreach (PackageInfo[] batch in packages.Chunk(MaxNamesPerBulkLookup))
+        {
+            string names = string.Join(",", batch.Select(package => Uri.EscapeDataString(package.Name)));
+            using JsonDocument? doc = await TryGetDownloadsAsync(names);
+            if (doc is null)
+            {
+                continue;
+            }
+
+            ApplyBulkDownloadCounts(batch, doc.RootElement);
+        }
+    }
+
+    /// <summary>
+    /// Reads each package's entry out of a bulk downloads response. A single-name batch answers without the name
+    /// wrapper, so that shape is handled as well.
+    /// </summary>
+    private static void ApplyBulkDownloadCounts(PackageInfo[] batch, JsonElement root)
+    {
+        if (batch.Length == 1)
+        {
+            ApplyDownloadCount(batch[0], root);
+            return;
+        }
+
+        foreach (PackageInfo package in batch)
+        {
+            if (root.TryGetProperty(package.Name, out JsonElement entry) && entry.ValueKind == JsonValueKind.Object)
+            {
+                ApplyDownloadCount(package, entry);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Looks up the scoped packages, which the downloads API only answers for one at a time.
+    /// </summary>
+    private async Task ResolveScopedDownloadCountsAsync(PackageInfo[] packages)
+    {
+        foreach (PackageInfo[] chunk in packages.Chunk(MaxConcurrentScopedLookups))
+        {
+            await Task.WhenAll(chunk.Select(ResolveScopedDownloadCountAsync));
+        }
+    }
+
+    /// <summary>
+    /// Looks up the download count of a single scoped package.
+    /// </summary>
+    private async Task ResolveScopedDownloadCountAsync(PackageInfo package)
+    {
+        using JsonDocument? doc = await TryGetDownloadsAsync(package.Name);
+        if (doc is not null)
+        {
+            ApplyDownloadCount(package, doc.RootElement);
+        }
+    }
+
+    /// <summary>
+    /// Requests the last-month downloads for one or more package names, returning <see langword="null"/> on failure.
+    /// </summary>
+    private async Task<JsonDocument?> TryGetDownloadsAsync(string names)
+    {
+        string downloadsUrl = $"https://api.npmjs.org/downloads/point/last-month/{names}";
+        try
+        {
+            logger.LogDebug("Fetching download counts from {Url}", downloadsUrl);
+            return JsonDocument.Parse(await httpClient.GetStringAsync(downloadsUrl));
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
+        {
+            logger.LogWarning(ex, "Failed to fetch download counts from {Url}", downloadsUrl);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Copies the <c>downloads</c> value of a downloads API entry onto the package.
+    /// </summary>
+    private static void ApplyDownloadCount(PackageInfo package, JsonElement entry)
+    {
+        if (entry.TryGetProperty("downloads", out JsonElement downloads) &&
+            downloads.TryGetInt64(out long downloadCount))
+        {
+            package.DownloadCount = downloadCount;
+        }
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> for an NPM name that carries a scope, such as <c>@babel/core</c>.
+    /// </summary>
+    private static bool IsScoped(string name) => name.StartsWith('@');
 
     /// <summary>
     /// Tries to parse a semantic version string, stripping a leading <c>v</c> prefix if present.

@@ -9,12 +9,17 @@ namespace PackageGuard.Core.Risk.Enrichment;
 /// <summary>
 /// Queries the OSV API for vulnerability data and enriches a <see cref="PackageInfo"/> with the results.
 /// </summary>
-internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
+internal sealed class OsvRiskEnricher(ILogger logger, HttpClient? httpClient = null) : IEnrichPackageRisk, IPrimeRiskData
 {
     /// <summary>
     /// Shared HTTP client used for all OSV API requests.
     /// </summary>
-    private static readonly HttpClient HttpClient = new();
+    private static readonly HttpClient SharedHttpClient = new();
+
+    /// <summary>
+    /// The client this enricher sends its requests through.
+    /// </summary>
+    private readonly HttpClient httpClient = httpClient ?? SharedHttpClient;
 
     /// <summary>
     /// OSV result cache keyed by "source|name|version" to avoid redundant API calls.
@@ -27,6 +32,16 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
     private static readonly Lock CacheLock = new();
 
     /// <summary>
+    /// The number of package queries sent in one batch request, which is the maximum the OSV API accepts.
+    /// </summary>
+    private const int MaxQueriesPerBatch = 1000;
+
+    /// <summary>
+    /// The number of vulnerability detail requests that are in flight at the same time.
+    /// </summary>
+    private const int MaxConcurrentDetailRequests = 8;
+
+    /// <summary>
     /// Returns <see langword="true"/> if OSV risk data has already been populated for <paramref name="package"/>.
     /// </summary>
     public bool HasCachedData(PackageInfo package) => package.HasOsvRiskData;
@@ -36,7 +51,7 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
     /// </summary>
     public async Task EnrichAsync(PackageInfo package)
     {
-        string cacheKey = $"{package.Source}|{package.Name}|{package.Version}";
+        string cacheKey = CreateCacheKey(package);
 
         lock (CacheLock)
         {
@@ -68,82 +83,316 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
     }
 
     /// <summary>
+    /// Builds the key a package's OSV result is cached under.
+    /// </summary>
+    private static string CreateCacheKey(PackageInfo package) =>
+        $"{package.Source}|{package.Name}|{package.Version}";
+
+    /// <summary>
+    /// Discards the cross-package result cache. Only used by the tests.
+    /// </summary>
+    internal static void ClearCache()
+    {
+        lock (CacheLock)
+        {
+            Cache.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Looks up every package in as few requests as possible, before the per-package enrichment runs.
+    /// </summary>
+    /// <remarks>
+    /// The single-package endpoint costs one request per package. The batch endpoint takes up to a thousand queries
+    /// at a time but answers with vulnerability identifiers only, so the details of the few vulnerabilities that
+    /// actually turn up are fetched afterwards. A solution with hundreds of packages and a handful of vulnerabilities
+    /// goes from hundreds of requests to a couple.
+    /// </remarks>
+    /// <param name="packages">The packages to look up.</param>
+    public async Task PrimeAsync(IReadOnlyCollection<PackageInfo> packages)
+    {
+        PackageInfo[] pending = packages.Where(NeedsLookup).ToArray();
+        if (pending.Length == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await PrimeBatchesAsync(pending);
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "Could not look up vulnerabilities in bulk; falling back to one request per package");
+        }
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when the package still needs an OSV lookup this run.
+    /// </summary>
+    private static bool NeedsLookup(PackageInfo package)
+    {
+        if (package.HasOsvRiskData)
+        {
+            return false;
+        }
+
+        lock (CacheLock)
+        {
+            return !Cache.ContainsKey(CreateCacheKey(package));
+        }
+    }
+
+    /// <summary>
+    /// Runs the batch query for every chunk of packages and stores the assembled results in the cache.
+    /// </summary>
+    private async Task PrimeBatchesAsync(PackageInfo[] pending)
+    {
+        logger.LogDebug("Looking up vulnerabilities for {Count} packages in bulk", pending.Length);
+
+        foreach (PackageInfo[] batch in pending.Chunk(MaxQueriesPerBatch))
+        {
+            IReadOnlyList<OsvBatchMatch> matchesPerPackage = await QueryBatchAsync(batch);
+            if (matchesPerPackage.Count != batch.Length)
+            {
+                return;
+            }
+
+            await StoreBatchResultsAsync(batch, matchesPerPackage);
+        }
+    }
+
+    /// <summary>
+    /// Sends one batch query and returns what was found for each package, in the same order.
+    /// </summary>
+    private async Task<IReadOnlyList<OsvBatchMatch>> QueryBatchAsync(PackageInfo[] batch)
+    {
+        string body = $$"""{"queries":[{{string.Join(",", batch.Select(CreateQuery))}}]}""";
+        using JsonDocument doc = await PostAsync("https://api.osv.dev/v1/querybatch", body);
+
+        if (!doc.RootElement.TryGetProperty("results", out JsonElement results) ||
+            results.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return results.EnumerateArray().Select(ReadBatchMatch).ToArray();
+    }
+
+    /// <summary>
+    /// Reads the vulnerability identifiers of a single batch result, recording whether the API had to truncate it.
+    /// </summary>
+    private static OsvBatchMatch ReadBatchMatch(JsonElement result)
+    {
+        if (ReadPageToken(result) is { Length: > 0 })
+        {
+            return new OsvBatchMatch([], IsTruncated: true);
+        }
+
+        if (!result.TryGetProperty("vulns", out JsonElement vulnerabilities) ||
+            vulnerabilities.ValueKind != JsonValueKind.Array)
+        {
+            return new OsvBatchMatch([], IsTruncated: false);
+        }
+
+        string[] identifiers = vulnerabilities.EnumerateArray()
+            .Select(vulnerability => ReadString(vulnerability, "id"))
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id!)
+            .ToArray();
+
+        return new OsvBatchMatch(identifiers, IsTruncated: false);
+    }
+
+    /// <summary>
+    /// Fetches the detail of every vulnerability the batch turned up and caches a result for each package.
+    /// </summary>
+    private async Task StoreBatchResultsAsync(PackageInfo[] batch, IReadOnlyList<OsvBatchMatch> matchesPerPackage)
+    {
+        string[] distinctIdentifiers = matchesPerPackage
+            .Where(match => !match.IsTruncated)
+            .SelectMany(match => match.Identifiers)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        Dictionary<string, OsvVulnerabilitySignals> signalsById = await FetchVulnerabilitiesAsync(distinctIdentifiers);
+
+        foreach ((PackageInfo package, OsvBatchMatch match) in batch.Zip(matchesPerPackage))
+        {
+            StoreBatchResult(package, match, signalsById);
+        }
+    }
+
+    /// <summary>
+    /// Caches the assembled result of a single package, unless the batch could not answer for it in full.
+    /// </summary>
+    private static void StoreBatchResult(PackageInfo package, OsvBatchMatch match,
+        IReadOnlyDictionary<string, OsvVulnerabilitySignals> signalsById)
+    {
+        if (match.IsTruncated)
+        {
+            return;
+        }
+
+        OsvVulnerabilitySignals[] signals = match.Identifiers
+            .Select(signalsById.GetValueOrDefault)
+            .Where(signal => signal is not null)
+            .Select(signal => signal!)
+            .ToArray();
+
+        lock (CacheLock)
+        {
+            Cache[CreateCacheKey(package)] = BuildResult(signals);
+        }
+    }
+
+    /// <summary>
+    /// Fetches the detail of each vulnerability identifier, a handful at a time.
+    /// </summary>
+    private async Task<Dictionary<string, OsvVulnerabilitySignals>> FetchVulnerabilitiesAsync(string[] identifiers)
+    {
+        Dictionary<string, OsvVulnerabilitySignals> signalsById = new(StringComparer.Ordinal);
+        foreach (string[] chunk in identifiers.Chunk(MaxConcurrentDetailRequests))
+        {
+            OsvVulnerabilitySignals?[] signals =
+                await Task.WhenAll(chunk.Select(TryFetchVulnerabilityAsync));
+
+            foreach ((string identifier, OsvVulnerabilitySignals? signal) in chunk.Zip(signals))
+            {
+                AddSignal(signalsById, identifier, signal);
+            }
+        }
+
+        return signalsById;
+    }
+
+    /// <summary>
+    /// Adds a fetched vulnerability to the lookup, ignoring the ones that could not be read.
+    /// </summary>
+    private static void AddSignal(Dictionary<string, OsvVulnerabilitySignals> signalsById, string identifier,
+        OsvVulnerabilitySignals? signal)
+    {
+        if (signal is not null)
+        {
+            signalsById[identifier] = signal;
+        }
+    }
+
+    /// <summary>
+    /// Fetches the detail of a single vulnerability, returning <see langword="null"/> when it cannot be read.
+    /// </summary>
+    private async Task<OsvVulnerabilitySignals?> TryFetchVulnerabilityAsync(string identifier)
+    {
+        try
+        {
+            logger.LogDebug("Fetching OSV vulnerability {Identifier}", identifier);
+            string url = $"https://api.osv.dev/v1/vulns/{Uri.EscapeDataString(identifier)}";
+            using JsonDocument doc = JsonDocument.Parse(await httpClient.GetStringAsync(url));
+            return ReadSignals(doc.RootElement);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
+        {
+            logger.LogDebug(ex, "Could not fetch OSV vulnerability {Identifier}", identifier);
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Pages through OSV API results for <paramref name="package"/>, aggregating severity and fix data into an <see cref="OsvPackageRiskResult"/>.
     /// </summary>
     private async Task<OsvPackageRiskResult> QueryAsync(PackageInfo package)
     {
-        string ecosystem = package.Source switch
-        {
-            "npm" => "npm",
-            _ => "NuGet"
-        };
-
         string? pageToken = null;
-        int vulnerabilityCount = 0;
-        double maxSeverity = 0;
-        bool hasPatchedRecent = false;
-        bool hasAvailableFix = false;
-        List<double> fixDays = [];
-        List<OsvVulnerabilityRecord> vulnerabilityRecords = [];
+        List<OsvVulnerabilitySignals> signals = [];
 
         do
         {
             logger.LogDebug("Querying OSV API for {Name} {Version}", package.Name, package.Version);
-            using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.osv.dev/v1/query");
-            request.Content =
-                new StringContent(CreateRequestBody(package, ecosystem, pageToken), Encoding.UTF8, "application/json");
+            using JsonDocument doc =
+                await PostAsync("https://api.osv.dev/v1/query", CreateQueryBody(package, pageToken));
 
-            using HttpResponseMessage response = await HttpClient.SendAsync(request);
-            response.EnsureSuccessStatusCode();
-
-            using JsonDocument doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-            JsonElement root = doc.RootElement;
-
-            if (root.TryGetProperty("vulns", out JsonElement vulnerabilities) &&
-                vulnerabilities.ValueKind == JsonValueKind.Array)
-            {
-                foreach (JsonElement vulnerability in vulnerabilities.EnumerateArray())
-                {
-                    vulnerabilityCount++;
-                    double severity = ReadSeverity(vulnerability);
-                    maxSeverity = Math.Max(maxSeverity, severity);
-
-                    if (HasFix(vulnerability) && IsRecentlyModified(vulnerability))
-                    {
-                        hasPatchedRecent = true;
-                    }
-
-                    if (HasFix(vulnerability))
-                    {
-                        hasAvailableFix = true;
-                    }
-
-                    double? daysToFix = TryGetDaysToFix(vulnerability);
-                    if (daysToFix != null)
-                    {
-                        fixDays.Add(daysToFix.Value);
-                    }
-
-                    vulnerabilityRecords.Add(ReadVulnerabilityRecord(vulnerability, severity));
-                }
-            }
-
-            pageToken = root.TryGetProperty("next_page_token", out JsonElement pageTokenElement)
-                ? pageTokenElement.GetString()
-                : null;
+            signals.AddRange(ReadResponseSignals(doc.RootElement));
+            pageToken = ReadPageToken(doc.RootElement);
         }
         while (!string.IsNullOrWhiteSpace(pageToken));
 
-        return new OsvPackageRiskResult
-        {
-            VulnerabilityCount = vulnerabilityCount,
-            MaxSeverity = maxSeverity,
-            HasPatchedVulnerabilityInLast90Days = hasPatchedRecent,
-            HasAvailableSecurityFix = hasAvailableFix,
-            MedianVulnerabilityFixDays = ComputeMedian(fixDays),
-            Vulnerabilities = vulnerabilityRecords
-        };
+        return BuildResult(signals);
     }
+
+    /// <summary>
+    /// Reads the signals of every vulnerability in the <c>vulns</c> array of an OSV response.
+    /// </summary>
+    private static IEnumerable<OsvVulnerabilitySignals> ReadResponseSignals(JsonElement root)
+    {
+        if (!root.TryGetProperty("vulns", out JsonElement vulnerabilities) ||
+            vulnerabilities.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        return vulnerabilities.EnumerateArray().Select(ReadSignals).ToArray();
+    }
+
+    /// <summary>
+    /// Reads everything the risk metrics need from a single OSV vulnerability entry, so that the entry itself does not
+    /// have to be kept around.
+    /// </summary>
+    private static OsvVulnerabilitySignals ReadSignals(JsonElement vulnerability)
+    {
+        double severity = ReadSeverity(vulnerability);
+        bool hasFix = HasFix(vulnerability);
+
+        return new OsvVulnerabilitySignals(
+            hasFix,
+            hasFix && IsRecentlyModified(vulnerability),
+            TryGetDaysToFix(vulnerability),
+            ReadVulnerabilityRecord(vulnerability, severity));
+    }
+
+    /// <summary>
+    /// Aggregates the signals of a package's vulnerabilities into its risk result.
+    /// </summary>
+    private static OsvPackageRiskResult BuildResult(IReadOnlyCollection<OsvVulnerabilitySignals> signals) => new()
+    {
+        VulnerabilityCount = signals.Count,
+        MaxSeverity = signals.Count == 0 ? 0 : signals.Max(signal => signal.Record.Severity),
+        HasPatchedVulnerabilityInLast90Days = signals.Any(signal => signal.WasPatchedRecently),
+        HasAvailableSecurityFix = signals.Any(signal => signal.HasKnownFix),
+        MedianVulnerabilityFixDays = ComputeMedian(signals
+            .Where(signal => signal.DaysToFix.HasValue)
+            .Select(signal => signal.DaysToFix!.Value)
+            .ToList()),
+        Vulnerabilities = signals.Select(signal => signal.Record).ToArray()
+    };
+
+    /// <summary>
+    /// Reads the continuation token of a paged OSV response, if any.
+    /// </summary>
+    private static string? ReadPageToken(JsonElement root) =>
+        root.TryGetProperty("next_page_token", out JsonElement pageToken) ? pageToken.GetString() : null;
+
+    /// <summary>
+    /// Posts a JSON body to the OSV API and returns the parsed response.
+    /// </summary>
+    private async Task<JsonDocument> PostAsync(string url, string body)
+    {
+        using StringContent content = new(body, Encoding.UTF8, "application/json");
+        using HttpRequestMessage request = new(HttpMethod.Post, url);
+        request.Content = content;
+
+        using HttpResponseMessage response = await httpClient.SendAsync(request);
+        response.EnsureSuccessStatusCode();
+        return JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+    }
+
+    /// <summary>
+    /// Returns the OSV ecosystem name for a package.
+    /// </summary>
+    private static string GetEcosystem(PackageInfo package) => package.Source switch
+    {
+        "npm" => "npm",
+        _ => "NuGet"
+    };
 
     /// <summary>
     /// Extracts the identifier, aliases, severity, and reference URLs for a single OSV vulnerability entry.
@@ -206,19 +455,20 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
     /// <summary>
     /// Builds the JSON request body for the OSV query API, optionally including a pagination token.
     /// </summary>
-    private static string CreateRequestBody(PackageInfo package, string ecosystem, string? pageToken)
+    private static string CreateQueryBody(PackageInfo package, string? pageToken)
     {
-        if (string.IsNullOrWhiteSpace(pageToken))
-        {
-            return $$"""
-                     {"package":{"name":"{{Escape(package.Name)}}","ecosystem":"{{ecosystem}}"},"version":"{{Escape(package.Version)}}"}
-                     """;
-        }
+        string pagination = string.IsNullOrWhiteSpace(pageToken)
+            ? string.Empty
+            : $$""","page_token":"{{Escape(pageToken)}}" """.TrimEnd();
 
-        return $$"""
-                 {"package":{"name":"{{Escape(package.Name)}}","ecosystem":"{{ecosystem}}"},"version":"{{Escape(package.Version)}}","page_token":"{{Escape(pageToken)}}"}
-                 """;
+        return $$"""{"package":{"name":"{{Escape(package.Name)}}","ecosystem":"{{GetEcosystem(package)}}"},"version":"{{Escape(package.Version)}}"{{pagination}}}""";
     }
+
+    /// <summary>
+    /// Builds the JSON object identifying one package version within a batch query.
+    /// </summary>
+    private static string CreateQuery(PackageInfo package) =>
+        $$"""{"package":{"name":"{{Escape(package.Name)}}","ecosystem":"{{GetEcosystem(package)}}"},"version":"{{Escape(package.Version)}}"}""";
 
     /// <summary>
     /// JSON-escapes backslash and double-quote characters in <paramref name="value"/>.
@@ -460,6 +710,30 @@ internal sealed class OsvRiskEnricher(ILogger logger) : IEnrichPackageRisk
             ? (values[middle - 1] + values[middle]) / 2.0
             : values[middle];
     }
+
+    /// <summary>
+    /// Everything the risk metrics need from a single vulnerability, read once so that the OSV response it came from
+    /// does not have to be kept alive.
+    /// </summary>
+    /// <param name="HasKnownFix">Indicates whether a fixed version is known.</param>
+    /// <param name="WasPatchedRecently">Indicates whether a fix landed within the last 90 days.</param>
+    /// <param name="DaysToFix">The number of days between publication and fix, when both are known.</param>
+    /// <param name="Record">The vulnerability as it is reported to the user.</param>
+    private sealed record OsvVulnerabilitySignals(
+        bool HasKnownFix,
+        bool WasPatchedRecently,
+        double? DaysToFix,
+        OsvVulnerabilityRecord Record);
+
+    /// <summary>
+    /// What the batch endpoint reported for a single package.
+    /// </summary>
+    /// <param name="Identifiers">The identifiers of the vulnerabilities that affect the package.</param>
+    /// <param name="IsTruncated">
+    /// Indicates that the endpoint could not answer in full, in which case the package is looked up again through the
+    /// paging single-package query rather than being reported with an incomplete count.
+    /// </param>
+    private sealed record OsvBatchMatch(string[] Identifiers, bool IsTruncated);
 
     /// <summary>
     /// Holds the aggregated OSV vulnerability results for a single package version.
