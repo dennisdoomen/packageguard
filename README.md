@@ -107,8 +107,9 @@ OPTIONS:
         --risk-cache-max-age-hours 24       Maximum age in hours for cached risk-related package data before
                                             --report-risk refreshes it
         --nuget                  True       Explicitly enable or disable scanning for .csproj, .sln or .slnx files
-        --npm                               Explicitly specify the package manager to use (npm, yarn, pnpm). If not
-                                            specified, it will detect it automatically
+        --npm                               Explicitly specify the package manager to use (npm, yarn, pnpm), or None
+                                            to disable NPM scanning entirely. If not specified, it will detect it
+                                            automatically
         --npm-exe-path                      The path to the npm, yarn or pnpm executable. If not specified, the system
                                             PATH is used
         --report-risk                       Show a colored risk summary in the console and generate detailed HTML/SARIF

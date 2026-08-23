@@ -17,6 +17,13 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
         // Based on the settings, files on disk or the environment, determine which package manager to use
         DetectPackageManager(projectOrSolutionPath, settings);
 
+        if (settings.NpmPackageManager == NpmPackageManager.None)
+        {
+            logger.LogInformation("NPM scanning is explicitly disabled, so skipping NPM analysis");
+
+            return violations.ToArray();
+        }
+
         // Find the package.json file, either because the path points to it directly, or it's in the folder
         ChainablePath packageJsonPath = projectOrSolutionPath.ToPath();
         packageJsonPath = packageJsonPath.ResolveFile("package.json");
