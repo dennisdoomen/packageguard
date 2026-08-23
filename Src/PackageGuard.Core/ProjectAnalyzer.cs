@@ -52,7 +52,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         {
             Logger.LogInformation("Try loading package cache from {CacheFilePath}", settings.CacheFilePath);
             await packages.TryInitializeFromCache(settings.CacheFilePath);
-            await GitHubApi.LoadResponseCacheAsync(Logger, settings.CacheFilePath);
+            await GitHubApi.LoadCachesAsync(Logger, settings.CacheFilePath, settings);
         }
 
         foreach (IProjectAnalysisStrategy strategy in strategies)
@@ -74,7 +74,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
 
         if (isCachingEnabled)
         {
-            await GitHubApi.SaveResponseCacheAsync(Logger, settings.CacheFilePath);
+            await GitHubApi.SaveCachesAsync(Logger, settings.CacheFilePath);
         }
 
         return new AnalysisResult

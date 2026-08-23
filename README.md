@@ -479,7 +479,16 @@ If the limit does run out, PackageGuard reports a warning like
 
   `The GitHub API rate limit is exhausted and resets in 42 minutes.`
 
-and finishes the analysis without the GitHub-based signals, instead of failing. Run it again after the reset to fill in what was left out. Combine this with `--use-caching` so that the work already done is not repeated: alongside the package cache, PackageGuard stores the GitHub responses it received under `.packageguard\github-responses.bin` and revalidates them with conditional requests, which GitHub does not charge against the rate limit of an authenticated caller.
+and finishes the analysis without the GitHub-based signals, instead of failing. Run it again after the reset to fill in what was left out.
+
+Combine this with `--use-caching` so that the work already done is not repeated. Alongside the package cache, PackageGuard writes two more files:
+
+| File | Holds |
+|------|-------|
+| `.packageguard\github-responses.bin` | the GitHub responses received, with their entity tags. Later runs revalidate them with conditional requests, which GitHub does not charge against the rate limit of an authenticated caller. |
+| `.packageguard\github-repositories.bin` | the risk profile of each repository, keyed by repository rather than by package. Dozens of packages can share one repository, and its profile is collected once. |
+
+Both are refreshed on the schedule set by `--risk-cache-max-age` (24 hours by default), and `--refresh-risk-cache` collects everything again regardless. Commit them alongside `cache.bin` if you want CI runs to benefit as well.
 
 ## Roadmap
 
