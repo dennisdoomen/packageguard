@@ -1,21 +1,19 @@
-using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using NuGet.Versioning;
+using PackageGuard.Core.GitHub;
 using PackageGuard.Core.Package;
 
 namespace PackageGuard.Core.Risk.Enrichment;
 
 /// <summary>Enriches package risk data using GitHub repository API metadata.</summary>
-internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHubApiKey) : IEnrichPackageRisk
+internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
 {
-    /// <summary>Shared HTTP client for GitHub API requests.</summary>
-    private static readonly HttpClient HttpClient = new();
-
-    /// <summary>Cache of repository API root URL to risk data.</summary>
+    /// <summary>Cache of repository API root URL to risk data. A cached <c>null</c> records a repository whose data
+    /// could not be fetched, so the packages that follow do not repeat the same failing fan-out.</summary>
     private static readonly Dictionary<string, GitHubRepositoryRiskData?> Cache = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>In-flight load tasks per repository API root, preventing duplicate concurrent fetches.</summary>
@@ -25,10 +23,37 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     /// <summary>Lock for thread-safe cache and in-flight loads access.</summary>
     private static readonly Lock CacheLock = new();
 
-    /// <summary>Static constructor that sets the User-Agent header.</summary>
-    static GitHubRepositoryRiskEnricher()
+    /// <summary>Client for the OpenSSF Scorecard API, which is not subject to the GitHub rate limit.</summary>
+    private static readonly HttpClient ScorecardHttpClient = new() { Timeout = TimeSpan.FromSeconds(20) };
+
+    private readonly ILogger logger;
+    private readonly GitHubApiClient apiClient;
+
+    /// <summary>Creates an enricher that talks to GitHub through the client shared by the whole run.</summary>
+    /// <param name="logger">The logger to report fetch problems to.</param>
+    /// <param name="gitHubApiKey">The GitHub personal access token to authenticate with, if any.</param>
+    public GitHubRepositoryRiskEnricher(ILogger logger, string? gitHubApiKey)
+        : this(logger, GitHubApi.GetOrCreateClient(logger, gitHubApiKey))
     {
-        HttpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("PackageGuard", "v1"));
+    }
+
+    /// <summary>Creates an enricher that talks to GitHub through the given client.</summary>
+    /// <param name="logger">The logger to report fetch problems to.</param>
+    /// <param name="apiClient">The client to send GitHub API requests through.</param>
+    internal GitHubRepositoryRiskEnricher(ILogger logger, GitHubApiClient apiClient)
+    {
+        this.logger = logger;
+        this.apiClient = apiClient;
+    }
+
+    /// <summary>Discards the cross-package repository cache. Only used by the tests.</summary>
+    internal static void ClearCache()
+    {
+        lock (CacheLock)
+        {
+            Cache.Clear();
+            InFlightLoads.Clear();
+        }
     }
 
     /// <summary>Returns true if GitHub risk data is already populated for the package.</summary>
@@ -133,7 +158,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
         lock (CacheLock)
         {
-            if (Cache.TryGetValue(repositoryApiRoot, out GitHubRepositoryRiskData? cached) && cached != null)
+            if (Cache.TryGetValue(repositoryApiRoot, out GitHubRepositoryRiskData? cached))
             {
                 return cached;
             }
@@ -150,11 +175,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         lock (CacheLock)
         {
             InFlightLoads.Remove(repositoryApiRoot);
-
-            if (loaded != null)
-            {
-                Cache[repositoryApiRoot] = loaded;
-            }
+            Cache[repositoryApiRoot] = loaded;
         }
 
         return loaded;
@@ -165,7 +186,12 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     {
         try
         {
-            using JsonDocument repoDocument = await GetJsonAsync(repositoryApiRoot);
+            using JsonDocument? repoDocument = await GetJsonAsync(repositoryApiRoot);
+            if (repoDocument is null)
+            {
+                return null;
+            }
+
             JsonElement repo = repoDocument.RootElement;
 
             string defaultBranch = repo.TryGetProperty("default_branch", out JsonElement defaultBranchElement)
@@ -181,21 +207,18 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
                 ? htmlUrlElement.GetString() ?? string.Empty
                 : string.Empty;
 
-            using JsonDocument ownerDocument = await GetJsonAsync(ownerIsOrganization
+            using JsonDocument? ownerDocument = await GetJsonAsync(ownerIsOrganization
                 ? $"https://api.github.com/orgs/{ownerLogin}"
                 : $"https://api.github.com/users/{ownerLogin}");
 
-            DateTimeOffset? ownerCreatedAt = TryReadDate(ownerDocument.RootElement, "created_at");
+            DateTimeOffset? ownerCreatedAt = ownerDocument is null
+                ? null
+                : TryReadDate(ownerDocument.RootElement, "created_at");
 
             var ownerContext = new RepositoryOwnerContext(
                 ownerLogin, repositoryName, ownerIsOrganization, canonicalUrl, ownerCreatedAt);
 
             return await FetchAndAssembleRepositoryDataAsync(repositoryApiRoot, defaultBranch, ownerContext);
-        }
-        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
-        {
-            logger.LogWarning(ex, "Failed to fetch GitHub repository risk metadata from {RepositoryApiRoot}", repositoryApiRoot);
-            return null;
         }
         catch (Exception ex)
         {
@@ -319,30 +342,24 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         };
     }
 
-    /// <summary>Sends an authenticated GET request and parses the JSON response.</summary>
-    private async Task<JsonDocument> GetJsonAsync(string url)
-    {
-        logger.LogDebug("GET {Url}", url);
-        using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+    /// <summary>Requests a document that the repository's risk profile depends on.</summary>
+    private Task<JsonDocument?> GetJsonAsync(string url) =>
+        apiClient.GetJsonAsync(url, GitHubRequestImportance.Essential);
 
-        if (!string.IsNullOrWhiteSpace(gitHubApiKey))
-        {
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", gitHubApiKey);
-        }
-
-        using HttpResponseMessage response = await HttpClient.SendAsync(request);
-        response.EnsureSuccessStatusCode();
-        return JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-    }
+    /// <summary>
+    /// Requests a document that refines a single risk signal. Requests like these are dropped once the rate limit
+    /// budget runs low, so that the repositories still to be scanned keep getting their essential signals.
+    /// </summary>
+    private Task<JsonDocument?> GetOptionalJsonAsync(string url) =>
+        apiClient.GetJsonAsync(url, GitHubRequestImportance.Optional);
 
     /// <summary>Lists filenames in the repository root directory.</summary>
     private async Task<string[]> GetRootFilesAsync(string repositoryApiRoot, string defaultBranch)
     {
-        using JsonDocument contents =
+        using JsonDocument? contents =
             await GetJsonAsync($"{repositoryApiRoot}/contents?ref={Uri.EscapeDataString(defaultBranch)}");
 
-        if (contents.RootElement.ValueKind != JsonValueKind.Array)
+        if (contents?.RootElement.ValueKind != JsonValueKind.Array)
         {
             return [];
         }
@@ -359,7 +376,15 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     {
         try
         {
-            using JsonDocument readmeDoc = await GetJsonAsync($"{repositoryApiRoot}/readme");
+            using JsonDocument? readmeDoc = await GetJsonAsync($"{repositoryApiRoot}/readme");
+            if (readmeDoc is null)
+            {
+                return new GitHubReadmeData
+                {
+                    Exists = false
+                };
+            }
+
             string content = string.Empty;
 
             if (readmeDoc.RootElement.TryGetProperty("content", out JsonElement contentElement))
@@ -404,8 +429,8 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     /// <summary>Fetches contributor list and computes concentration metrics.</summary>
     private async Task<GitHubContributorData> GetContributorDataAsync(string repositoryApiRoot)
     {
-        using JsonDocument contributorsDoc = await GetJsonAsync($"{repositoryApiRoot}/contributors?per_page=100");
-        if (contributorsDoc.RootElement.ValueKind != JsonValueKind.Array)
+        using JsonDocument? contributorsDoc = await GetJsonAsync($"{repositoryApiRoot}/contributors?per_page=100");
+        if (contributorsDoc?.RootElement.ValueKind != JsonValueKind.Array)
         {
             return new GitHubContributorData();
         }
@@ -440,8 +465,10 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     /// <summary>Fetches open and closed bug issues and computes issue health metrics.</summary>
     private async Task<GitHubIssueData> GetIssueDataAsync(string repositoryApiRoot)
     {
-        using JsonDocument issuesDoc = await GetJsonAsync($"{repositoryApiRoot}/issues?state=open&labels=bug&per_page=100");
-        if (issuesDoc.RootElement.ValueKind != JsonValueKind.Array)
+        using JsonDocument? issuesDoc =
+            await GetJsonAsync($"{repositoryApiRoot}/issues?state=open&labels=bug&per_page=100");
+
+        if (issuesDoc?.RootElement.ValueKind != JsonValueKind.Array)
         {
             return new GitHubIssueData();
         }
@@ -527,8 +554,8 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
 
         try
         {
-            using JsonDocument commentsDoc = await GetJsonAsync(issue.CommentsUrl);
-            if (commentsDoc.RootElement.ValueKind != JsonValueKind.Array)
+            using JsonDocument? commentsDoc = await GetOptionalJsonAsync(issue.CommentsUrl);
+            if (commentsDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
                 return new GitHubIssueResponseData();
             }
@@ -558,10 +585,10 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     /// <summary>Fetches merged PRs and computes median merge time in days.</summary>
     private async Task<double?> GetMedianPullRequestMergeDaysAsync(string repositoryApiRoot)
     {
-        using JsonDocument pullsDoc =
+        using JsonDocument? pullsDoc =
             await GetJsonAsync($"{repositoryApiRoot}/pulls?state=closed&sort=updated&direction=desc&per_page=100");
 
-        if (pullsDoc.RootElement.ValueKind != JsonValueKind.Array)
+        if (pullsDoc?.RootElement.ValueKind != JsonValueKind.Array)
         {
             return null;
         }
@@ -587,8 +614,8 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     {
         try
         {
-            using JsonDocument releaseDoc = await GetJsonAsync($"{repositoryApiRoot}/releases?per_page=10");
-            if (releaseDoc.RootElement.ValueKind != JsonValueKind.Array)
+            using JsonDocument? releaseDoc = await GetJsonAsync($"{repositoryApiRoot}/releases?per_page=10");
+            if (releaseDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
                 return new GitHubReleaseData();
             }
@@ -679,10 +706,10 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     {
         try
         {
-            using JsonDocument pullsDoc =
+            using JsonDocument? pullsDoc =
                 await GetJsonAsync($"{repositoryApiRoot}/pulls?state=closed&sort=updated&direction=desc&per_page=30");
 
-            if (pullsDoc.RootElement.ValueKind != JsonValueKind.Array)
+            if (pullsDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
                 return new GitHubPullRequestQualityData();
             }
@@ -749,10 +776,11 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     {
         try
         {
-            using JsonDocument workflowsDoc = await GetJsonAsync(
+            using JsonDocument? workflowsDoc = await GetJsonAsync(
                 $"{repositoryApiRoot}/actions/runs?branch={Uri.EscapeDataString(defaultBranch)}&per_page=10");
 
-            if (!workflowsDoc.RootElement.TryGetProperty("workflow_runs", out JsonElement runs) ||
+            if (workflowsDoc is null ||
+                !workflowsDoc.RootElement.TryGetProperty("workflow_runs", out JsonElement runs) ||
                 runs.ValueKind != JsonValueKind.Array)
             {
                 return new GitHubWorkflowData();
@@ -790,8 +818,13 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     {
         try
         {
-            using JsonDocument branchDoc = await GetJsonAsync(
+            using JsonDocument? branchDoc = await GetJsonAsync(
                 $"{repositoryApiRoot}/branches/{Uri.EscapeDataString(defaultBranch)}");
+
+            if (branchDoc is null)
+            {
+                return new GitHubBranchProtectionData();
+            }
 
             bool? isProtected = branchDoc.RootElement.TryGetProperty("protected", out JsonElement protectedElement) &&
                                 protectedElement.ValueKind is JsonValueKind.True or JsonValueKind.False
@@ -877,10 +910,10 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     {
         try
         {
-            using JsonDocument commitsDoc = await GetJsonAsync(
+            using JsonDocument? commitsDoc = await GetJsonAsync(
                 $"{repositoryApiRoot}/commits?sha={Uri.EscapeDataString(defaultBranch)}&since={Uri.EscapeDataString(DateTimeOffset.UtcNow.AddMonths(-12).ToString("O"))}&per_page=100");
 
-            if (commitsDoc.RootElement.ValueKind != JsonValueKind.Array)
+            if (commitsDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
                 return new GitHubCommitHealthData();
             }
@@ -957,10 +990,10 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         try
         {
             string since = Uri.EscapeDataString(DateTimeOffset.UtcNow.AddDays(-90).ToString("O"));
-            using JsonDocument issuesDoc = await GetJsonAsync(
+            using JsonDocument? issuesDoc = await GetJsonAsync(
                 $"{repositoryApiRoot}/issues?state=closed&labels=bug&sort=updated&direction=desc&since={since}&per_page=50");
 
-            if (issuesDoc.RootElement.ValueKind != JsonValueKind.Array)
+            if (issuesDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
                 return [];
             }
@@ -999,10 +1032,10 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
             await throttler.WaitAsync();
             try
             {
-                using JsonDocument eventsDoc = await GetJsonAsync(
+                using JsonDocument? eventsDoc = await GetOptionalJsonAsync(
                     $"{repositoryApiRoot}/issues/{issue.Number}/timeline?per_page=100");
 
-                return eventsDoc.RootElement.ValueKind == JsonValueKind.Array &&
+                return eventsDoc?.RootElement.ValueKind == JsonValueKind.Array &&
                        eventsDoc.RootElement.EnumerateArray().Any(eventItem =>
                            string.Equals(
                                eventItem.TryGetProperty("event", out JsonElement eventElement) ? eventElement.GetString() : null,
@@ -1027,10 +1060,10 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     {
         try
         {
-            using JsonDocument commitsDoc = await GetJsonAsync(
+            using JsonDocument? commitsDoc = await GetOptionalJsonAsync(
                 $"{repositoryApiRoot}/commits?sha={Uri.EscapeDataString(defaultBranch)}&path={Uri.EscapeDataString(path)}&per_page=1");
 
-            if (commitsDoc.RootElement.ValueKind != JsonValueKind.Array)
+            if (commitsDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
                 return null;
             }
@@ -1052,10 +1085,10 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     {
         try
         {
-            using JsonDocument workflowsDoc = await GetJsonAsync(
+            using JsonDocument? workflowsDoc = await GetJsonAsync(
                 $"{repositoryApiRoot}/contents/.github/workflows?ref={Uri.EscapeDataString(defaultBranch)}");
 
-            if (workflowsDoc.RootElement.ValueKind != JsonValueKind.Array)
+            if (workflowsDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
                 return new GitHubWorkflowFileSignals();
             }
@@ -1134,10 +1167,10 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     {
         try
         {
-            using JsonDocument reviewsDoc =
-                await GetJsonAsync($"{repositoryApiRoot}/pulls/{pullRequestNumber}/reviews?per_page=100");
+            using JsonDocument? reviewsDoc =
+                await GetOptionalJsonAsync($"{repositoryApiRoot}/pulls/{pullRequestNumber}/reviews?per_page=100");
 
-            if (reviewsDoc.RootElement.ValueKind != JsonValueKind.Array)
+            if (reviewsDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
                 return [];
             }
@@ -1164,7 +1197,7 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
         {
             string scorecardUrl = $"https://api.securityscorecards.dev/projects/github.com/{owner}/{repo}";
             logger.LogDebug("GET {Url}", scorecardUrl);
-            using HttpResponseMessage response = await HttpClient.GetAsync(scorecardUrl);
+            using HttpResponseMessage response = await ScorecardHttpClient.GetAsync(scorecardUrl);
             response.EnsureSuccessStatusCode();
 
             using JsonDocument scorecardDoc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
@@ -1212,10 +1245,10 @@ internal sealed class GitHubRepositoryRiskEnricher(ILogger logger, string? gitHu
     {
         try
         {
-            using JsonDocument fileDoc = await GetJsonAsync(
+            using JsonDocument? fileDoc = await GetJsonAsync(
                 $"{repositoryApiRoot}/contents/{Uri.EscapeDataString(path)}?ref={Uri.EscapeDataString(defaultBranch)}");
 
-            if (fileDoc.RootElement.TryGetProperty("content", out JsonElement contentElement))
+            if (fileDoc is not null && fileDoc.RootElement.TryGetProperty("content", out JsonElement contentElement))
             {
                 string? encoded = contentElement.GetString();
                 if (!string.IsNullOrWhiteSpace(encoded))

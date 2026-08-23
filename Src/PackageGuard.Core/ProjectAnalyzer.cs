@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using PackageGuard.Core.Common;
 using PackageGuard.Core.CSharp;
+using PackageGuard.Core.GitHub;
 using PackageGuard.Core.Npm;
 using PackageGuard.Core.Package;
 using PackageGuard.Core.Policy;
@@ -46,10 +47,12 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         List<PolicyViolation> violations = new();
 
         PackageInfoCollection packages = new(Logger, settings);
-        if (settings is { UseCaching: true, CacheFilePath.Length: > 0 })
+        bool isCachingEnabled = settings is { UseCaching: true, CacheFilePath.Length: > 0 };
+        if (isCachingEnabled)
         {
             Logger.LogInformation("Try loading package cache from {CacheFilePath}", settings.CacheFilePath);
             await packages.TryInitializeFromCache(settings.CacheFilePath);
+            await GitHubApi.LoadResponseCacheAsync(Logger, settings.CacheFilePath);
         }
 
         foreach (IProjectAnalysisStrategy strategy in strategies)
@@ -67,6 +70,11 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         if (settings.UseCaching)
         {
             await packages.WriteToCache(settings.CacheFilePath);
+        }
+
+        if (isCachingEnabled)
+        {
+            await GitHubApi.SaveResponseCacheAsync(Logger, settings.CacheFilePath);
         }
 
         return new AnalysisResult
