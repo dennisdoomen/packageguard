@@ -103,7 +103,8 @@ public class GitHubApiClientSpecs
         using JsonDocument repeated = await client.GetJsonAsync(Url);
 
         // Assert
-        repeated.RootElement.GetProperty("name").GetString().Should().Be("widget");
+        repeated.Should().NotBeNull();
+        repeated!.RootElement.GetProperty("name").GetString().Should().Be("widget");
         handler.RequestCount.Should().Be(1, "GitHub data does not change over the course of a single run");
     }
 
@@ -135,7 +136,8 @@ public class GitHubApiClientSpecs
             using JsonDocument revalidated = await laterRunClient.GetJsonAsync(Url);
 
             // Assert
-            revalidated.RootElement.GetProperty("name").GetString().Should().Be("widget");
+            revalidated.Should().NotBeNull();
+            revalidated!.RootElement.GetProperty("name").GetString().Should().Be("widget");
             laterRunHandler.Requests.Single().Headers.IfNoneMatch.ToString().Should().Be("\"abc123\"");
         }
         finally

@@ -5,7 +5,6 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PackageGuard.Core;
 using PackageGuard.Core.GitHub;
 using PackageGuard.Core.Package;
 using PackageGuard.Core.Risk;

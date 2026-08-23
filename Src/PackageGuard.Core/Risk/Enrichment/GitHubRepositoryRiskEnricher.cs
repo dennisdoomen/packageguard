@@ -799,7 +799,7 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         }
 
         return pullsDoc.RootElement.EnumerateArray()
-            .Select((pullRequest, index) => ReadPullRequestSnapshot(pullRequest, index))
+            .Select(ReadPullRequestSnapshot)
             .Where(snapshot => snapshot.IsMerged)
             .ToArray();
     }
@@ -933,8 +933,10 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
             .ToList());
 
         GitHubPullRequestSnapshot[] sample = mergedPullRequests
-            .Where(pullRequest => pullRequest is { Number: > 0 } &&
-                                  pullRequest.ClosedIndex < PullRequestQualitySampleSize)
+            .Where(pullRequest => pullRequest is
+            {
+                Number: > 0, ClosedIndex: < PullRequestQualitySampleSize
+            })
             .ToArray();
 
         if (sample.Length == 0)
