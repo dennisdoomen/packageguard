@@ -316,6 +316,33 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    public async Task Can_disable_npm_scanning_entirely()
+    {
+        // Arrange
+        var project = ChainablePath.Current / "TestCases" / "NpmApp";
+
+        var analyzer = new ProjectAnalyzer(licenseFetcher)
+        {
+            Logger = ConsoleTestLogger.Create("Test")
+        };
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis(project, new AnalyzerSettings
+        {
+            NpmPackageManager = NpmPackageManager.None,
+        }, _ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["not-mit"]
+            },
+        });
+
+        // Assert
+        violations.Should().BeEmpty();
+    }
+
+    [TestMethod]
     public async Task Can_prevent_fetching_metadata_from_a_private_npm_feed()
     {
         // Arrange
