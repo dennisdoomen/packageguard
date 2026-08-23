@@ -24,6 +24,11 @@ internal static class GitHubApi
     private static GitHubResponseCache? responseCache;
 
     /// <summary>
+    /// The repository profile cache shared by every risk enricher.
+    /// </summary>
+    private static GitHubRepositoryRiskCache? repositoryCache;
+
+    /// <summary>
     /// Guards the shared client and cache instances.
     /// </summary>
     private static readonly Lock SharedLock = new();
@@ -50,25 +55,44 @@ internal static class GitHubApi
     }
 
     /// <summary>
-    /// Loads previously cached GitHub responses that sit next to the package cache at <paramref name="cacheFilePath"/>.
+    /// Returns the repository profile cache, creating it on first use.
     /// </summary>
     /// <param name="logger">The logger to report cache problems to.</param>
-    /// <param name="cacheFilePath">The path of the package cache file the response cache sits next to.</param>
-    public static async Task LoadResponseCacheAsync(ILogger logger, string cacheFilePath)
+    public static GitHubRepositoryRiskCache GetOrCreateRepositoryCache(ILogger logger)
     {
-        GitHubResponseCache cache = GetOrCreateResponseCache(logger);
-        await cache.LoadAsync(GetResponseCacheFilePath(cacheFilePath));
+        lock (SharedLock)
+        {
+            return repositoryCache ??= new GitHubRepositoryRiskCache(logger);
+        }
     }
 
     /// <summary>
-    /// Persists the GitHub responses seen during this run next to the package cache at <paramref name="cacheFilePath"/>.
+    /// Loads the responses and repository profiles cached next to the package cache at
+    /// <paramref name="cacheFilePath"/>.
     /// </summary>
     /// <param name="logger">The logger to report cache problems to.</param>
-    /// <param name="cacheFilePath">The path of the package cache file the response cache sits next to.</param>
-    public static async Task SaveResponseCacheAsync(ILogger logger, string cacheFilePath)
+    /// <param name="cacheFilePath">The path of the package cache file the caches sit next to.</param>
+    /// <param name="settings">The settings that decide how long a cached profile is reused.</param>
+    public static async Task LoadCachesAsync(ILogger logger, string cacheFilePath, AnalyzerSettings settings)
     {
-        GitHubResponseCache cache = GetOrCreateResponseCache(logger);
-        await cache.SaveAsync(GetResponseCacheFilePath(cacheFilePath));
+        GitHubRepositoryRiskCache profiles = GetOrCreateRepositoryCache(logger);
+        profiles.MaxAge = settings.RiskCacheMaxAge;
+        profiles.IsRefreshForced = settings.RefreshRiskCache;
+
+        await GetOrCreateResponseCache(logger).LoadAsync(GetResponseCacheFilePath(cacheFilePath));
+        await profiles.LoadAsync(cacheFilePath);
+    }
+
+    /// <summary>
+    /// Persists the responses and repository profiles seen during this run next to the package cache at
+    /// <paramref name="cacheFilePath"/>.
+    /// </summary>
+    /// <param name="logger">The logger to report cache problems to.</param>
+    /// <param name="cacheFilePath">The path of the package cache file the caches sit next to.</param>
+    public static async Task SaveCachesAsync(ILogger logger, string cacheFilePath)
+    {
+        await GetOrCreateResponseCache(logger).SaveAsync(GetResponseCacheFilePath(cacheFilePath));
+        await GetOrCreateRepositoryCache(logger).SaveAsync(cacheFilePath);
     }
 
     /// <summary>

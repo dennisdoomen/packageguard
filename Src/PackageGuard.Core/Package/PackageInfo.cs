@@ -706,4 +706,50 @@ public partial class PackageInfo
     {
         IsUsed = true;
     }
+
+    /// <summary>
+    /// Clears everything that was read from a registry or from a repository, so that a stale cache entry is refilled
+    /// from upstream rather than reused.
+    /// </summary>
+    /// <remarks>
+    /// The entry itself is kept, because it also carries which projects reference the package. Only the values that
+    /// go out of date are dropped: a package version never changes, but the latest version it lags behind, its
+    /// download count, its deprecation status, and every repository and vulnerability signal do.
+    /// </remarks>
+    internal void InvalidateCachedMetadata()
+    {
+        ClearRegistryMetadata();
+        ClearRiskData();
+        CacheUpdatedAt = null;
+    }
+
+    /// <summary>
+    /// Clears the values read from the NuGet or NPM registry.
+    /// </summary>
+    private void ClearRegistryMetadata()
+    {
+        License = null;
+        LicenseEvidence = LicenseEvidence.Unknown;
+        LicenseUrl = null;
+        RepositoryUrl = null;
+        IsDeprecated = null;
+        PublishedAt = null;
+        DownloadCount = null;
+        LatestStableVersion = null;
+        LatestStablePublishedAt = null;
+        VersionUpdateLagDays = null;
+        IsMajorVersionBehindLatest = false;
+        IsMinorVersionBehindLatest = false;
+    }
+
+    /// <summary>
+    /// Marks every risk signal as missing, which makes the enrichers collect it again.
+    /// </summary>
+    private void ClearRiskData()
+    {
+        HasGitHubRiskData = false;
+        HasOsvRiskData = false;
+        HasSigningRiskData = false;
+        HasValidatedLicenseUrl = false;
+    }
 }

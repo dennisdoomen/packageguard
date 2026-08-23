@@ -148,17 +148,20 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
     }
 
     /// <summary>
-    /// Sets <see cref="PackageInfo.CacheUpdatedAt"/> to the current UTC time on every entry before serialisation.
+    /// Records when each entry was last confirmed against its upstream sources.
     /// </summary>
+    /// <remarks>
+    /// Entries that were reused from the cache keep the moment they were last refreshed, so that they still expire on
+    /// schedule. Entries that were refreshed this run, and entries that have never been stamped, are stamped now.
+    /// Leaving a refreshed entry with its original timestamp would keep it permanently expired, which made every run
+    /// after the first refetch everything and yet never actually refresh the risk signals.
+    /// </remarks>
     private static void StampCacheEntries(IEnumerable<PackageInfo> packages)
     {
         DateTimeOffset cacheUpdatedAt = DateTimeOffset.UtcNow;
-        foreach (PackageInfo package in packages)
+        foreach (PackageInfo package in packages.Where(package => package.CacheUpdatedAt is null))
         {
-            if (package.CacheUpdatedAt == default)
-            {
-                package.CacheUpdatedAt = cacheUpdatedAt;
-            }
+            package.CacheUpdatedAt = cacheUpdatedAt;
         }
     }
 
@@ -211,14 +214,20 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
     /// </summary>
     private PackageInfo? FindCachedPackage(string name, string version, string[] sourceUrls)
     {
-        PackageInfo? package =
-            cache.Values.FirstOrDefault(p => MatchesPackage(p, name, version, sourceUrls) && ShouldReuseCachedPackage(p));
-
-        if (package is not null)
+        PackageInfo? package = cache.Values.FirstOrDefault(p => MatchesPackage(p, name, version, sourceUrls));
+        if (package is null)
         {
-            packages[package.GetCollectionKey()] = package;
+            return null;
         }
 
+        if (!ShouldReuseCachedPackage(package))
+        {
+            logger.LogDebug("Cached metadata for {Name} {Version} is stale and will be refreshed", name, version);
+            package.InvalidateCachedMetadata();
+            return null;
+        }
+
+        packages[package.GetCollectionKey()] = package;
         return package;
     }
 
@@ -267,8 +276,8 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
     }
 
     /// <summary>
-    /// Copies missing metadata fields (source, source URL, repository URL, license, license URL)
-    /// from <paramref name="source"/> into <paramref name="target"/> without overwriting existing values.
+    /// Copies the metadata that <paramref name="target"/> is missing from <paramref name="source"/>, without
+    /// overwriting the values it already has.
     /// </summary>
     private static void MergePackageMetadata(PackageInfo target, PackageInfo source)
     {
@@ -282,7 +291,15 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
             target.SourceUrl = source.SourceUrl;
         }
 
-        target.RepositoryUrl ??= source.RepositoryUrl;
+        MergeLicense(target, source);
+        MergeVersionMetadata(target, source);
+    }
+
+    /// <summary>
+    /// Copies the license of <paramref name="source"/> when <paramref name="target"/> has none.
+    /// </summary>
+    private static void MergeLicense(PackageInfo target, PackageInfo source)
+    {
         if (target.License is null && source.License is not null)
         {
             target.License = source.License;
@@ -290,6 +307,23 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
         }
 
         target.LicenseUrl ??= source.LicenseUrl;
+    }
+
+    /// <summary>
+    /// Copies the registry metadata that goes out of date, so that a refreshed entry picks up the values that were
+    /// just fetched rather than keeping the ones it was invalidated for.
+    /// </summary>
+    private static void MergeVersionMetadata(PackageInfo target, PackageInfo source)
+    {
+        target.RepositoryUrl ??= source.RepositoryUrl;
+        target.IsDeprecated ??= source.IsDeprecated;
+        target.PublishedAt ??= source.PublishedAt;
+        target.DownloadCount ??= source.DownloadCount;
+        target.LatestStableVersion ??= source.LatestStableVersion;
+        target.LatestStablePublishedAt ??= source.LatestStablePublishedAt;
+        target.VersionUpdateLagDays ??= source.VersionUpdateLagDays;
+        target.IsMajorVersionBehindLatest |= source.IsMajorVersionBehindLatest;
+        target.IsMinorVersionBehindLatest |= source.IsMinorVersionBehindLatest;
     }
 
     /// <summary>
