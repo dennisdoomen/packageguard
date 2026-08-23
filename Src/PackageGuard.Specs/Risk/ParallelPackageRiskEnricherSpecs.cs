@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
+using PackageGuard.Core.GitHub;
 using PackageGuard.Core.Package;
 using PackageGuard.Core.Risk;
 using PackageGuard.Core.Risk.Enrichment;
@@ -23,6 +24,11 @@ public class ParallelPackageRiskEnricherSpecs
     private static readonly ILogger DiagnosticLogger = LoggerFactory
         .Create(b => b.AddConsole().SetMinimumLevel(LogLevel.Trace))
         .CreateLogger("GitHubDiagnostics");
+
+    /// <summary>
+    /// The token the live GitHub tests authenticate with, when one is configured.
+    /// </summary>
+    private static readonly string GitHubApiKey = Environment.GetEnvironmentVariable("GITHUB_API_KEY");
 
     [TestMethod]
     public async Task Skips_enrichers_that_already_have_cached_data()
@@ -86,8 +92,8 @@ public class ParallelPackageRiskEnricherSpecs
     [TestCategory("Integration")]
     public async Task GitHub_enricher_should_populate_repository_data_for_a_well_known_package()
     {
-        var enricher = new GitHubRepositoryRiskEnricher(DiagnosticLogger,
-            gitHubApiKey: Environment.GetEnvironmentVariable("GITHUB_API_KEY"));
+        using var client = new GitHubApiClient(DiagnosticLogger, GitHubApiKey);
+        var enricher = new GitHubRepositoryRiskEnricher(DiagnosticLogger, client);
         var package = new PackageInfo
         {
             Name = "Newtonsoft.Json",
@@ -96,6 +102,8 @@ public class ParallelPackageRiskEnricherSpecs
         };
 
         await enricher.EnrichAsync(package);
+
+        SkipWhenGitHubRefusedToAnswer(client);
 
         package.HasGitHubRiskData.Should().BeTrue();
         package.ContributorCount.Should().BeGreaterThan(0);
@@ -146,8 +154,7 @@ public class ParallelPackageRiskEnricherSpecs
     [TestCategory("Integration")]
     public async Task Full_enrichment_pipeline_should_populate_all_network_risk_signals_for_a_real_package()
     {
-        var enricher = new ParallelPackageRiskEnricher(DiagnosticLogger,
-            gitHubApiKey: Environment.GetEnvironmentVariable("GITHUB_API_KEY"));
+        var enricher = new ParallelPackageRiskEnricher(DiagnosticLogger, GitHubApiKey);
         var package = new PackageInfo
         {
             Name = "Newtonsoft.Json",
@@ -161,7 +168,27 @@ public class ParallelPackageRiskEnricherSpecs
 
         package.HasOsvRiskData.Should().BeTrue();
         package.HasValidatedLicenseUrl.Should().BeTrue();
+
+        SkipWhenGitHubRefusedToAnswer(GitHubApi.GetOrCreateClient(DiagnosticLogger, GitHubApiKey));
+
         package.HasGitHubRiskData.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// Reports the test as inconclusive when GitHub stopped answering because the rate limit budget ran out.
+    /// </summary>
+    /// <remarks>
+    /// These tests talk to the live API. Runners share an IP, so an unauthenticated run competes for 60 requests an
+    /// hour with everything else on that address. Asserting on signals GitHub declined to hand over would report a
+    /// spent budget as a defect in the code under test.
+    /// </remarks>
+    private static void SkipWhenGitHubRefusedToAnswer(GitHubApiClient client)
+    {
+        if (client.IsExhausted)
+        {
+            Assert.Inconclusive("Skipped because the GitHub API rate limit is exhausted. Set GITHUB_API_KEY to a " +
+                "personal access token to raise the limit from 60 to 5000 requests per hour.");
+        }
     }
 
     private sealed class FakeRiskEnricher(Func<PackageInfo, bool> hasCachedData) : IEnrichPackageRisk
