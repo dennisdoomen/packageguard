@@ -56,6 +56,10 @@
       <None Include="TestCases\UnreachableFeed\Program.cs">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <Compile Remove="TestCases\NetArchTestApp\Program.cs" />
+      <None Include="TestCases\NetArchTestApp\Program.cs">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
       <Compile Remove="TestCases\Prerelease\UnitTest1.cs" />
       <None Include="TestCases\Prerelease\UnitTest1.cs">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -139,6 +143,12 @@
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Include="TestCases\UnreachableFeed\ConsoleApp.csproj">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Include="TestCases\NetArchTestApp\ConsoleApp.sln">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Include="TestCases\NetArchTestApp\ConsoleApp.csproj">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
       <None Include="TestCases\UnknownLicense\ConsoleApp.csproj">
