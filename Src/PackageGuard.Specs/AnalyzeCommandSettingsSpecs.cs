@@ -1,5 +1,6 @@
 using System.Threading;
 using FluentAssertions;
+using JetBrains.Annotations;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Spectre.Console;
 using Spectre.Console.Cli;
@@ -56,16 +57,18 @@ public class AnalyzeCommandSettingsSpecs
         CapturingCommand.LastSettings = null;
         app.Run(args);
 
-        CapturingCommand.LastSettings.Should().NotBeNull();
-        CapturingCommand.LastSettings.ReportRisk.Should().BeTrue();
-        CapturingCommand.LastSettings.GetReportRiskPath().Should().Be(expectedPath);
+        AnalyzeCommandSettings settings = CapturingCommand.LastSettings;
+        settings.Should().NotBeNull();
+        settings.ReportRisk.Should().BeTrue();
+        settings.GetReportRiskPath().Should().Be(expectedPath);
     }
 
     /// <summary>
     /// A no-op command used to capture the <see cref="AnalyzeCommandSettings"/> that Spectre.Console.Cli bound
     /// from the command line, so the actual parsing behavior of <see cref="AnalyzeCommandSettings.ReportRiskOption"/>
-    /// can be verified end-to-end.
+    /// can be verified end-to-end. Instantiated by <see cref="CommandApp{TDefaultCommand}"/> via reflection.
     /// </summary>
+    [UsedImplicitly]
     private sealed class CapturingCommand : Command<AnalyzeCommandSettings>
     {
         public static AnalyzeCommandSettings LastSettings { get; set; }

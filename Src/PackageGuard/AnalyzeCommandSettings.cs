@@ -147,7 +147,7 @@ public class AnalyzeCommandSettings : CommandSettings
     /// </summary>
     public string? GetReportRiskPath()
     {
-        string? reportRiskPath = ReportRiskOption.Value;
+        string reportRiskPath = ReportRiskOption.Value;
         if (string.IsNullOrWhiteSpace(reportRiskPath))
         {
             return null;
