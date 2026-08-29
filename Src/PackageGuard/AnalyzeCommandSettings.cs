@@ -23,11 +23,6 @@ public class AnalyzeCommandSettings : CommandSettings
     /// </summary>
     public const string DefaultConfigFileName = "config.json";
 
-    /// <summary>
-    /// Environment variable that overrides the output path for the risk report, used in CI pipelines.
-    /// </summary>
-    internal const string ReportRiskPathOverrideEnvironmentVariable = "PACKAGEGUARD_REPORT_RISK_PATH_OVERRIDE";
-
     [Description(
         "The path to a directory containing a .sln/.slnx file and/or a package.json, a specific .sln/.slnx file, a specific .csproj file, or a specific package.json. Defaults to the current working directory")]
     [CommandArgument(0, "[path]")]
@@ -100,8 +95,13 @@ public class AnalyzeCommandSettings : CommandSettings
 
     [Description(
         "Show a colored risk summary in the console and generate detailed HTML/SARIF risk reports. Optionally provide a directory or file path. Directories receive generated file names; explicit filenames are used directly and may overwrite prior files.")]
-    [CommandOption("--report-risk|--reportrisk")]
-    public bool ReportRisk { get; set; }
+    [CommandOption("--report-risk|--reportrisk [PATH]")]
+    public FlagValue<string> ReportRiskOption { get; set; } = new();
+
+    /// <summary>
+    /// Gets a value indicating whether risk reporting was requested via <see cref="ReportRiskOption"/>.
+    /// </summary>
+    public bool ReportRisk => ReportRiskOption.IsSet;
 
     [Description("Enable verbose (debug-level) logging output. Combine with --report-risk to see individual HTTP calls to GitHub, OSV, and npm registries.")]
     [CommandOption("-v|--verbose")]
@@ -142,12 +142,12 @@ public class AnalyzeCommandSettings : CommandSettings
     }
 
     /// <summary>
-    /// Returns the report risk output path when overridden via the
-    /// <see cref="ReportRiskPathOverrideEnvironmentVariable"/> environment variable, or <c>null</c> if not set.
+    /// Returns the directory or file path that was explicitly provided after <c>--report-risk</c>, or
+    /// <c>null</c> when the flag was used without a path (or not used at all).
     /// </summary>
     public string? GetReportRiskPath()
     {
-        string? reportRiskPath = Environment.GetEnvironmentVariable(ReportRiskPathOverrideEnvironmentVariable);
+        string? reportRiskPath = ReportRiskOption.Value;
         if (string.IsNullOrWhiteSpace(reportRiskPath))
         {
             return null;
