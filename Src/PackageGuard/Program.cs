@@ -38,6 +38,14 @@ var app = new CommandApp<AnalyzeCommand>(registrar).WithData(logger);
 app.Configure(c =>
 {
     c.CaseSensitivity(CaseSensitivity.None);
+
+    // Spectre.Console.Cli only prints the exception's message by default, discarding the stack trace.
+    // Always log the full exception so unexpected failures can be diagnosed from the console output.
+    c.SetExceptionHandler((ex, _) =>
+    {
+        logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+        return -1;
+    });
 });
 
 return app.Run(args);
