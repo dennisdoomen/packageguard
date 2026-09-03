@@ -611,12 +611,12 @@ internal sealed class OsvRiskEnricher(ILogger logger, HttpClient? httpClient = n
     /// </summary>
     private static IEnumerable<string> EnumerateTextSeverities(JsonElement vulnerability)
     {
-        if (TryReadTextSeverity(vulnerability, "ecosystem_specific", out string? ecosystemSeverity))
+        if (TryReadTextSeverity(vulnerability, "ecosystem_specific", out string ecosystemSeverity))
         {
             yield return ecosystemSeverity;
         }
 
-        if (TryReadTextSeverity(vulnerability, "database_specific", out string? databaseSeverity))
+        if (TryReadTextSeverity(vulnerability, "database_specific", out string databaseSeverity))
         {
             yield return databaseSeverity;
         }
@@ -628,12 +628,12 @@ internal sealed class OsvRiskEnricher(ILogger logger, HttpClient? httpClient = n
 
         foreach (JsonElement affectedPackage in affected.EnumerateArray())
         {
-            if (TryReadTextSeverity(affectedPackage, "ecosystem_specific", out string? affectedEcosystemSeverity))
+            if (TryReadTextSeverity(affectedPackage, "ecosystem_specific", out string affectedEcosystemSeverity))
             {
                 yield return affectedEcosystemSeverity;
             }
 
-            if (TryReadTextSeverity(affectedPackage, "database_specific", out string? affectedDatabaseSeverity))
+            if (TryReadTextSeverity(affectedPackage, "database_specific", out string affectedDatabaseSeverity))
             {
                 yield return affectedDatabaseSeverity;
             }
