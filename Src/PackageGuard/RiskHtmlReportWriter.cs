@@ -212,6 +212,11 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine("    .rationale-list, .detail-list { margin: 12px 0 0; padding-left: 20px; }");
         builder.AppendLine("    .detail-list { list-style: none; padding-left: 0; }");
         builder.AppendLine("    .detail-list li { padding: 4px 0; }");
+        builder.AppendLine("    .detail-toggle { margin-top: 6px; }");
+        builder.AppendLine("    .detail-toggle summary { cursor: pointer; color: #1d4ed8; }");
+        builder.AppendLine(
+            "    .detail-sublist { list-style: disc; margin: 8px 0 0; padding-left: 20px; color: #334155; }");
+        builder.AppendLine("    .detail-sublist li { padding: 2px 0; }");
         builder.AppendLine("    .label { color: #475569; font-weight: 600; }");
         builder.AppendLine("    .rationale-list strong { color: #991b1b; }");
         builder.AppendLine("    .meta { color: #64748b; }");
@@ -333,9 +338,9 @@ internal static class RiskHtmlReportWriter
             builder.AppendLine("    <h3>Evidence</h3>");
             builder.AppendLine("    <ul class=\"detail-list\">");
 
-            foreach ((string label, string value) in BuildDetails(package))
+            foreach (DetailEntry entry in BuildDetails(package))
             {
-                builder.AppendLine($"      <li><span class=\"label\">{Encode(label)}:</span> {Encode(value)}</li>");
+                AppendDetailListItem(builder, entry);
             }
 
             builder.AppendLine("    </ul>");
@@ -368,9 +373,48 @@ internal static class RiskHtmlReportWriter
     }
 
     /// <summary>
+    /// Appends an evidence list item, rendering any accompanying items as a collapsed-by-default panel so long
+    /// dependency lists don't dominate the page.
+    /// </summary>
+    private static void AppendDetailListItem(StringBuilder builder, DetailEntry entry)
+    {
+        if (entry.Items is { Count: > 0 })
+        {
+            builder.AppendLine("      <li>");
+            builder.AppendLine($"        <span class=\"label\">{Encode(entry.Label)}:</span> {Encode(entry.Value)}");
+            builder.AppendLine("        <details class=\"detail-toggle\">");
+            builder.AppendLine(
+                $"          <summary>Show {entry.Items.Count} {(entry.Items.Count == 1 ? "item" : "items")}</summary>");
+            builder.AppendLine("          <ul class=\"detail-sublist\">");
+
+            foreach (string item in entry.Items)
+            {
+                builder.AppendLine($"            <li>{Encode(item)}</li>");
+            }
+
+            builder.AppendLine("          </ul>");
+            builder.AppendLine("        </details>");
+            builder.AppendLine("      </li>");
+        }
+        else
+        {
+            builder.AppendLine($"      <li><span class=\"label\">{Encode(entry.Label)}:</span> {Encode(entry.Value)}</li>");
+        }
+    }
+
+    /// <summary>
+    /// An evidence label/value pair, optionally accompanied by the full list of items (e.g. package names) behind
+    /// the value, rendered as a collapsed-by-default panel.
+    /// </summary>
+    private readonly record struct DetailEntry(string Label, string Value, IReadOnlyCollection<string>? Items = null)
+    {
+        public static implicit operator DetailEntry((string Label, string Value) pair) => new(pair.Label, pair.Value);
+    }
+
+    /// <summary>
     /// Yields label/value pairs representing the key metadata fields shown in the package detail section.
     /// </summary>
-    private static IEnumerable<(string Label, string Value)> BuildDetails(PackageInfo package)
+    private static IEnumerable<DetailEntry> BuildDetails(PackageInfo package)
     {
         foreach (var item in BuildIdentityDetails(package))
         {
@@ -393,7 +437,7 @@ internal static class RiskHtmlReportWriter
         }
     }
 
-    private static IEnumerable<(string Label, string Value)> BuildIdentityDetails(PackageInfo package)
+    private static IEnumerable<DetailEntry> BuildIdentityDetails(PackageInfo package)
     {
         string[] displayProjectPaths = GetDisplayProjectPaths(package);
         if (displayProjectPaths.Length > 0)
@@ -440,7 +484,7 @@ internal static class RiskHtmlReportWriter
         }
     }
 
-    private static IEnumerable<(string Label, string Value)> BuildSecurityDetails(PackageInfo package)
+    private static IEnumerable<DetailEntry> BuildSecurityDetails(PackageInfo package)
     {
         if (package.IsPackageSigned != null)
         {
@@ -470,11 +514,10 @@ internal static class RiskHtmlReportWriter
 
         if (package.VulnerabilityCount > 0)
         {
-            string vulnerabilityIds = RiskEvaluationHelpers.FormatDetailList(
+            yield return new DetailEntry(
+                "Vulnerabilities",
+                $"{package.VulnerabilityCount} (max severity {FormatDecimal(package.MaxVulnerabilitySeverity)})",
                 package.Vulnerabilities.Select(vulnerability => vulnerability.Id).ToArray());
-
-            yield return ("Vulnerabilities",
-                $"{package.VulnerabilityCount} (max severity {FormatDecimal(package.MaxVulnerabilitySeverity)}){vulnerabilityIds}");
         }
 
         if (package.MedianVulnerabilityFixDays != null)
@@ -489,32 +532,42 @@ internal static class RiskHtmlReportWriter
 
         if (package.TransitiveVulnerabilityCount > 0)
         {
-            yield return ("Transitive vulnerabilities",
-                $"{package.TransitiveVulnerabilityCount}{RiskEvaluationHelpers.FormatDetailList(package.VulnerableTransitiveDependencyDetails)}");
+            yield return new DetailEntry(
+                "Transitive vulnerabilities",
+                package.TransitiveVulnerabilityCount.ToString(CultureInfo.InvariantCulture),
+                package.VulnerableTransitiveDependencyDetails);
         }
 
         if (package.StaleTransitiveDependencyCount != null)
         {
-            yield return ("Stale transitive dependencies",
-                $"{package.StaleTransitiveDependencyCount.Value}{RiskEvaluationHelpers.FormatDetailList(package.StaleTransitiveDependencyDetails)}");
+            yield return new DetailEntry(
+                "Stale transitive dependencies",
+                package.StaleTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture),
+                package.StaleTransitiveDependencyDetails);
         }
 
         if (package.AbandonedTransitiveDependencyCount != null)
         {
-            yield return ("Potentially abandoned transitive dependencies",
-                $"{package.AbandonedTransitiveDependencyCount.Value}{RiskEvaluationHelpers.FormatDetailList(package.AbandonedTransitiveDependencyDetails)}");
+            yield return new DetailEntry(
+                "Potentially abandoned transitive dependencies",
+                package.AbandonedTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture),
+                package.AbandonedTransitiveDependencyDetails);
         }
 
         if (package.DeprecatedTransitiveDependencyCount != null)
         {
-            yield return ("Deprecated transitive dependencies",
-                $"{package.DeprecatedTransitiveDependencyCount.Value}{RiskEvaluationHelpers.FormatDetailList(package.DeprecatedTransitiveDependencyDetails)}");
+            yield return new DetailEntry(
+                "Deprecated transitive dependencies",
+                package.DeprecatedTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture),
+                package.DeprecatedTransitiveDependencyDetails);
         }
 
         if (package.UnmaintainedCriticalTransitiveDependencyCount != null)
         {
-            yield return ("Unmaintained critical transitives",
-                $"{package.UnmaintainedCriticalTransitiveDependencyCount.Value}{RiskEvaluationHelpers.FormatDetailList(package.UnmaintainedCriticalTransitiveDependencyDetails)}");
+            yield return new DetailEntry(
+                "Unmaintained critical transitives",
+                package.UnmaintainedCriticalTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture),
+                package.UnmaintainedCriticalTransitiveDependencyDetails);
         }
 
         if (package.HasNativeBinaryAssets != null)
@@ -544,7 +597,7 @@ internal static class RiskHtmlReportWriter
         }
     }
 
-    private static IEnumerable<(string Label, string Value)> BuildOperationalDetails(PackageInfo package)
+    private static IEnumerable<DetailEntry> BuildOperationalDetails(PackageInfo package)
     {
         if (package.ContributorCount != null)
         {
@@ -619,7 +672,7 @@ internal static class RiskHtmlReportWriter
         }
     }
 
-    private static IEnumerable<(string Label, string Value)> BuildWorkflowDetails(PackageInfo package)
+    private static IEnumerable<DetailEntry> BuildWorkflowDetails(PackageInfo package)
     {
         if (package.RecentFailedWorkflowCount != null)
         {
@@ -676,7 +729,7 @@ internal static class RiskHtmlReportWriter
         }
     }
 
-    private static IEnumerable<(string Label, string Value)> BuildReleaseDetails(PackageInfo package)
+    private static IEnumerable<DetailEntry> BuildReleaseDetails(PackageInfo package)
     {
         if (package.ReadmeUpdatedAt != null)
         {

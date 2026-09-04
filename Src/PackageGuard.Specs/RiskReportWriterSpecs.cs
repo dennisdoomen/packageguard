@@ -197,27 +197,32 @@ internal sealed class RiskReportWriterSpecs
 
         string html = await File.ReadAllTextAsync(reportPaths.HtmlPath);
 
-        html.Should().Contain(
-            "<li><span class=\"label\">Vulnerabilities:</span> 1 (max severity 8.0): GHSA-aaaa-bbbb-cccc</li>");
+        html.Should().Contain("<span class=\"label\">Vulnerabilities:</span> 1 (max severity 8.0)");
+        html.Should().Contain("<summary>Show 1 item</summary>");
+        html.Should().Contain("<li>GHSA-aaaa-bbbb-cccc</li>");
 
-        html.Should().Contain(
-            "<li><span class=\"label\">Transitive vulnerabilities:</span> 1: Vulnerable.Dependency 2.0.0 (GHSA-dddd-eeee-ffff)</li>");
+        html.Should().Contain("<span class=\"label\">Transitive vulnerabilities:</span> 1");
+        html.Should().Contain("<li>Vulnerable.Dependency 2.0.0 (GHSA-dddd-eeee-ffff)</li>");
 
-        html.Should().Contain(
-            "<li><span class=\"label\">Stale transitive dependencies:</span> 1: Stale.Package 1.2.3 (last release 2020-01-01)</li>");
+        html.Should().Contain("<span class=\"label\">Stale transitive dependencies:</span> 1");
+        html.Should().Contain("<li>Stale.Package 1.2.3 (last release 2020-01-01)</li>");
 
-        html.Should().Contain(
-            "<li><span class=\"label\">Potentially abandoned transitive dependencies:</span> 1: Abandoned.Package 1.2.3 (known vulnerabilities)</li>");
+        html.Should().Contain("<span class=\"label\">Potentially abandoned transitive dependencies:</span> 1");
+        html.Should().Contain("<li>Abandoned.Package 1.2.3 (known vulnerabilities)</li>");
 
-        html.Should().Contain(
-            "<li><span class=\"label\">Deprecated transitive dependencies:</span> 1: Deprecated.Package 3.0.0</li>");
+        html.Should().Contain("<span class=\"label\">Deprecated transitive dependencies:</span> 1");
+        html.Should().Contain("<li>Deprecated.Package 3.0.0</li>");
 
-        html.Should().Contain(
-            "<li><span class=\"label\">Unmaintained critical transitives:</span> 1: Critical.Package 4.5.6 (max severity 9.0)</li>");
+        html.Should().Contain("<span class=\"label\">Unmaintained critical transitives:</span> 1");
+        html.Should().Contain("<li>Critical.Package 4.5.6 (max severity 9.0)</li>");
+
+        // The detail panels must be collapsed by default (no "open" attribute on <details>).
+        html.Should().NotContain("<details class=\"detail-toggle\" open>");
+        html.Should().NotContain("<details open class=\"detail-toggle\">");
     }
 
     [TestMethod]
-    public async Task Should_truncate_evidence_detail_list_and_show_remaining_count_when_more_than_eight_items()
+    public async Task Should_show_all_evidence_detail_list_items_in_a_collapsed_by_default_panel()
     {
         string[] staleDetails = Enumerable.Range(1, 10)
             .Select(i => $"Package{i} 1.0.0 (last release 2020-01-01)")
@@ -238,10 +243,18 @@ internal sealed class RiskReportWriterSpecs
 
         string html = await File.ReadAllTextAsync(reportPaths.HtmlPath);
 
-        html.Should().Contain("Package1 1.0.0");
-        html.Should().Contain("Package8 1.0.0");
-        html.Should().NotContain("Package9 1.0.0");
-        html.Should().Contain("and 2 more");
+        // All 10 items should be present, without any truncation.
+        foreach (string detail in staleDetails)
+        {
+            html.Should().Contain($"<li>{detail}</li>");
+        }
+
+        html.Should().NotContain("and 2 more");
+        html.Should().Contain("<summary>Show 10 items</summary>");
+
+        // Collapsed by default: the <details> element must not have an "open" attribute.
+        html.Should().NotContain("<details class=\"detail-toggle\" open>");
+        html.Should().NotContain("<details open class=\"detail-toggle\">");
     }
 
     [TestMethod]

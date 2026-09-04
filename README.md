@@ -400,7 +400,7 @@ Not every package exposes every signal. PackageGuard uses the evidence it can fi
 - **Branch protection** - repositories without branch protection on the default branch are treated as riskier.
 - **Repository ownership or rename churn** - recent ownership transfers or rename churn can indicate instability or provenance uncertainty.
 
-The generated HTML report includes the per-package rationale behind every score and a clickable summary that jumps directly to the package details section. The Evidence section for each package also lists the specific package names, versions, OSV vulnerability IDs and release dates behind vulnerable, stale, abandoned, deprecated and unmaintained-critical transitive dependency findings (capped at 8 entries, with the remainder summarized as "and N more").
+The generated HTML report includes the per-package rationale behind every score and a clickable summary that jumps directly to the package details section. The Evidence section for each package also lists the specific package names, versions, OSV vulnerability IDs and release dates behind vulnerable, stale, abandoned, deprecated and unmaintained-critical transitive dependency findings, shown in a collapsed-by-default panel so long lists don't clutter the page.
 
 The HTML report is intentionally static and self-contained:
 
