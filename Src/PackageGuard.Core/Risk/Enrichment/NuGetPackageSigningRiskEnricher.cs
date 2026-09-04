@@ -72,7 +72,15 @@ internal sealed class NuGetPackageSigningRiskEnricher(ILogger logger, string? gl
 
         package.IsPackageSigned = archiveRiskData.IsSigned;
         package.HasTrustedPackageSignature = archiveRiskData.HasTrustedSignature;
-        package.HasVerifiedPublisher ??= archiveRiskData.HasTrustedSignature;
+
+        // An unsigned package has no publisher-trust signal of its own, so leave HasVerifiedPublisher
+        // unset in that case and let the GitHub organization-ownership fallback decide instead of
+        // permanently recording "false" for a package that simply isn't signed.
+        if (archiveRiskData.IsSigned is true)
+        {
+            package.HasVerifiedPublisher ??= archiveRiskData.HasTrustedSignature;
+        }
+
         package.SupportedTargetFrameworks = archiveRiskData.SupportedTargetFrameworks;
         package.HasModernTargetFrameworkSupport = archiveRiskData.HasModernTargetFrameworkSupport;
         package.HasNativeBinaryAssets = archiveRiskData.HasNativeBinaryAssets;

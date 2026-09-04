@@ -500,7 +500,10 @@ public partial class PackageInfo
 
     /// <summary>
     /// Gets or sets whether PackageGuard found a trustworthy publisher signal.
-    /// For NuGet this is seeded from trusted package-signature verification; for GitHub-backed data it falls back to the heuristic that organization-owned repositories provide a stronger publisher signal than personal accounts.
+    /// For a signed NuGet package this is seeded from trusted package-signature verification. Otherwise (an
+    /// unsigned package, or npm) it falls back to the heuristic that organization-owned repositories provide a
+    /// stronger publisher signal than personal accounts, so an unsigned package doesn't shadow a real
+    /// organization-ownership signal from GitHub.
     /// </summary>
     public bool? HasVerifiedPublisher { get; set; }
 

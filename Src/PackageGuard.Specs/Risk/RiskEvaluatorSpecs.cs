@@ -175,7 +175,7 @@ internal class RiskEvaluatorSpecs
             .Contain(item => item.Contains("Known vulnerabilities found (1, max severity 8.0)"));
 
         package.RiskDimensions.SecurityRiskRationale.Should()
-            .Contain(item => item.Contains("Median time from vulnerability disclosure to fix release is slow"));
+            .Contain(item => item.Contains("Median time between vulnerability advisory publication and its last update is slow"));
 
         package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("Deep dependency chain (depth 11)"));
         package.RiskDimensions.SecurityRiskRationale.Should()

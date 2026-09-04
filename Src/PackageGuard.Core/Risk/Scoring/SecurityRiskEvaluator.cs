@@ -64,21 +64,21 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         {
             vulnerabilityRisk += 1.0;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Median time from vulnerability disclosure to fix release is slow ({RiskEvaluationHelpers.FormatScore(package.MedianVulnerabilityFixDays.Value)} days)",
+                $"Median time between vulnerability advisory publication and its last update is slow ({RiskEvaluationHelpers.FormatScore(package.MedianVulnerabilityFixDays.Value)} days)",
                 1.0));
         }
         else if (package.MedianVulnerabilityFixDays is > 60)
         {
             vulnerabilityRisk += 0.5;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Median time from vulnerability disclosure to fix release is elevated ({RiskEvaluationHelpers.FormatScore(package.MedianVulnerabilityFixDays.Value)} days)",
+                $"Median time between vulnerability advisory publication and its last update is elevated ({RiskEvaluationHelpers.FormatScore(package.MedianVulnerabilityFixDays.Value)} days)",
                 0.5));
         }
         else if (package.MedianVulnerabilityFixDays != null)
         {
             double fixDays = package.MedianVulnerabilityFixDays.Value;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Median time from vulnerability disclosure to fix release looks reasonable ({RiskEvaluationHelpers.FormatScore(fixDays)} days)", 0.0));
+                $"Median time between vulnerability advisory publication and its last update looks reasonable ({RiskEvaluationHelpers.FormatScore(fixDays)} days)", 0.0));
         }
 
         double cappedVulnerabilityRisk = Math.Min(6.0, vulnerabilityRisk);

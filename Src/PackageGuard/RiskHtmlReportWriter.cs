@@ -522,7 +522,7 @@ internal static class RiskHtmlReportWriter
 
         if (package.MedianVulnerabilityFixDays != null)
         {
-            yield return ("Median vulnerability fix time", $"{FormatDecimal(package.MedianVulnerabilityFixDays.Value)} days");
+            yield return ("Median advisory publication-to-update time", $"{FormatDecimal(package.MedianVulnerabilityFixDays.Value)} days");
         }
 
         if (package.DependencyDepth > 0)

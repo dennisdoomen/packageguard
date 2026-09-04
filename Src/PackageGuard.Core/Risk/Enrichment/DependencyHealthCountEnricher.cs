@@ -1,3 +1,4 @@
+using System.Globalization;
 using PackageGuard.Core.Package;
 using PackageGuard.Core.Risk.Scoring;
 
@@ -121,7 +122,7 @@ internal sealed class DependencyHealthCountEnricher(IReadOnlyDictionary<string, 
     /// </summary>
     private static string FormatStaleDetail(PackageInfo dependency)
     {
-        string publishedAt = dependency.PublishedAt?.ToString("yyyy-MM-dd") ?? "unknown";
+        string publishedAt = dependency.PublishedAt?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "unknown";
         return $"{FormatIdentity(dependency)} (last release {publishedAt})";
     }
 
