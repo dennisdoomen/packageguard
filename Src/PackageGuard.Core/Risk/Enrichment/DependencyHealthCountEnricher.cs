@@ -1,10 +1,12 @@
+using System.Globalization;
 using PackageGuard.Core.Package;
+using PackageGuard.Core.Risk.Scoring;
 
 namespace PackageGuard.Core.Risk.Enrichment;
 
 /// <summary>
-/// Enriches each <see cref="PackageInfo"/> with transitive dependency health counts: stale, abandoned,
-/// deprecated, and unmaintained-critical packages reachable through the dependency graph.
+/// Enriches each <see cref="PackageInfo"/> with transitive dependency health counts and evidence: stale,
+/// abandoned, deprecated, and unmaintained-critical packages reachable through the dependency graph.
 /// </summary>
 internal sealed class DependencyHealthCountEnricher(IReadOnlyDictionary<string, PackageInfo> packagesByKey)
     : IEnrichPackageRisk
@@ -15,34 +17,35 @@ internal sealed class DependencyHealthCountEnricher(IReadOnlyDictionary<string, 
     public bool HasCachedData(PackageInfo package) => false;
 
     /// <summary>
-    /// Counts the stale, abandoned, deprecated, and unmaintained-critical transitive dependencies of
-    /// <paramref name="package"/> and assigns the results to the corresponding
-    /// <see cref="PackageInfo"/> properties.
+    /// Collects the stale, abandoned, deprecated, and unmaintained-critical transitive dependencies of
+    /// <paramref name="package"/> and assigns the resulting counts and evidence details to the
+    /// corresponding <see cref="PackageInfo"/> properties.
     /// </summary>
     public Task EnrichAsync(PackageInfo package)
     {
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        DependencyHealthCounts counts = CountDependencyHealth(package, visited);
+        var details = new DependencyHealthDetails();
+        CollectDependencyHealth(package, visited, details);
 
-        package.StaleTransitiveDependencyCount = counts.StaleCount;
-        package.AbandonedTransitiveDependencyCount = counts.AbandonedCount;
-        package.DeprecatedTransitiveDependencyCount = counts.DeprecatedCount;
-        package.UnmaintainedCriticalTransitiveDependencyCount = counts.UnmaintainedCriticalCount;
+        package.StaleTransitiveDependencyCount = details.Stale.Count;
+        package.StaleTransitiveDependencyDetails = details.Stale.ToArray();
+        package.AbandonedTransitiveDependencyCount = details.Abandoned.Count;
+        package.AbandonedTransitiveDependencyDetails = details.Abandoned.ToArray();
+        package.DeprecatedTransitiveDependencyCount = details.Deprecated.Count;
+        package.DeprecatedTransitiveDependencyDetails = details.Deprecated.ToArray();
+        package.UnmaintainedCriticalTransitiveDependencyCount = details.UnmaintainedCritical.Count;
+        package.UnmaintainedCriticalTransitiveDependencyDetails = details.UnmaintainedCritical.ToArray();
 
         return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Recursively counts the number of unique stale, abandoned, deprecated, and unmaintained-critical
-    /// transitive dependencies of <paramref name="package"/>, avoiding cycles via <paramref name="visited"/>.
+    /// Recursively collects descriptions of the unique stale, abandoned, deprecated, and
+    /// unmaintained-critical transitive dependencies of <paramref name="package"/> into
+    /// <paramref name="details"/>, avoiding cycles via <paramref name="visited"/>.
     /// </summary>
-    private DependencyHealthCounts CountDependencyHealth(PackageInfo package, HashSet<string> visited)
+    private void CollectDependencyHealth(PackageInfo package, HashSet<string> visited, DependencyHealthDetails details)
     {
-        int staleCount = 0;
-        int abandonedCount = 0;
-        int deprecatedCount = 0;
-        int unmaintainedCriticalCount = 0;
-
         foreach (string dependencyKey in package.DependencyKeys)
         {
             if (!visited.Add(dependencyKey))
@@ -57,33 +60,26 @@ internal sealed class DependencyHealthCountEnricher(IReadOnlyDictionary<string, 
 
             if (IsStaleDependency(dependency))
             {
-                staleCount++;
+                details.Stale.Add(FormatStaleDetail(dependency));
             }
 
             if (LooksAbandonedAndRisky(dependency))
             {
-                abandonedCount++;
+                details.Abandoned.Add(FormatAbandonedDetail(dependency));
             }
 
             if (dependency.IsDeprecated == true)
             {
-                deprecatedCount++;
+                details.Deprecated.Add(FormatIdentity(dependency));
             }
 
             if (LooksUnmaintainedAndCritical(dependency))
             {
-                unmaintainedCriticalCount++;
+                details.UnmaintainedCritical.Add(FormatUnmaintainedCriticalDetail(dependency));
             }
 
-            DependencyHealthCounts nested = CountDependencyHealth(dependency, visited);
-
-            staleCount += nested.StaleCount;
-            abandonedCount += nested.AbandonedCount;
-            deprecatedCount += nested.DeprecatedCount;
-            unmaintainedCriticalCount += nested.UnmaintainedCriticalCount;
+            CollectDependencyHealth(dependency, visited, details);
         }
-
-        return new DependencyHealthCounts(staleCount, abandonedCount, deprecatedCount, unmaintainedCriticalCount);
     }
 
     /// <summary>
@@ -115,4 +111,44 @@ internal sealed class DependencyHealthCountEnricher(IReadOnlyDictionary<string, 
     private static bool LooksUnmaintainedAndCritical(PackageInfo dependency) =>
         IsStaleDependency(dependency) &&
         dependency is { MaxVulnerabilitySeverity: >= 7.0, VulnerabilityCount: > 0 };
+
+    /// <summary>
+    /// Formats <paramref name="dependency"/> as "name version".
+    /// </summary>
+    private static string FormatIdentity(PackageInfo dependency) => $"{dependency.Name} {dependency.Version}";
+
+    /// <summary>
+    /// Formats a stale dependency as "name version (last release yyyy-MM-dd)".
+    /// </summary>
+    private static string FormatStaleDetail(PackageInfo dependency)
+    {
+        string publishedAt = dependency.PublishedAt?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "unknown";
+        return $"{FormatIdentity(dependency)} (last release {publishedAt})";
+    }
+
+    /// <summary>
+    /// Formats an abandoned/risky dependency as "name version (reason)", where reason reflects whether
+    /// the dependency has known vulnerabilities, low maintainer activity, or both.
+    /// </summary>
+    private static string FormatAbandonedDetail(PackageInfo dependency)
+    {
+        bool lowMaintainerSignal = dependency.ContributorCount is null or < 2;
+        bool securitySignal = dependency.VulnerabilityCount > 0 || dependency.MaxVulnerabilitySeverity >= 7.0;
+
+        string reason = (securitySignal, lowMaintainerSignal) switch
+        {
+            (true, true) => "known vulnerabilities, low maintainer activity",
+            (true, false) => "known vulnerabilities",
+            (false, true) => "low maintainer activity",
+            _ => "stale"
+        };
+
+        return $"{FormatIdentity(dependency)} ({reason})";
+    }
+
+    /// <summary>
+    /// Formats an unmaintained-critical dependency as "name version (max severity X.X)".
+    /// </summary>
+    private static string FormatUnmaintainedCriticalDetail(PackageInfo dependency) =>
+        $"{FormatIdentity(dependency)} (max severity {RiskEvaluationHelpers.FormatScore(dependency.MaxVulnerabilitySeverity)})";
 }

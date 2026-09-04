@@ -175,7 +175,7 @@ internal class RiskEvaluatorSpecs
             .Contain(item => item.Contains("Known vulnerabilities found (1, max severity 8.0)"));
 
         package.RiskDimensions.SecurityRiskRationale.Should()
-            .Contain(item => item.Contains("Median vulnerability fix time is slow"));
+            .Contain(item => item.Contains("Median time between vulnerability advisory publication and its last update is slow"));
 
         package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("Deep dependency chain (depth 11)"));
         package.RiskDimensions.SecurityRiskRationale.Should()
@@ -283,7 +283,7 @@ internal class RiskEvaluatorSpecs
             .Contain(item => item.Contains("Package is signed but trust verification failed"));
 
         package.RiskDimensions.SecurityRiskRationale.Should()
-            .Contain(item => item.Contains("Verified publisher signal was not detected"));
+            .Contain(item => item.Contains("No trusted NuGet package signature or organization-owned repository was detected"));
 
         package.RiskDimensions.OperationalRisk.Should().BeGreaterThan(9.0);
         package.RiskDimensions.OperationalRiskRationale.Should()
@@ -603,6 +603,65 @@ internal class RiskEvaluatorSpecs
 
         package.RiskDimensions.SecurityRiskRationale.Should()
             .Contain(item => item.Contains("Potentially abandoned risky transitive dependencies were detected (2)"));
+    }
+
+    [TestMethod]
+    internal void Should_only_score_stale_transitive_dependencies_in_operational_risk_not_security_risk()
+    {
+        // Arrange
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            DownloadCount = 50000,
+            StaleTransitiveDependencyCount = 3
+        };
+
+        // Act
+        riskEvaluator.EvaluateRisk(package);
+
+        // Assert
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Stale transitive dependencies were detected (3)"));
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .NotContain(item => item.Contains("stale transitive", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
+    internal void Should_only_score_abandoned_and_unmaintained_critical_transitive_dependencies_in_security_risk_not_operational_risk()
+    {
+        // Arrange
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            DownloadCount = 50000,
+            AbandonedTransitiveDependencyCount = 2,
+            UnmaintainedCriticalTransitiveDependencyCount = 1
+        };
+
+        // Act
+        riskEvaluator.EvaluateRisk(package);
+
+        // Assert
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Potentially abandoned risky transitive dependencies were detected (2)"));
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Unmaintained critical transitive dependencies were detected (1)"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .NotContain(item => item.Contains("abandoned", StringComparison.OrdinalIgnoreCase));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .NotContain(item => item.Contains("unmaintained critical", StringComparison.OrdinalIgnoreCase));
     }
 
     [TestMethod]

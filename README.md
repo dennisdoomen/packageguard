@@ -36,20 +36,20 @@
 
 ### What's this?
 
-PackageGuard is a fully open-source tool to scan the NuGet, NPM, PNPM and Yarn dependencies of your codebase against a deny- or allowlist so to control the open-source licenses that you want to allow or certain versions of certain packages you want to enforce or avoid. 
+PackageGuard is a fully open-source CLI tool that keeps your open-source supply chain honest. It scans the **NuGet, npm, pnpm and Yarn** dependencies of your codebase, enforces allow- and deny-lists for licenses, packages and versions, scores every package's legal/security/operational risk, and can emit a standards-compliant SBOM — all from a single, cacheable command that fits into any CI pipeline.
 
 At a glance, PackageGuard can:
 
-- Scan **NuGet, NPM, PNPM and Yarn** dependencies across your entire solution or codebase
-- Enforce **allow- and deny-lists** for open-source licenses, specific packages, and package versions
-- Discover configuration **hierarchically**, merging solution-, project-, and repository-level policies
-- Resolve **licenses** from NuGet/npm metadata, GitHub repositories, and other sources through a chain of fetchers
-- Assess **risk** for every package across legal, security, and operational dimensions (e.g. vulnerabilities, maintenance activity, signing) via `--report-risk`
-- Generate a **colored console summary**, a self-contained **HTML report**, and a **SARIF file** for CI integration
-- Produce a standards-compliant **Software Bill of Materials (SBOM)** in **CycloneDX** or **SPDX** JSON format via `--sbom`
-- Include **vulnerability data** (from OSV) in the SBOM when combined with `--report-risk`
-- **Cache** package, license, and risk data (`--use-caching`) to speed up repeated scans, with configurable cache freshness
-- Run as a **.NET global tool** or a **portable, cross-platform** (Windows/Linux/macOS) deployment
+- Scan **NuGet, npm, pnpm and Yarn** dependencies across an entire solution or codebase in one run, direct and transitive alike
+- Enforce **allow- and deny-lists** for open-source licenses, specific packages, and package versions, discovered **hierarchically** across solution-, project- and repository-level configuration files
+- Resolve **licenses** from NuGet/npm metadata, GitHub repositories, and downloaded license text through a chain of fetchers, falling back gracefully when a source doesn't have an answer
+- Score every package's **risk** across three dimensions - Legal, Security and Operational - via `--report-risk`, weighing signals such as license compatibility, known vulnerabilities (OSV), maintainer activity, package signing, release cadence, and dozens more
+- Back every risk score with **evidence, not just a number**: each package card in the HTML report has a dedicated Evidence section with collapsible, collapsed-by-default panels naming the exact packages, versions, GHSA/OSV vulnerability ids and release dates behind its rationale, so you can see *why* a package scored the way it did without digging through logs
+- Produce a **colored console summary**, a **self-contained HTML report** you can open in a browser, and a **SARIF file** for surfacing violations and risk findings directly in GitHub code scanning
+- Generate a standards-compliant **Software Bill of Materials (SBOM)** in **CycloneDX** or **SPDX** JSON format via `--sbom`, complete with purls, declared-vs-concluded license evidence, and a direct/transitive dependency graph
+- Enrich that SBOM with **vulnerability data** from OSV when `--sbom` is combined with `--report-risk`
+- **Cache** package, license and risk data (`--use-caching`) - including GitHub responses and per-repository risk profiles - to keep repeated scans and CI runs fast, with configurable cache freshness (`--risk-cache-max-age-hours`, `--refresh-risk-cache`)
+- Run as a **.NET global tool** or a **portable, cross-platform** (Windows/Linux/macOS) deployment - no CI-specific plugin required
 
 ### What's so special about that?
 
@@ -116,6 +116,12 @@ OPTIONS:
                                             risk reports. Optionally provide a directory or file path. Directories
                                             receive generated file names; explicit filenames are used directly and may
                                             overwrite prior files
+    -v, --verbose                           Enable verbose (debug-level) logging output. Combine with --report-risk to
+                                            see individual HTTP calls to GitHub, OSV, and npm registries
+        --sbom                              Generate a Software Bill of Materials for the resolved dependency graph, in
+                                            the given format: cyclonedx or spdx. Requires --sbom-output
+        --sbom-output                       The output file path for the generated SBOM. Required when --sbom is
+                                            specified
 ```
 
 ## How do I configure it?
@@ -135,10 +141,10 @@ Settings from multiple configuration files are merged together, with project-lev
 
 ### Manual Configuration Path
 
-You can still specify a custom configuration file path using the `--configpath` CLI parameter to override the hierarchical discovery:
+You can still specify a custom configuration file path using the `--config-path` CLI parameter to override the hierarchical discovery:
 
 ```bash
-packageguard --configpath path/to/my-config.json
+packageguard --config-path path/to/my-config.json
 ```
 
 ### About the package cache
@@ -342,10 +348,9 @@ Not every package exposes every signal. PackageGuard uses the evidence it can fi
 - **Verified release signature signal** - signed and verifiable releases reduce release-tampering concern.
 - **Verified commit coverage** - repositories where recent commits are mostly verified score better than repositories with little or no verified commit evidence.
 - **Native or binary assets** - packages that ship native or binary content receive extra scrutiny because they are harder to audit than pure source packages.
-- **Deprecation status** - deprecated packages and deprecated transitives increase security and maintenance concern.
-- **Stale transitive dependencies** - old or stale dependencies in the tree add supply-chain drag.
-- **Abandoned transitive dependencies** - transitives that appear abandoned add additional maintenance risk.
-- **Unmaintained critical transitives** - critical transitive packages that look unmaintained are treated as a stronger risk signal.
+- **Deprecation status** - deprecated packages increase security concern.
+- **Abandoned transitive dependencies** - transitives that combine staleness with a vulnerability or maintainer-activity signal add additional risk.
+- **Unmaintained critical transitives** - critical transitive packages that combine staleness with a high-severity vulnerability are treated as a stronger risk signal.
 - **Maintainer concentration on a non-organization account** - a package effectively maintained by one person on a personal account is treated as more fragile.
 - **Owner account age** - very new repository owner accounts receive a small trust penalty.
 - **Security policy presence and quality** - repositories with a clear `SECURITY.md` and concrete reporting guidance score better.
@@ -391,6 +396,8 @@ Not every package exposes every signal. PackageGuard uses the evidence it can fi
 - **Coverage workflow signal** - explicit coverage reporting is treated as a positive engineering signal.
 - **Test execution signal** - repositories with clear automated test workflows score better.
 - **Dependency update automation** - Dependabot/Renovate-style automation reduces lag in dependency maintenance.
+- **Stale transitive dependencies** - old or stale dependencies in the tree add supply-chain drag.
+- **Deprecated transitive dependencies** - transitives flagged as deprecated by the ecosystem add maintenance concern.
 - **Package popularity** - very low download counts are treated as a weaker ecosystem signal.
 - **Latest stable version tracking** - if the current version trails the latest stable release, the package is flagged as lagging.
 - **Version update lag** - the longer a package lags behind the latest stable version, the more risk it accumulates.
@@ -399,7 +406,7 @@ Not every package exposes every signal. PackageGuard uses the evidence it can fi
 - **Branch protection** - repositories without branch protection on the default branch are treated as riskier.
 - **Repository ownership or rename churn** - recent ownership transfers or rename churn can indicate instability or provenance uncertainty.
 
-The generated HTML report includes the per-package rationale behind every score and a clickable summary that jumps directly to the package details section.
+The generated HTML report includes the per-package rationale behind every score and a clickable summary that jumps directly to the package details section. The Evidence section for each package also lists the specific package names, versions, OSV vulnerability IDs and release dates behind vulnerable, stale, abandoned, deprecated and unmaintained-critical transitive dependency findings, shown in a collapsed-by-default panel so long lists don't clutter the page.
 
 The HTML report is intentionally static and self-contained:
 
@@ -488,7 +495,7 @@ Combine this with `--use-caching` so that the work already done is not repeated.
 | `.packageguard\github-responses.bin` | the GitHub responses received, with their entity tags. Later runs revalidate them with conditional requests, which GitHub does not charge against the rate limit of an authenticated caller. |
 | `.packageguard\github-repositories.bin` | the risk profile of each repository, keyed by repository rather than by package. Dozens of packages can share one repository, and its profile is collected once. |
 
-Both are refreshed on the schedule set by `--risk-cache-max-age` (24 hours by default), and `--refresh-risk-cache` collects everything again regardless. Commit them alongside `cache.bin` if you want CI runs to benefit as well.
+Both are refreshed on the schedule set by `--risk-cache-max-age-hours` (24 hours by default), and `--refresh-risk-cache` collects everything again regardless. Commit them alongside `cache.bin` if you want CI runs to benefit as well.
 
 ## Roadmap
 
@@ -507,7 +514,7 @@ This is a rough list of items from my personal backlog that I'll be working on t
 ## Building
 
 To build this repository locally, you need the following:
-* The [.NET SDK](https://dotnet.microsoft.com/en-us/download/visual-studio-sdks) for .NET 8.0.
+* The [.NET SDK](https://dotnet.microsoft.com/en-us/download/visual-studio-sdks) for .NET 9.0 or later (the repository multi-targets `net9.0` and `net10.0`; `global.json` pins local builds to the .NET 10 SDK).
 * NPM, PNPM and Yarn available in your PATH
 * Visual Studio, [JetBrains Rider](https://www.jetbrains.com/rider/) or [Visual Studio Code](https://code.visualstudio.com/) with the [C# DevKit](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csdevkit)
 

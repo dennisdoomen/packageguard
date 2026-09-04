@@ -86,6 +86,44 @@ internal class NuGetPackageSigningRiskEnricherSpecs
     }
 
     [TestMethod]
+    internal async Task Should_leave_verified_publisher_unset_when_package_is_unsigned()
+    {
+        var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
+        var package = new PackageInfo
+        {
+            Name = "Test.Package",
+            Version = "1.0.0",
+            Source = "nuget"
+        };
+
+        CreatePackageArchive("Test.Package", "1.0.0", signed: false);
+        await enricher.EnrichAsync(package);
+
+        // An unsigned package has no publisher-trust signal of its own, so this must stay null instead of
+        // being definitively set to false, otherwise it would permanently shadow a later GitHub
+        // organization-ownership fallback signal.
+        package.HasVerifiedPublisher.Should().BeNull();
+    }
+
+    [TestMethod]
+    internal async Task Should_not_overwrite_verified_publisher_already_set_by_another_enricher()
+    {
+        var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
+        var package = new PackageInfo
+        {
+            Name = "Test.Package",
+            Version = "1.0.0",
+            Source = "nuget",
+            HasVerifiedPublisher = true
+        };
+
+        CreatePackageArchive("Test.Package", "1.0.0", signed: false);
+        await enricher.EnrichAsync(package);
+
+        package.HasVerifiedPublisher.Should().BeTrue();
+    }
+
+    [TestMethod]
     internal async Task Should_detect_native_binary_assets()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
