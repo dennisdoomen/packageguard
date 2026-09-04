@@ -43,6 +43,36 @@ internal class DependencyHealthCountEnricherSpecs
     }
 
     [TestMethod]
+    internal async Task Records_name_version_and_last_release_date_of_stale_dependency()
+    {
+        string depKey = PackageInfo.CreatePackageKey("Stale.Lib", "1.0.0");
+        var publishedAt = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var stale = new PackageInfo
+        {
+            Name = "Stale.Lib",
+            Version = "1.0.0",
+            PublishedAt = publishedAt
+        };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [depKey]
+        };
+
+        var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
+        {
+            [depKey] = stale
+        });
+
+        await enricher.EnrichAsync(root);
+
+        root.StaleTransitiveDependencyDetails.Should()
+            .ContainSingle(detail => detail == "Stale.Lib 1.0.0 (last release 2020-01-01)");
+    }
+
+    [TestMethod]
     internal async Task Does_not_count_fresh_dependency_as_stale()
     {
         string depKey = PackageInfo.CreatePackageKey("Fresh.Lib", "1.0.0");
@@ -98,6 +128,36 @@ internal class DependencyHealthCountEnricherSpecs
         await enricher.EnrichAsync(root);
 
         root.AbandonedTransitiveDependencyCount.Should().Be(1);
+    }
+
+    [TestMethod]
+    internal async Task Records_reason_for_abandoned_dependency_detail()
+    {
+        string depKey = PackageInfo.CreatePackageKey("Abandoned.Lib", "1.0.0");
+        var abandoned = new PackageInfo
+        {
+            Name = "Abandoned.Lib",
+            Version = "1.0.0",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-30),
+            ContributorCount = 1
+        };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [depKey]
+        };
+
+        var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
+        {
+            [depKey] = abandoned
+        });
+
+        await enricher.EnrichAsync(root);
+
+        root.AbandonedTransitiveDependencyDetails.Should()
+            .ContainSingle(detail => detail == "Abandoned.Lib 1.0.0 (low maintainer activity)");
     }
 
     [TestMethod]
@@ -191,6 +251,35 @@ internal class DependencyHealthCountEnricherSpecs
     }
 
     [TestMethod]
+    internal async Task Records_name_and_version_of_deprecated_dependency()
+    {
+        string depKey = PackageInfo.CreatePackageKey("Deprecated.Lib", "1.0.0");
+        var deprecated = new PackageInfo
+        {
+            Name = "Deprecated.Lib",
+            Version = "1.0.0",
+            IsDeprecated = true
+        };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [depKey]
+        };
+
+        var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
+        {
+            [depKey] = deprecated
+        });
+
+        await enricher.EnrichAsync(root);
+
+        root.DeprecatedTransitiveDependencyDetails.Should()
+            .ContainSingle(detail => detail == "Deprecated.Lib 1.0.0");
+    }
+
+    [TestMethod]
     internal async Task Counts_unmaintained_critical_transitive_dependency()
     {
         string depKey = PackageInfo.CreatePackageKey("Critical.Stale.Lib", "1.0.0");
@@ -218,6 +307,37 @@ internal class DependencyHealthCountEnricherSpecs
         await enricher.EnrichAsync(root);
 
         root.UnmaintainedCriticalTransitiveDependencyCount.Should().Be(1);
+    }
+
+    [TestMethod]
+    internal async Task Records_max_severity_of_unmaintained_critical_dependency()
+    {
+        string depKey = PackageInfo.CreatePackageKey("Critical.Stale.Lib", "1.0.0");
+        var criticalStale = new PackageInfo
+        {
+            Name = "Critical.Stale.Lib",
+            Version = "1.0.0",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-30),
+            VulnerabilityCount = 1,
+            MaxVulnerabilitySeverity = 9.0
+        };
+
+        var root = new PackageInfo
+        {
+            Name = "Root",
+            Version = "1.0.0",
+            DependencyKeys = [depKey]
+        };
+
+        var enricher = new DependencyHealthCountEnricher(new Dictionary<string, PackageInfo>(StringComparer.OrdinalIgnoreCase)
+        {
+            [depKey] = criticalStale
+        });
+
+        await enricher.EnrichAsync(root);
+
+        root.UnmaintainedCriticalTransitiveDependencyDetails.Should()
+            .ContainSingle(detail => detail == "Critical.Stale.Lib 1.0.0 (max severity 9.0)");
     }
 
     [TestMethod]

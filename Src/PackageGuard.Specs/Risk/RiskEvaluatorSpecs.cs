@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using FluentAssertions;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -175,7 +176,7 @@ internal class RiskEvaluatorSpecs
             .Contain(item => item.Contains("Known vulnerabilities found (1, max severity 8.0)"));
 
         package.RiskDimensions.SecurityRiskRationale.Should()
-            .Contain(item => item.Contains("Median vulnerability fix time is slow"));
+            .Contain(item => item.Contains("Median time from vulnerability disclosure to fix release is slow"));
 
         package.RiskDimensions.SecurityRiskRationale.Should().Contain(item => item.Contains("Deep dependency chain (depth 11)"));
         package.RiskDimensions.SecurityRiskRationale.Should()
@@ -283,7 +284,7 @@ internal class RiskEvaluatorSpecs
             .Contain(item => item.Contains("Package is signed but trust verification failed"));
 
         package.RiskDimensions.SecurityRiskRationale.Should()
-            .Contain(item => item.Contains("Verified publisher signal was not detected"));
+            .Contain(item => item.Contains("No trusted NuGet package signature or organization-owned repository was detected"));
 
         package.RiskDimensions.OperationalRisk.Should().BeGreaterThan(9.0);
         package.RiskDimensions.OperationalRiskRationale.Should()
@@ -603,6 +604,159 @@ internal class RiskEvaluatorSpecs
 
         package.RiskDimensions.SecurityRiskRationale.Should()
             .Contain(item => item.Contains("Potentially abandoned risky transitive dependencies were detected (2)"));
+    }
+
+    [TestMethod]
+    internal void Should_only_score_stale_transitive_dependencies_in_operational_risk_not_security_risk()
+    {
+        // Arrange
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            DownloadCount = 50000,
+            StaleTransitiveDependencyCount = 3,
+            StaleTransitiveDependencyDetails = ["Some.Package 1.2.3 (last release 2020-01-01)"]
+        };
+
+        // Act
+        riskEvaluator.EvaluateRisk(package);
+
+        // Assert
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Stale transitive dependencies were detected (3)")
+                && item.Contains("Some.Package 1.2.3 (last release 2020-01-01)"));
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .NotContain(item => item.Contains("stale transitive", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
+    internal void Should_only_score_abandoned_and_unmaintained_critical_transitive_dependencies_in_security_risk_not_operational_risk()
+    {
+        // Arrange
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            DownloadCount = 50000,
+            AbandonedTransitiveDependencyCount = 2,
+            AbandonedTransitiveDependencyDetails = ["Some.Package 1.2.3 (known vulnerabilities)"],
+            UnmaintainedCriticalTransitiveDependencyCount = 1,
+            UnmaintainedCriticalTransitiveDependencyDetails = ["Other.Package 4.5.6 (max severity 9.0)"]
+        };
+
+        // Act
+        riskEvaluator.EvaluateRisk(package);
+
+        // Assert
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Potentially abandoned risky transitive dependencies were detected (2)")
+                && item.Contains("Some.Package 1.2.3 (known vulnerabilities)"));
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Unmaintained critical transitive dependencies were detected (1)")
+                && item.Contains("Other.Package 4.5.6 (max severity 9.0)"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .NotContain(item => item.Contains("abandoned", StringComparison.OrdinalIgnoreCase));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .NotContain(item => item.Contains("unmaintained critical", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [TestMethod]
+    internal void Should_include_evidence_detail_for_direct_and_transitive_vulnerabilities()
+    {
+        // Arrange
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            VulnerabilityCount = 1,
+            MaxVulnerabilitySeverity = 8.0,
+            Vulnerabilities = [new OsvVulnerabilityRecord { Id = "GHSA-aaaa-bbbb-cccc" }],
+            TransitiveVulnerabilityCount = 1,
+            VulnerableTransitiveDependencyDetails = ["Vulnerable.Dependency 2.0.0 (GHSA-dddd-eeee-ffff)"]
+        };
+
+        // Act
+        riskEvaluator.EvaluateRisk(package);
+
+        // Assert
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Known vulnerabilities found (1, max severity 8.0)")
+                && item.Contains("GHSA-aaaa-bbbb-cccc"));
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Vulnerable transitive dependencies (1)")
+                && item.Contains("Vulnerable.Dependency 2.0.0 (GHSA-dddd-eeee-ffff)"));
+    }
+
+    [TestMethod]
+    internal void Should_include_evidence_detail_for_deprecated_transitive_dependencies_in_operational_risk()
+    {
+        // Arrange
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            DownloadCount = 50000,
+            DeprecatedTransitiveDependencyCount = 1,
+            DeprecatedTransitiveDependencyDetails = ["Deprecated.Package 3.0.0"]
+        };
+
+        // Act
+        riskEvaluator.EvaluateRisk(package);
+
+        // Assert
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Deprecated transitive dependencies were detected (1)")
+                && item.Contains("Deprecated.Package 3.0.0"));
+    }
+
+    [TestMethod]
+    internal void Should_truncate_detail_list_and_show_remaining_count_when_more_than_eight_items()
+    {
+        // Arrange
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        string[] staleDetails = Enumerable.Range(1, 10)
+            .Select(i => $"Package{i} 1.0.0 (last release 2020-01-01)")
+            .ToArray();
+
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            RepositoryUrl = "https://github.com/test/package",
+            DownloadCount = 50000,
+            StaleTransitiveDependencyCount = 10,
+            StaleTransitiveDependencyDetails = staleDetails
+        };
+
+        // Act
+        riskEvaluator.EvaluateRisk(package);
+
+        // Assert
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Stale transitive dependencies were detected (10)")
+                && item.Contains("Package1 1.0.0")
+                && item.Contains("Package8 1.0.0")
+                && !item.Contains("Package9 1.0.0")
+                && item.Contains("and 2 more"));
     }
 
     [TestMethod]

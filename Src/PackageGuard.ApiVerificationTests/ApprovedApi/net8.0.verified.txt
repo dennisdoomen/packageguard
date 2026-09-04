@@ -129,6 +129,8 @@ namespace PackageGuard.Core.Package
         public PackageInfo() { }
         [MemoryPack.MemoryPackIgnore]
         public int? AbandonedTransitiveDependencyCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public string[] AbandonedTransitiveDependencyDetails { get; set; }
         public System.DateTimeOffset? CacheUpdatedAt { get; set; }
         public System.DateTimeOffset? ChangelogUpdatedAt { get; set; }
         public int? ClosedBugIssueCountLast90Days { get; set; }
@@ -139,6 +141,8 @@ namespace PackageGuard.Core.Package
         public string[] DependencyKeys { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public int? DeprecatedTransitiveDependencyCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public string[] DeprecatedTransitiveDependencyDetails { get; set; }
         public long? DownloadCount { get; set; }
         public double? ExternalContributionRate { get; set; }
         public bool HasAvailableSecurityFix { get; set; }
@@ -222,6 +226,8 @@ namespace PackageGuard.Core.Package
         public int? StaleCriticalBugIssueCount { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public int? StaleTransitiveDependencyCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public string[] StaleTransitiveDependencyDetails { get; set; }
         public string[] SupportedTargetFrameworks { get; set; }
         public double? TopContributorShare { get; set; }
         public double? TopTwoContributorShare { get; set; }
@@ -230,11 +236,15 @@ namespace PackageGuard.Core.Package
         public int? UniqueReviewerCount { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public int? UnmaintainedCriticalTransitiveDependencyCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public string[] UnmaintainedCriticalTransitiveDependencyDetails { get; set; }
         public double? VerifiedCommitRatio { get; set; }
         public string Version { get; set; }
         public double? VersionUpdateLagDays { get; set; }
         public PackageGuard.Core.Package.OsvVulnerabilityRecord[] Vulnerabilities { get; set; }
         public int VulnerabilityCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public string[] VulnerableTransitiveDependencyDetails { get; set; }
         public double? WorkflowFailureRate { get; set; }
         public int? WorkflowPlatformCount { get; set; }
         public void MarkAsUsed() { }

@@ -134,6 +134,14 @@ public partial class PackageInfo
     public int TransitiveVulnerabilityCount { get; set; }
 
     /// <summary>
+    /// Gets or sets human-readable descriptions of the vulnerable transitive dependencies counted by
+    /// <see cref="TransitiveVulnerabilityCount"/>, formatted as "name version (OSV id, OSV id)".
+    /// <see cref="TransitiveVulnerabilityCountEnricher"/> populates this alongside the count.
+    /// </summary>
+    [MemoryPackIgnore]
+    public string[] VulnerableTransitiveDependencyDetails { get; set; } = [];
+
+    /// <summary>
     /// Gets or sets the highest severity score observed across the OSV vulnerabilities for this package version.
     /// Severity comes from OSV severity entries when present, falling back to textual severity mapping,
     /// and the stored value is the maximum score found.
@@ -598,6 +606,13 @@ public partial class PackageInfo
     public int? StaleTransitiveDependencyCount { get; set; }
 
     /// <summary>
+    /// Gets or sets human-readable descriptions of the transitive dependencies counted by
+    /// <see cref="StaleTransitiveDependencyCount"/>, formatted as "name version (last release yyyy-MM-dd)".
+    /// </summary>
+    [MemoryPackIgnore]
+    public string[] StaleTransitiveDependencyDetails { get; set; } = [];
+
+    /// <summary>
     /// Gets or sets the number of reachable transitive dependencies that look both stale and risky.
     /// The current heuristic requires a dependency to be older than 24 months and to have either
     /// weak maintainer signals or known security concerns.
@@ -606,10 +621,25 @@ public partial class PackageInfo
     public int? AbandonedTransitiveDependencyCount { get; set; }
 
     /// <summary>
+    /// Gets or sets human-readable descriptions of the transitive dependencies counted by
+    /// <see cref="AbandonedTransitiveDependencyCount"/>, formatted as "name version (reason)", where reason is
+    /// either "known vulnerabilities" or "low maintainer activity".
+    /// </summary>
+    [MemoryPackIgnore]
+    public string[] AbandonedTransitiveDependencyDetails { get; set; } = [];
+
+    /// <summary>
     /// Gets or sets the number of reachable transitive dependencies marked as deprecated by their ecosystem metadata.
     /// </summary>
     [MemoryPackIgnore]
     public int? DeprecatedTransitiveDependencyCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets human-readable descriptions of the transitive dependencies counted by
+    /// <see cref="DeprecatedTransitiveDependencyCount"/>, formatted as "name version".
+    /// </summary>
+    [MemoryPackIgnore]
+    public string[] DeprecatedTransitiveDependencyDetails { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the number of reachable transitive dependencies that look both stale and critically vulnerable.
@@ -618,6 +648,13 @@ public partial class PackageInfo
     /// </summary>
     [MemoryPackIgnore]
     public int? UnmaintainedCriticalTransitiveDependencyCount { get; set; }
+
+    /// <summary>
+    /// Gets or sets human-readable descriptions of the transitive dependencies counted by
+    /// <see cref="UnmaintainedCriticalTransitiveDependencyCount"/>, formatted as "name version (max severity X.X)".
+    /// </summary>
+    [MemoryPackIgnore]
+    public string[] UnmaintainedCriticalTransitiveDependencyDetails { get; set; } = [];
 
     /// <summary>
     /// Determines whether this package matches the provided package name and optional version range.

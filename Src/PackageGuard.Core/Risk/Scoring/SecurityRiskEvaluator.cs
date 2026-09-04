@@ -38,8 +38,12 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         {
             double severityContribution = Math.Min(4.0, package.MaxVulnerabilitySeverity / 2.0);
             vulnerabilityRisk += severityContribution;
+
+            string vulnerabilityIds = RiskEvaluationHelpers.FormatDetailList(
+                package.Vulnerabilities.Select(vulnerability => vulnerability.Id).ToArray());
+
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Known vulnerabilities found ({package.VulnerabilityCount}, max severity {RiskEvaluationHelpers.FormatScore(package.MaxVulnerabilitySeverity)})",
+                $"Known vulnerabilities found ({package.VulnerabilityCount}, max severity {RiskEvaluationHelpers.FormatScore(package.MaxVulnerabilitySeverity)}){vulnerabilityIds}",
                 severityContribution));
         }
         else
@@ -63,21 +67,21 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         {
             vulnerabilityRisk += 1.0;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Median vulnerability fix time is slow ({RiskEvaluationHelpers.FormatScore(package.MedianVulnerabilityFixDays.Value)} days)",
+                $"Median time from vulnerability disclosure to fix release is slow ({RiskEvaluationHelpers.FormatScore(package.MedianVulnerabilityFixDays.Value)} days)",
                 1.0));
         }
         else if (package.MedianVulnerabilityFixDays is > 60)
         {
             vulnerabilityRisk += 0.5;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Median vulnerability fix time is elevated ({RiskEvaluationHelpers.FormatScore(package.MedianVulnerabilityFixDays.Value)} days)",
+                $"Median time from vulnerability disclosure to fix release is elevated ({RiskEvaluationHelpers.FormatScore(package.MedianVulnerabilityFixDays.Value)} days)",
                 0.5));
         }
         else if (package.MedianVulnerabilityFixDays != null)
         {
             double fixDays = package.MedianVulnerabilityFixDays.Value;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Median vulnerability fix time looks reasonable ({RiskEvaluationHelpers.FormatScore(fixDays)} days)", 0.0));
+                $"Median time from vulnerability disclosure to fix release looks reasonable ({RiskEvaluationHelpers.FormatScore(fixDays)} days)", 0.0));
         }
 
         double cappedVulnerabilityRisk = Math.Min(6.0, vulnerabilityRisk);
@@ -117,23 +121,8 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         if (package.TransitiveVulnerabilityCount > 0)
         {
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Vulnerable transitive dependencies ({package.TransitiveVulnerabilityCount})",
+                $"Vulnerable transitive dependencies ({package.TransitiveVulnerabilityCount}){RiskEvaluationHelpers.FormatDetailList(package.VulnerableTransitiveDependencyDetails)}",
                 transitiveRisk));
-        }
-
-        if (package.StaleTransitiveDependencyCount is > 5)
-        {
-            risk += 0.75;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Multiple stale transitive dependencies were detected ({package.StaleTransitiveDependencyCount})",
-                0.75));
-        }
-        else if (package.StaleTransitiveDependencyCount is > 0)
-        {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Some stale transitive dependencies were detected ({package.StaleTransitiveDependencyCount})",
-                0.25));
         }
 
         if (package.AbandonedTransitiveDependencyCount is > 0)
@@ -141,7 +130,7 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
             double abandonedRisk = Math.Min(1.0, package.AbandonedTransitiveDependencyCount.Value * 0.5);
             risk += abandonedRisk;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Potentially abandoned risky transitive dependencies were detected ({package.AbandonedTransitiveDependencyCount})",
+                $"Potentially abandoned risky transitive dependencies were detected ({package.AbandonedTransitiveDependencyCount}){RiskEvaluationHelpers.FormatDetailList(package.AbandonedTransitiveDependencyDetails)}",
                 abandonedRisk));
         }
 
@@ -151,7 +140,7 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
             double criticalTransitiveRisk = Math.Min(1.0, count * 0.5);
             risk += criticalTransitiveRisk;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Unmaintained critical transitive dependencies were detected ({count})",
+                $"Unmaintained critical transitive dependencies were detected ({count}){RiskEvaluationHelpers.FormatDetailList(package.UnmaintainedCriticalTransitiveDependencyDetails)}",
                 criticalTransitiveRisk));
         }
 
@@ -183,11 +172,13 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         if (package.HasVerifiedPublisher is false)
         {
             risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Verified publisher signal was not detected", 0.5));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                "No trusted NuGet package signature or organization-owned repository was detected", 0.5));
         }
         else if (package.HasVerifiedPublisher is true)
         {
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Verified publisher signal was detected", 0.0));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                "A trusted NuGet package signature or organization-owned repository was detected", 0.0));
         }
 
         if (package.HasNativeBinaryAssets is true)

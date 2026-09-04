@@ -342,10 +342,9 @@ Not every package exposes every signal. PackageGuard uses the evidence it can fi
 - **Verified release signature signal** - signed and verifiable releases reduce release-tampering concern.
 - **Verified commit coverage** - repositories where recent commits are mostly verified score better than repositories with little or no verified commit evidence.
 - **Native or binary assets** - packages that ship native or binary content receive extra scrutiny because they are harder to audit than pure source packages.
-- **Deprecation status** - deprecated packages and deprecated transitives increase security and maintenance concern.
-- **Stale transitive dependencies** - old or stale dependencies in the tree add supply-chain drag.
-- **Abandoned transitive dependencies** - transitives that appear abandoned add additional maintenance risk.
-- **Unmaintained critical transitives** - critical transitive packages that look unmaintained are treated as a stronger risk signal.
+- **Deprecation status** - deprecated packages increase security concern.
+- **Abandoned transitive dependencies** - transitives that combine staleness with a vulnerability or maintainer-activity signal add additional risk.
+- **Unmaintained critical transitives** - critical transitive packages that combine staleness with a high-severity vulnerability are treated as a stronger risk signal.
 - **Maintainer concentration on a non-organization account** - a package effectively maintained by one person on a personal account is treated as more fragile.
 - **Owner account age** - very new repository owner accounts receive a small trust penalty.
 - **Security policy presence and quality** - repositories with a clear `SECURITY.md` and concrete reporting guidance score better.
@@ -391,6 +390,8 @@ Not every package exposes every signal. PackageGuard uses the evidence it can fi
 - **Coverage workflow signal** - explicit coverage reporting is treated as a positive engineering signal.
 - **Test execution signal** - repositories with clear automated test workflows score better.
 - **Dependency update automation** - Dependabot/Renovate-style automation reduces lag in dependency maintenance.
+- **Stale transitive dependencies** - old or stale dependencies in the tree add supply-chain drag.
+- **Deprecated transitive dependencies** - transitives flagged as deprecated by the ecosystem add maintenance concern.
 - **Package popularity** - very low download counts are treated as a weaker ecosystem signal.
 - **Latest stable version tracking** - if the current version trails the latest stable release, the package is flagged as lagging.
 - **Version update lag** - the longer a package lags behind the latest stable version, the more risk it accumulates.
@@ -399,7 +400,7 @@ Not every package exposes every signal. PackageGuard uses the evidence it can fi
 - **Branch protection** - repositories without branch protection on the default branch are treated as riskier.
 - **Repository ownership or rename churn** - recent ownership transfers or rename churn can indicate instability or provenance uncertainty.
 
-The generated HTML report includes the per-package rationale behind every score and a clickable summary that jumps directly to the package details section.
+The generated HTML report includes the per-package rationale behind every score and a clickable summary that jumps directly to the package details section. Rationale lines for vulnerable, stale, abandoned, deprecated and unmaintained-critical transitive dependencies also list the specific package names, versions, OSV vulnerability IDs and release dates behind the finding (capped at 8 entries, with the remainder summarized as "and N more").
 
 The HTML report is intentionally static and self-contained:
 

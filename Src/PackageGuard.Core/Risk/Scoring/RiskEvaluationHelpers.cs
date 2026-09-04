@@ -54,4 +54,27 @@ internal static class RiskEvaluationHelpers
     /// </summary>
     internal static string FormatPercentage(double value) =>
         value.ToString("P0", CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Formats a list of human-readable evidence details (e.g. affected package names/versions) as a
+    /// rationale suffix, truncating to <paramref name="maxItems"/> entries and appending an "and N more"
+    /// marker for the remainder. Returns an empty string when <paramref name="details"/> is empty, so it
+    /// can be safely appended to a rationale description regardless of whether detail data is available.
+    /// </summary>
+    internal static string FormatDetailList(IReadOnlyCollection<string> details, int maxItems = 8)
+    {
+        if (details.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        IEnumerable<string> shown = details.Take(maxItems);
+        int remaining = details.Count - maxItems;
+
+        string joined = remaining > 0
+            ? string.Join("; ", shown) + $"; and {remaining} more"
+            : string.Join("; ", shown);
+
+        return $": {joined}";
+    }
 }
