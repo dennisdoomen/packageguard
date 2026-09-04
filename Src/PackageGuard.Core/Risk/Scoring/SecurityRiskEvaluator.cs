@@ -39,11 +39,8 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
             double severityContribution = Math.Min(4.0, package.MaxVulnerabilitySeverity / 2.0);
             vulnerabilityRisk += severityContribution;
 
-            string vulnerabilityIds = RiskEvaluationHelpers.FormatDetailList(
-                package.Vulnerabilities.Select(vulnerability => vulnerability.Id).ToArray());
-
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Known vulnerabilities found ({package.VulnerabilityCount}, max severity {RiskEvaluationHelpers.FormatScore(package.MaxVulnerabilitySeverity)}){vulnerabilityIds}",
+                $"Known vulnerabilities found ({package.VulnerabilityCount}, max severity {RiskEvaluationHelpers.FormatScore(package.MaxVulnerabilitySeverity)})",
                 severityContribution));
         }
         else
@@ -121,7 +118,7 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         if (package.TransitiveVulnerabilityCount > 0)
         {
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Vulnerable transitive dependencies ({package.TransitiveVulnerabilityCount}){RiskEvaluationHelpers.FormatDetailList(package.VulnerableTransitiveDependencyDetails)}",
+                $"Vulnerable transitive dependencies ({package.TransitiveVulnerabilityCount})",
                 transitiveRisk));
         }
 
@@ -130,7 +127,7 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
             double abandonedRisk = Math.Min(1.0, package.AbandonedTransitiveDependencyCount.Value * 0.5);
             risk += abandonedRisk;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Potentially abandoned risky transitive dependencies were detected ({package.AbandonedTransitiveDependencyCount}){RiskEvaluationHelpers.FormatDetailList(package.AbandonedTransitiveDependencyDetails)}",
+                $"Potentially abandoned risky transitive dependencies were detected ({package.AbandonedTransitiveDependencyCount})",
                 abandonedRisk));
         }
 
@@ -140,7 +137,7 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
             double criticalTransitiveRisk = Math.Min(1.0, count * 0.5);
             risk += criticalTransitiveRisk;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Unmaintained critical transitive dependencies were detected ({count}){RiskEvaluationHelpers.FormatDetailList(package.UnmaintainedCriticalTransitiveDependencyDetails)}",
+                $"Unmaintained critical transitive dependencies were detected ({count})",
                 criticalTransitiveRisk));
         }
 

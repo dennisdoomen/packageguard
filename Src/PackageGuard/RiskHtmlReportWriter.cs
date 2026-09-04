@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using PackageGuard.Core;
 using PackageGuard.Core.Package;
+using PackageGuard.Core.Risk.Scoring;
 using Pathy;
 
 namespace PackageGuard;
@@ -469,8 +470,11 @@ internal static class RiskHtmlReportWriter
 
         if (package.VulnerabilityCount > 0)
         {
+            string vulnerabilityIds = RiskEvaluationHelpers.FormatDetailList(
+                package.Vulnerabilities.Select(vulnerability => vulnerability.Id).ToArray());
+
             yield return ("Vulnerabilities",
-                $"{package.VulnerabilityCount} (max severity {FormatDecimal(package.MaxVulnerabilitySeverity)})");
+                $"{package.VulnerabilityCount} (max severity {FormatDecimal(package.MaxVulnerabilitySeverity)}){vulnerabilityIds}");
         }
 
         if (package.MedianVulnerabilityFixDays != null)
@@ -486,31 +490,31 @@ internal static class RiskHtmlReportWriter
         if (package.TransitiveVulnerabilityCount > 0)
         {
             yield return ("Transitive vulnerabilities",
-                package.TransitiveVulnerabilityCount.ToString(CultureInfo.InvariantCulture));
+                $"{package.TransitiveVulnerabilityCount}{RiskEvaluationHelpers.FormatDetailList(package.VulnerableTransitiveDependencyDetails)}");
         }
 
         if (package.StaleTransitiveDependencyCount != null)
         {
             yield return ("Stale transitive dependencies",
-                package.StaleTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture));
+                $"{package.StaleTransitiveDependencyCount.Value}{RiskEvaluationHelpers.FormatDetailList(package.StaleTransitiveDependencyDetails)}");
         }
 
         if (package.AbandonedTransitiveDependencyCount != null)
         {
             yield return ("Potentially abandoned transitive dependencies",
-                package.AbandonedTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture));
+                $"{package.AbandonedTransitiveDependencyCount.Value}{RiskEvaluationHelpers.FormatDetailList(package.AbandonedTransitiveDependencyDetails)}");
         }
 
         if (package.DeprecatedTransitiveDependencyCount != null)
         {
             yield return ("Deprecated transitive dependencies",
-                package.DeprecatedTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture));
+                $"{package.DeprecatedTransitiveDependencyCount.Value}{RiskEvaluationHelpers.FormatDetailList(package.DeprecatedTransitiveDependencyDetails)}");
         }
 
         if (package.UnmaintainedCriticalTransitiveDependencyCount != null)
         {
             yield return ("Unmaintained critical transitives",
-                package.UnmaintainedCriticalTransitiveDependencyCount.Value.ToString(CultureInfo.InvariantCulture));
+                $"{package.UnmaintainedCriticalTransitiveDependencyCount.Value}{RiskEvaluationHelpers.FormatDetailList(package.UnmaintainedCriticalTransitiveDependencyDetails)}");
         }
 
         if (package.HasNativeBinaryAssets != null)

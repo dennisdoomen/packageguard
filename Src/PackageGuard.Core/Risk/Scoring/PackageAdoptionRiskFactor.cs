@@ -54,7 +54,7 @@ internal sealed class PackageAdoptionRiskFactor : IEvaluateRiskFactor
         {
             risk += 0.25;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Stale transitive dependencies were detected ({package.StaleTransitiveDependencyCount}){RiskEvaluationHelpers.FormatDetailList(package.StaleTransitiveDependencyDetails)}",
+                $"Stale transitive dependencies were detected ({package.StaleTransitiveDependencyCount})",
                 0.25));
         }
 
@@ -62,7 +62,7 @@ internal sealed class PackageAdoptionRiskFactor : IEvaluateRiskFactor
         {
             risk += 0.5;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Deprecated transitive dependencies were detected ({package.DeprecatedTransitiveDependencyCount}){RiskEvaluationHelpers.FormatDetailList(package.DeprecatedTransitiveDependencyDetails)}",
+                $"Deprecated transitive dependencies were detected ({package.DeprecatedTransitiveDependencyCount})",
                 0.5));
         }
 

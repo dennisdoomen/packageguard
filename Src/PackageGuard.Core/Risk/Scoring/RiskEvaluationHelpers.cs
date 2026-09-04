@@ -57,9 +57,9 @@ internal static class RiskEvaluationHelpers
 
     /// <summary>
     /// Formats a list of human-readable evidence details (e.g. affected package names/versions) as a
-    /// rationale suffix, truncating to <paramref name="maxItems"/> entries and appending an "and N more"
+    /// value suffix, truncating to <paramref name="maxItems"/> entries and appending an "and N more"
     /// marker for the remainder. Returns an empty string when <paramref name="details"/> is empty, so it
-    /// can be safely appended to a rationale description regardless of whether detail data is available.
+    /// can be safely appended to an evidence value regardless of whether detail data is available.
     /// </summary>
     internal static string FormatDetailList(IReadOnlyCollection<string> details, int maxItems = 8)
     {

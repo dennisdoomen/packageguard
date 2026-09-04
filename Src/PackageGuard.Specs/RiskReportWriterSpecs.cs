@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -165,6 +166,82 @@ internal sealed class RiskReportWriterSpecs
             .GetString()
             .Should()
             .Be("PackageGuard.sln");
+    }
+
+    [TestMethod]
+    public async Task Should_include_vulnerability_and_transitive_dependency_detail_lists_in_evidence_section()
+    {
+        var package = new PackageInfo
+        {
+            Name = "Contoso.Evidence",
+            Version = "1.0.0",
+            License = "MIT",
+            VulnerabilityCount = 1,
+            MaxVulnerabilitySeverity = 8.0,
+            Vulnerabilities = [new OsvVulnerabilityRecord { Id = "GHSA-aaaa-bbbb-cccc" }],
+            TransitiveVulnerabilityCount = 1,
+            VulnerableTransitiveDependencyDetails = ["Vulnerable.Dependency 2.0.0 (GHSA-dddd-eeee-ffff)"],
+            StaleTransitiveDependencyCount = 1,
+            StaleTransitiveDependencyDetails = ["Stale.Package 1.2.3 (last release 2020-01-01)"],
+            AbandonedTransitiveDependencyCount = 1,
+            AbandonedTransitiveDependencyDetails = ["Abandoned.Package 1.2.3 (known vulnerabilities)"],
+            DeprecatedTransitiveDependencyCount = 1,
+            DeprecatedTransitiveDependencyDetails = ["Deprecated.Package 3.0.0"],
+            UnmaintainedCriticalTransitiveDependencyCount = 1,
+            UnmaintainedCriticalTransitiveDependencyDetails = ["Critical.Package 4.5.6 (max severity 9.0)"]
+        };
+
+        RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
+            Path.Combine(reportDirectory, "PackageGuard.sln"),
+            [package]);
+
+        string html = await File.ReadAllTextAsync(reportPaths.HtmlPath);
+
+        html.Should().Contain(
+            "<li><span class=\"label\">Vulnerabilities:</span> 1 (max severity 8.0): GHSA-aaaa-bbbb-cccc</li>");
+
+        html.Should().Contain(
+            "<li><span class=\"label\">Transitive vulnerabilities:</span> 1: Vulnerable.Dependency 2.0.0 (GHSA-dddd-eeee-ffff)</li>");
+
+        html.Should().Contain(
+            "<li><span class=\"label\">Stale transitive dependencies:</span> 1: Stale.Package 1.2.3 (last release 2020-01-01)</li>");
+
+        html.Should().Contain(
+            "<li><span class=\"label\">Potentially abandoned transitive dependencies:</span> 1: Abandoned.Package 1.2.3 (known vulnerabilities)</li>");
+
+        html.Should().Contain(
+            "<li><span class=\"label\">Deprecated transitive dependencies:</span> 1: Deprecated.Package 3.0.0</li>");
+
+        html.Should().Contain(
+            "<li><span class=\"label\">Unmaintained critical transitives:</span> 1: Critical.Package 4.5.6 (max severity 9.0)</li>");
+    }
+
+    [TestMethod]
+    public async Task Should_truncate_evidence_detail_list_and_show_remaining_count_when_more_than_eight_items()
+    {
+        string[] staleDetails = Enumerable.Range(1, 10)
+            .Select(i => $"Package{i} 1.0.0 (last release 2020-01-01)")
+            .ToArray();
+
+        var package = new PackageInfo
+        {
+            Name = "Contoso.Truncation",
+            Version = "1.0.0",
+            License = "MIT",
+            StaleTransitiveDependencyCount = 10,
+            StaleTransitiveDependencyDetails = staleDetails
+        };
+
+        RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
+            Path.Combine(reportDirectory, "PackageGuard.sln"),
+            [package]);
+
+        string html = await File.ReadAllTextAsync(reportPaths.HtmlPath);
+
+        html.Should().Contain("Package1 1.0.0");
+        html.Should().Contain("Package8 1.0.0");
+        html.Should().NotContain("Package9 1.0.0");
+        html.Should().Contain("and 2 more");
     }
 
     [TestMethod]
