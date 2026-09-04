@@ -212,8 +212,8 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine("    .rationale-list, .detail-list { margin: 12px 0 0; padding-left: 20px; }");
         builder.AppendLine("    .detail-list { list-style: none; padding-left: 0; }");
         builder.AppendLine("    .detail-list li { padding: 4px 0; }");
-        builder.AppendLine("    .detail-toggle { margin-top: 6px; }");
-        builder.AppendLine("    .detail-toggle summary { cursor: pointer; color: #1d4ed8; }");
+        builder.AppendLine("    .detail-toggle { display: inline; margin-left: 6px; }");
+        builder.AppendLine("    .detail-toggle summary { display: inline; cursor: pointer; color: #1d4ed8; }");
         builder.AppendLine(
             "    .detail-sublist { list-style: disc; margin: 8px 0 0; padding-left: 20px; color: #334155; }");
         builder.AppendLine("    .detail-sublist li { padding: 2px 0; }");
