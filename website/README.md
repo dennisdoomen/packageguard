@@ -138,6 +138,8 @@ Building from source and the contribution guidelines are deliberately not here. 
 
 The website is automatically deployed to GitHub Pages when changes under `website/` are pushed to the `main` branch. The workflow is defined in `.github/workflows/deploy-docs.yml`.
 
+The custom domain comes from `static/CNAME`, which Docusaurus copies to `build/CNAME` so it ends up at the root of the published site. That is the copy GitHub Pages reads. A `CNAME` file in the repository root would be ignored, because the site is published from a workflow artifact rather than from a branch.
+
 ### Manual Deployment
 
 If you need to deploy manually:
