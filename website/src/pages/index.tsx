@@ -4,7 +4,6 @@ import Link from '@docusaurus/Link';
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import Layout from '@theme/Layout';
 import HomepageFeatures from '@site/src/components/HomepageFeatures';
-import HomepageExample from '@site/src/components/HomepageExample';
 import Heading from '@theme/Heading';
 
 import styles from './index.module.css';
@@ -49,7 +48,6 @@ export default function Home(): ReactNode {
       description="Scan the NuGet, NPM, PNPM and Yarn dependencies of your codebase against a deny- or allowlist, and score every package on legal, security and operational risk">
       <HomepageHeader />
       <main>
-        <HomepageExample />
         <HomepageFeatures />
       </main>
     </Layout>

@@ -1,25 +1,39 @@
 .features {
   display: flex;
   align-items: stretch;
-  padding: 3rem 0 4rem;
+  padding: 4rem 0 5rem;
   width: 100%;
+}
+
+.featuresTitle {
+  text-align: center;
+  margin-bottom: 2.5rem;
 }
 
 .featureCol {
   margin-bottom: 1.5rem;
 }
 
+/*
+ * The whole card is a link to the matching documentation page, so reset the
+ * anchor back to body text and let the border carry the affordance instead.
+ */
 .featureCard {
+  display: block;
   height: 100%;
   padding: 1.75rem 1.75rem 2rem;
   border: 1px solid var(--ifm-toc-border-color);
   border-radius: 14px;
   background: var(--ifm-background-surface-color);
+  color: var(--ifm-font-color-base);
   transition: border-color 0.15s ease;
 }
 
-.featureCard:hover {
+.featureCard:hover,
+.featureCard:focus-visible {
   border-color: var(--ifm-color-primary);
+  color: var(--ifm-font-color-base);
+  text-decoration: none;
 }
 
 .featureEmoji {
@@ -29,6 +43,11 @@
 
 .featureTitle {
   margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.featureCard:hover .featureTitle {
+  color: var(--ifm-color-primary);
 }
 
 .featureDescription {
