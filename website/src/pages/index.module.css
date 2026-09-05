@@ -1,0 +1,99 @@
+/**
+ * CSS files with the .module.css suffix will be treated as CSS modules
+ * and scoped locally.
+ */
+
+/*
+ * The hero stays dark regardless of the site's light/dark mode toggle -
+ * it's a branded "poster" section, matching the announcement graphics this
+ * styling is based on, the same way the navbar/footer stay dark there too.
+ */
+.heroBanner {
+  padding: 5rem 0 4rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  background: var(--pg-hero-bg);
+  color: var(--pg-hero-text);
+}
+
+@media screen and (max-width: 996px) {
+  .heroBanner {
+    padding: 3rem 1.5rem;
+  }
+}
+
+.heroEyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--pg-hero-accent);
+  margin-bottom: 1rem;
+}
+
+.heroTitle {
+  color: var(--pg-hero-text) !important;
+  font-size: 3.5rem !important;
+}
+
+.heroSubtitle {
+  color: var(--pg-hero-text-muted);
+  font-size: 1.25rem;
+  max-width: 640px;
+  margin: 0 auto 2rem;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 3rem;
+}
+
+.buttons :global(.button--secondary) {
+  background: var(--pg-hero-accent);
+  border-color: var(--pg-hero-accent);
+  color: #0c1220;
+  font-weight: 600;
+}
+
+.buttons :global(.button--secondary):hover {
+  background: var(--pg-hero-accent-dim);
+  border-color: var(--pg-hero-accent-dim);
+  color: #ffffff;
+}
+
+.heroPanel {
+  max-width: 620px;
+  margin: 0 auto;
+  background: var(--pg-hero-panel);
+  border: 1px solid var(--pg-hero-panel-border);
+  border-radius: 14px;
+  padding: 1.75rem 2rem;
+  text-align: left;
+}
+
+.heroCode {
+  background: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.15rem;
+  color: var(--pg-hero-text);
+  padding: 0;
+}
+
+.heroCodeFlag,
+.heroCodePrompt {
+  color: var(--pg-hero-accent);
+}
+
+.heroCodePunct {
+  color: var(--pg-hero-text-muted);
+}
+
+.heroCaption {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--pg-hero-text-muted);
+  margin-top: 0.9rem;
+}
