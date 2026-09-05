@@ -164,7 +164,7 @@ If the build fails:
 1. Delete `node_modules` and run `npm ci` to restore the exact dependency versions from `package-lock.json`
 2. Try building again
 
-Note that the dependency versions are pinned through `package-lock.json`. Newer webpack releases break the progress reporter that Docusaurus 3.9 uses, so prefer `npm ci` over `npm install` when you only want to build the site.
+Do not delete `package-lock.json`. The versions in it matter: webpack 5.110 and later reject the options that Docusaurus 3.9 passes to its progress reporter, so a tree resolved without the lock file cannot build. `npm install` keeps the locked versions, so either command is fine as long as the lock file is there.
 
 ### PowerShell execution policy error
 
