@@ -218,10 +218,8 @@ class Build : FalloutBuild
 
             string[] headersToInclude =
             [
+                "Documentation",
                 "About",
-                "How do I configure it",
-                "How do I use it?",
-                "Additional notes",
                 "Versioning",
                 "Credits"
             ];
