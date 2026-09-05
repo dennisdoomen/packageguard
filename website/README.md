@@ -124,8 +124,8 @@ This script checks:
 - `docs/sbom.md` - CycloneDX and SPDX output
 - `docs/caching-and-rate-limits.md` - Caching and GitHub rate limits
 - `docs/roadmap.md` - Planned features
-- `docs/building.md` - Building from source
-- `docs/contributing.md` - Contributing guidelines
+
+Building from source and the contribution guidelines are deliberately not here. They are for people working on the repository, so they stay in the root `README.md` and `CONTRIBUTING.md` on GitHub.
 
 ## Customization
 

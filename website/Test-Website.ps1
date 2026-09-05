@@ -69,8 +69,6 @@ try {
         @{ Path = "docs/risk-metrics.md"; Description = "Risk Metrics page exists" }
         @{ Path = "docs/sbom.md"; Description = "SBOM page exists" }
         @{ Path = "docs/caching-and-rate-limits.md"; Description = "Caching and rate limits page exists" }
-        @{ Path = "docs/building.md"; Description = "Building page exists" }
-        @{ Path = "docs/contributing.md"; Description = "Contributing page exists" }
         @{ Path = "src/css/custom.css"; Description = "Custom CSS exists" }
         @{ Path = "static/img/logo.png"; Description = "Logo image exists" }
     )
