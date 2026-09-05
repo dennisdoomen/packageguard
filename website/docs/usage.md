@@ -7,7 +7,7 @@ sidebar_position: 4
 With a [configuration](./configuration.md) in place, simply invoke PackageGuard like this:
 
 ```bash
-packageguard --configpath <path-to-config-file> <path-to-solution-file-or-project>
+packageguard --config-path <path-to-config-file> <path-to-solution-file-or-project>
 ```
 
 If you pass a directory, PackageGuard will try to find the `.sln`, `.slnx` or `package.json` files there. But you can also specify a specific `.csproj` or `package.json` to scan.

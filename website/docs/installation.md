@@ -62,4 +62,10 @@ OPTIONS:
                                             risk reports. Optionally provide a directory or file path. Directories
                                             receive generated file names; explicit filenames are used directly and may
                                             overwrite prior files
+    -v, --verbose                           Enable verbose (debug-level) logging output. Combine with --report-risk to
+                                            see individual HTTP calls to GitHub, OSV, and npm registries
+        --sbom                              Generate a Software Bill of Materials for the resolved dependency graph, in
+                                            the given format: cyclonedx or spdx. Requires --sbom-output
+        --sbom-output                       The output file path for the generated SBOM. Required when --sbom is
+                                            specified
 ```

@@ -76,6 +76,14 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
                 package = packages.Add(package);
                 NuspecMetadata? nuspecMetadata = TryReadNuspecMetadata(projectPath, packageName, packageVersion);
 
+                // Prefer the nuspec's <repository> URL over the catalog's projectUrl (e.g. a blog post) *before*
+                // fetching a missing license, since the GitHub fallback below depends on RepositoryUrl actually
+                // pointing at the source repository.
+                if (nuspecMetadata?.RepositoryUrl.IsNotNullOrWhiteSpace() == true)
+                {
+                    package.RepositoryUrl = nuspecMetadata.RepositoryUrl;
+                }
+
                 // If the license information is not explicitly specified in the package, but the metadata does contain it,
                 // assume that the license is declared.
                 if (package.License is null && nuspecMetadata?.License is not null)
@@ -89,11 +97,6 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
                 if (package.License is null)
                 {
                     await licenseFetcher.AmendWithMissingLicenseInformation(package);
-                }
-
-                if (nuspecMetadata?.RepositoryUrl.IsNotNullOrWhiteSpace() == true)
-                {
-                    package.RepositoryUrl = nuspecMetadata.RepositoryUrl;
                 }
             }
         }

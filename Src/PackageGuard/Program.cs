@@ -38,19 +38,14 @@ var app = new CommandApp<AnalyzeCommand>(registrar).WithData(logger);
 app.Configure(c =>
 {
     c.CaseSensitivity(CaseSensitivity.None);
+
+    // Spectre.Console.Cli only prints the exception's message by default, discarding the stack trace.
+    // Always log the full exception so unexpected failures can be diagnosed from the console output.
+    c.SetExceptionHandler((ex, _) =>
+    {
+        logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+        return -1;
+    });
 });
 
-string? previousReportRiskPath =
-    Environment.GetEnvironmentVariable(AnalyzeCommandSettings.ReportRiskPathOverrideEnvironmentVariable);
-
-(string[] normalizedArgs, string? reportRiskPath) = ReportRiskArgumentNormalizer.Normalize(args);
-Environment.SetEnvironmentVariable(AnalyzeCommandSettings.ReportRiskPathOverrideEnvironmentVariable, reportRiskPath);
-
-try
-{
-    return app.Run(normalizedArgs);
-}
-finally
-{
-    Environment.SetEnvironmentVariable(AnalyzeCommandSettings.ReportRiskPathOverrideEnvironmentVariable, previousReportRiskPath);
-}
+return app.Run(args);

@@ -5,22 +5,22 @@ slug: /
 
 # Introduction
 
-**PackageGuard** is a fully open-source tool to scan the NuGet, NPM, PNPM and Yarn dependencies of your codebase against a deny- or allowlist, so you can control the open-source licenses that you want to allow, or certain versions of certain packages you want to enforce or avoid.
+**PackageGuard** is a fully open-source CLI tool that keeps your open-source supply chain honest. It scans the **NuGet, npm, pnpm and Yarn** dependencies of your codebase, enforces allow- and deny-lists for licenses, packages and versions, scores every package's legal/security/operational risk, and can emit a standards-compliant SBOM — all from a single, cacheable command that fits into any CI pipeline.
 
 ## What can it do?
 
 At a glance, PackageGuard can:
 
-- Scan **NuGet, NPM, PNPM and Yarn** dependencies across your entire solution or codebase
-- Enforce **allow- and deny-lists** for open-source licenses, specific packages, and package versions
-- Discover configuration **hierarchically**, merging solution-, project-, and repository-level policies
-- Resolve **licenses** from NuGet/npm metadata, GitHub repositories, and other sources through a chain of fetchers
-- Assess **risk** for every package across legal, security, and operational dimensions (e.g. vulnerabilities, maintenance activity, signing) via `--report-risk`
-- Generate a **colored console summary**, a self-contained **HTML report**, and a **SARIF file** for CI integration
-- Produce a standards-compliant **Software Bill of Materials (SBOM)** in **CycloneDX** or **SPDX** JSON format via `--sbom`
-- Include **vulnerability data** (from OSV) in the SBOM when combined with `--report-risk`
-- **Cache** package, license, and risk data (`--use-caching`) to speed up repeated scans, with configurable cache freshness
-- Run as a **.NET global tool** or a **portable, cross-platform** (Windows/Linux/macOS) deployment
+- Scan **NuGet, npm, pnpm and Yarn** dependencies across an entire solution or codebase in one run, direct and transitive alike
+- Enforce **allow- and deny-lists** for open-source licenses, specific packages, and package versions, discovered **hierarchically** across solution-, project- and repository-level configuration files
+- Resolve **licenses** from NuGet/npm metadata, GitHub repositories, and downloaded license text through a chain of fetchers, falling back gracefully when a source doesn't have an answer
+- Score every package's **risk** across three dimensions - Legal, Security and Operational - via `--report-risk`, weighing signals such as license compatibility, known vulnerabilities (OSV), maintainer activity, package signing, release cadence, and dozens more
+- Back every risk score with **evidence, not just a number**: each package card in the HTML report has a dedicated Evidence section with collapsible, collapsed-by-default panels naming the exact packages, versions, GHSA/OSV vulnerability ids and release dates behind its rationale, so you can see *why* a package scored the way it did without digging through logs
+- Produce a **colored console summary**, a **self-contained HTML report** you can open in a browser, and a **SARIF file** for surfacing violations and risk findings directly in GitHub code scanning
+- Generate a standards-compliant **Software Bill of Materials (SBOM)** in **CycloneDX** or **SPDX** JSON format via `--sbom`, complete with purls, declared-vs-concluded license evidence, and a direct/transitive dependency graph
+- Enrich that SBOM with **vulnerability data** from OSV when `--sbom` is combined with `--report-risk`
+- **Cache** package, license and risk data (`--use-caching`) - including GitHub responses and per-repository risk profiles - to keep repeated scans and CI runs fast, with configurable cache freshness (`--risk-cache-max-age-hours`, `--refresh-risk-cache`)
+- Run as a **.NET global tool** or a **portable, cross-platform** (Windows/Linux/macOS) deployment - no CI-specific plugin required
 
 ## What's so special about that?
 

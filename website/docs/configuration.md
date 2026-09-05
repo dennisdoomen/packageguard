@@ -19,10 +19,10 @@ Settings from multiple configuration files are merged together, with project-lev
 
 ## Manual configuration path
 
-You can still specify a custom configuration file path using the `--configpath` CLI parameter to override the hierarchical discovery:
+You can still specify a custom configuration file path using the `--config-path` CLI parameter to override the hierarchical discovery:
 
 ```bash
-packageguard --configpath path/to/my-config.json
+packageguard --config-path path/to/my-config.json
 ```
 
 ## Configuration format

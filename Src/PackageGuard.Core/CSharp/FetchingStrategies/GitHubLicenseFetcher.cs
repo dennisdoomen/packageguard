@@ -67,6 +67,7 @@ public class GitHubLicenseFetcher : IFetchLicense
     private static string? ReadSpdxIdentifier(JsonDocument document)
     {
         if (!document.RootElement.TryGetProperty("license", out JsonElement license) ||
+            license.ValueKind != JsonValueKind.Object ||
             !license.TryGetProperty("spdx_id", out JsonElement spdxId))
         {
             return null;

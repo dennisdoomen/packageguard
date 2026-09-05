@@ -54,15 +54,8 @@ internal sealed class PackageAdoptionRiskFactor : IEvaluateRiskFactor
         {
             risk += 0.25;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Stale transitive dependencies were detected ({package.StaleTransitiveDependencyCount})", 0.25));
-        }
-
-        if (package.AbandonedTransitiveDependencyCount is > 0)
-        {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Potentially abandoned transitive dependencies were detected ({package.AbandonedTransitiveDependencyCount})",
-                0.5));
+                $"Stale transitive dependencies were detected ({package.StaleTransitiveDependencyCount})",
+                0.25));
         }
 
         if (package.DeprecatedTransitiveDependencyCount is > 0)
@@ -70,14 +63,6 @@ internal sealed class PackageAdoptionRiskFactor : IEvaluateRiskFactor
             risk += 0.5;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
                 $"Deprecated transitive dependencies were detected ({package.DeprecatedTransitiveDependencyCount})",
-                0.5));
-        }
-
-        if (package.UnmaintainedCriticalTransitiveDependencyCount is > 0)
-        {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Unmaintained critical transitive dependencies were detected ({package.UnmaintainedCriticalTransitiveDependencyCount})",
                 0.5));
         }
 
@@ -190,7 +175,8 @@ internal sealed class PackageAdoptionRiskFactor : IEvaluateRiskFactor
         if (package.HasVerifiedPublisher is false)
         {
             risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Verified publisher signal was not detected", 0.25));
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                "No trusted NuGet package signature or organization-owned repository was detected", 0.25));
         }
 
         if (package.HasReproducibleBuildSignal is false)

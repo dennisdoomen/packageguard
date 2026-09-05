@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -68,6 +69,48 @@ public class OsvRiskEnricherBatchSpecs
     }
 
     [TestMethod]
+    public async Task Reads_numeric_severity_scores_from_OSV_payloads()
+    {
+        // Arrange
+        var handler = new ScriptedHttpMessageHandler((request, _) =>
+            request.RequestUri!.AbsolutePath.EndsWith("/query") || request.RequestUri.AbsolutePath.EndsWith("/querybatch")
+                ? ScriptedResponse.Json(QueryWithNumericSeverity)
+                : throw new InvalidOperationException($"Unexpected OSV URL: {request.RequestUri}"));
+
+        var enricher = new OsvRiskEnricher(NullLogger.Instance, new HttpClient(handler));
+        PackageInfo package = CreatePackages(1).Single();
+
+        // Act
+        await enricher.EnrichAsync(package);
+
+        // Assert
+        package.VulnerabilityCount.Should().Be(1);
+        package.MaxVulnerabilitySeverity.Should().BeApproximately(9.8, 0.01);
+        package.Vulnerabilities.Should().ContainSingle().Which.Severity.Should().BeApproximately(9.8, 0.01);
+    }
+
+    [TestMethod]
+    public async Task Reads_text_severity_scores_from_top_level_OSV_metadata()
+    {
+        // Arrange
+        var handler = new ScriptedHttpMessageHandler((request, _) =>
+            request.RequestUri!.AbsolutePath.EndsWith("/query") || request.RequestUri.AbsolutePath.EndsWith("/querybatch")
+                ? ScriptedResponse.Json(QueryWithTopLevelDatabaseSeverity)
+                : throw new InvalidOperationException($"Unexpected OSV URL: {request.RequestUri}"));
+
+        var enricher = new OsvRiskEnricher(NullLogger.Instance, new HttpClient(handler));
+        PackageInfo package = CreatePackages(1).Single();
+
+        // Act
+        await enricher.EnrichAsync(package);
+
+        // Assert
+        package.VulnerabilityCount.Should().Be(1);
+        package.MaxVulnerabilitySeverity.Should().BeApproximately(8.0, 0.01);
+        package.Vulnerabilities.Should().ContainSingle().Which.Severity.Should().BeApproximately(8.0, 0.01);
+    }
+
+    [TestMethod]
     public async Task Falls_back_to_a_single_query_when_the_batch_result_is_truncated()
     {
         // Arrange
@@ -121,4 +164,35 @@ public class OsvRiskEnricherBatchSpecs
           "references": [{"url": "https://example.com/advisory"}]
         }
         """;
+
+    private const string QueryWithNumericSeverity =
+        """
+        {
+          "vulns": [
+            {
+              "id": "GHSA-1111-2222-3333",
+              "modified": "2026-01-01T00:00:00Z",
+              "aliases": ["CVE-2026-0002"],
+              "severity": [{"type": "CVSS_V3", "score": 9.8}],
+              "references": [{"url": "https://example.com/advisory-2"}]
+            }
+          ]
+        }
+        """;
+
+    private const string QueryWithTopLevelDatabaseSeverity =
+        """
+        {
+          "vulns": [
+            {
+              "id": "GHSA-1111-2222-3333",
+              "modified": "2026-01-01T00:00:00Z",
+              "database_specific": { "severity": "HIGH" },
+              "severity": [{"type": "CVSS_V3", "score": "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"}],
+              "references": [{"url": "https://example.com/advisory-3"}]
+            }
+          ]
+        }
+        """;
+
 }

@@ -547,7 +547,7 @@ internal sealed class OsvRiskEnricher(ILogger logger, HttpClient? httpClient = n
         {
             if (severity.TryGetProperty("score", out JsonElement scoreElement))
             {
-                double score = ParseScore(scoreElement.GetString());
+                double score = ParseScore(scoreElement);
                 if (score > 0)
                 {
                     return score;
@@ -606,10 +606,21 @@ internal sealed class OsvRiskEnricher(ILogger logger, HttpClient? httpClient = n
     }
 
     /// <summary>
-    /// Yields text severity strings sourced from <c>ecosystem_specific</c> and <c>database_specific</c> objects within the affected entries.
+    /// Yields text severity strings sourced from top-level and affected-entry <c>ecosystem_specific</c> /
+    /// <c>database_specific</c> metadata.
     /// </summary>
     private static IEnumerable<string> EnumerateTextSeverities(JsonElement vulnerability)
     {
+        if (TryReadTextSeverity(vulnerability, "ecosystem_specific", out string ecosystemSeverity))
+        {
+            yield return ecosystemSeverity;
+        }
+
+        if (TryReadTextSeverity(vulnerability, "database_specific", out string databaseSeverity))
+        {
+            yield return databaseSeverity;
+        }
+
         if (!vulnerability.TryGetProperty("affected", out JsonElement affected) || affected.ValueKind != JsonValueKind.Array)
         {
             yield break;
@@ -617,28 +628,57 @@ internal sealed class OsvRiskEnricher(ILogger logger, HttpClient? httpClient = n
 
         foreach (JsonElement affectedPackage in affected.EnumerateArray())
         {
-            if (affectedPackage.TryGetProperty("ecosystem_specific", out JsonElement ecosystemSpecific) &&
-                ecosystemSpecific.ValueKind == JsonValueKind.Object &&
-                ecosystemSpecific.TryGetProperty("severity", out JsonElement severity))
+            if (TryReadTextSeverity(affectedPackage, "ecosystem_specific", out string affectedEcosystemSeverity))
             {
-                string? value = severity.GetString();
-                if (!string.IsNullOrWhiteSpace(value))
-                {
-                    yield return value;
-                }
+                yield return affectedEcosystemSeverity;
             }
 
-            if (affectedPackage.TryGetProperty("database_specific", out JsonElement databaseSpecific) &&
-                databaseSpecific.ValueKind == JsonValueKind.Object &&
-                databaseSpecific.TryGetProperty("severity", out JsonElement databaseSeverity))
+            if (TryReadTextSeverity(affectedPackage, "database_specific", out string affectedDatabaseSeverity))
             {
-                string? value = databaseSeverity.GetString();
-                if (!string.IsNullOrWhiteSpace(value))
-                {
-                    yield return value;
-                }
+                yield return affectedDatabaseSeverity;
             }
         }
+    }
+
+    /// <summary>
+    /// Reads a text severity value from an <c>ecosystem_specific</c> or <c>database_specific</c> object, when present.
+    /// </summary>
+    private static bool TryReadTextSeverity(JsonElement element, string propertyName, out string severity)
+    {
+        severity = string.Empty;
+
+        if (!element.TryGetProperty(propertyName, out JsonElement nestedObject) || nestedObject.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
+        if (!nestedObject.TryGetProperty("severity", out JsonElement severityValue))
+        {
+            return false;
+        }
+
+        string? value = severityValue.GetString();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        severity = value;
+        return true;
+    }
+
+    /// <summary>
+    /// Parses a CVSS vector string or plain numeric score into a <see cref="double"/>; returns <c>0</c> when parsing fails.
+    /// </summary>
+    private static double ParseScore(JsonElement scoreElement)
+    {
+        if (scoreElement.ValueKind == JsonValueKind.Number && scoreElement.TryGetDouble(out double numericScore))
+        {
+            return numericScore;
+        }
+
+        string? score = scoreElement.ValueKind == JsonValueKind.String ? scoreElement.GetString() : null;
+        return ParseScore(score);
     }
 
     /// <summary>
