@@ -1,0 +1,124 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/*
+ * PackageGuard brand system - the periwinkle-on-midnight palette used in
+ * PackageGuard's social/announcement graphics. The blue reads as a link
+ * and as a security badge at once, on a near-black navy that keeps long
+ * evidence listings calm.
+ *
+ * Dark mode below mirrors that palette closely. Light mode is a derived
+ * equivalent (same hue family, deepened for contrast on a white
+ * background) rather than a literal copy, since the source material was
+ * designed dark-only and this site needs to support both.
+ */
+
+/* Light mode (default) */
+:root {
+  --ifm-color-primary: #3a51cf;
+  --ifm-color-primary-dark: #3349bb;
+  --ifm-color-primary-darker: #3045b1;
+  --ifm-color-primary-darkest: #283992;
+  --ifm-color-primary-light: #4d62d6;
+  --ifm-color-primary-lighter: #5a6dd9;
+  --ifm-color-primary-lightest: #808ee3;
+  --ifm-background-color: #ffffff;
+  --ifm-background-surface-color: #f5f6fc;
+  --ifm-font-color-base: #1c2233;
+  --ifm-heading-color: #0f1423;
+  --ifm-navbar-background-color: #ffffff;
+  --ifm-footer-background-color: #0f1423;
+  --ifm-footer-color: #c8cee0;
+  --ifm-footer-link-color: #dee3f1;
+  --ifm-footer-title-color: #ffffff;
+  --ifm-code-font-size: 92%;
+  --docusaurus-highlighted-code-line-bg: rgba(58, 81, 207, 0.1);
+
+  /* Mirrors of the footer colors above, kept outside the --ifm-footer-*
+   * namespace so `.footer--dark` (below) can reassert them without
+   * self-referencing the property it's overriding. */
+  --pg-footer-bg: #0f1423;
+  --pg-footer-color: #c8cee0;
+  --pg-footer-link-color: #dee3f1;
+  --pg-footer-title-color: #ffffff;
+
+  --pg-hero-bg: #0c1220;
+  --pg-hero-panel: #161e30;
+  --pg-hero-panel-border: #262f45;
+  --pg-hero-accent: #6d86f7;
+  --pg-hero-accent-dim: #4a63d9;
+  --pg-hero-text: #eef1f8;
+  --pg-hero-text-muted: #97a3bd;
+
+  --ifm-font-family-base: 'Manrope', system-ui, -apple-system, sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #8398f9;
+  --ifm-color-primary-dark: #6d86f7;
+  --ifm-color-primary-darker: #5f7af6;
+  --ifm-color-primary-darkest: #4a63d9;
+  --ifm-color-primary-light: #99aafa;
+  --ifm-color-primary-lighter: #a7b5fb;
+  --ifm-color-primary-lightest: #c8d0fd;
+  --ifm-background-color: #0c1220;
+  --ifm-background-surface-color: #161e30;
+  --ifm-font-color-base: #eef1f8;
+  --ifm-heading-color: #f4f6fb;
+  --ifm-navbar-background-color: #0c1220;
+  --ifm-footer-background-color: #080d18;
+  --ifm-footer-color: #97a3bd;
+  --ifm-footer-link-color: #d2daf0;
+  --ifm-footer-title-color: #ffffff;
+  --docusaurus-highlighted-code-line-bg: rgba(109, 134, 247, 0.15);
+
+  --pg-footer-bg: #080d18;
+  --pg-footer-color: #97a3bd;
+  --pg-footer-link-color: #d2daf0;
+  --pg-footer-title-color: #ffffff;
+}
+
+/* Headings use the same display face as the announcement graphics */
+.navbar__title,
+.footer__title,
+h1, h2, h3, h4, h5, h6,
+.hero__title {
+  font-family: 'Space Grotesk', var(--ifm-font-family-base);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.navbar {
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+
+/* Logo styling */
+.navbar__logo {
+  height: 2rem;
+}
+
+code, pre, kbd {
+  font-family: var(--ifm-font-family-monospace);
+}
+
+/*
+ * Infima's own `.footer--dark` rule hard-codes a gray footer palette
+ * directly on the footer element, which always wins over the brand
+ * colors inherited from :root / [data-theme='dark'] above (a property
+ * set on the element itself beats an inherited value regardless of
+ * source order). Re-point it at the --pg-footer-* mirrors instead of
+ * the --ifm-footer-* variables themselves, since assigning a custom
+ * property from its own name creates a reference cycle (invalid value,
+ * renders as transparent).
+ */
+.footer--dark {
+  --ifm-footer-background-color: var(--pg-footer-bg);
+  --ifm-footer-color: var(--pg-footer-color);
+  --ifm-footer-link-color: var(--pg-footer-link-color);
+  --ifm-footer-title-color: var(--pg-footer-title-color);
+}

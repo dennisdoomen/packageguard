@@ -1,0 +1,37 @@
+.features {
+  display: flex;
+  align-items: stretch;
+  padding: 3rem 0 4rem;
+  width: 100%;
+}
+
+.featureCol {
+  margin-bottom: 1.5rem;
+}
+
+.featureCard {
+  height: 100%;
+  padding: 1.75rem 1.75rem 2rem;
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 14px;
+  background: var(--ifm-background-surface-color);
+  transition: border-color 0.15s ease;
+}
+
+.featureCard:hover {
+  border-color: var(--ifm-color-primary);
+}
+
+.featureEmoji {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.featureTitle {
+  margin-bottom: 0.5rem;
+}
+
+.featureDescription {
+  color: var(--ifm-color-emphasis-700);
+  margin-bottom: 0;
+}
