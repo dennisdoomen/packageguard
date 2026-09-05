@@ -1,0 +1,60 @@
+.reportSection {
+  padding: 4rem 0;
+  background: var(--ifm-color-emphasis-100);
+}
+
+/* The band sits between two navy sections, so lift it rather than drop it to
+   Infima's pure black. */
+[data-theme='dark'] .reportSection {
+  background: var(--pg-hero-panel);
+}
+
+.reportTitle {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.reportIntro {
+  max-width: 700px;
+  margin: 0 auto 2.5rem;
+  text-align: center;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.reportFigure {
+  margin: 0;
+}
+
+/* Clicking opens the picture at full size, since the report text is small once
+   the 1280px-wide capture is scaled into the container. */
+.reportLink {
+  display: block;
+}
+
+/*
+ * The report is a light-themed HTML document, so it keeps its own white
+ * background in dark mode. Frame it instead of letting it float.
+ */
+.reportImage {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.reportCaption {
+  margin-top: 0.9rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--ifm-color-emphasis-600);
+}
+
+.reportLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-top: 2.5rem;
+}

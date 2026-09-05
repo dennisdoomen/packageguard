@@ -130,7 +130,7 @@ This script checks:
 ## Customization
 
 - **Colors**: Edit `src/css/custom.css` to modify the color scheme
-- **Homepage**: Edit `src/pages/index.tsx` and `src/components/HomepageFeatures/index.tsx`
+- **Homepage**: Edit `src/pages/index.tsx`, `src/components/HomepageFeatures/index.tsx` and `src/components/HomepageReport/index.tsx`
 - **Configuration**: Edit `docusaurus.config.ts` for site-wide settings
 - **Sidebar**: Edit `sidebars.ts` to modify documentation navigation
 

@@ -18,8 +18,9 @@ const FeatureList: FeatureItem[] = [
     to: '/docs/usage',
     description: (
       <>
-        Scan NuGet, NPM, PNPM and Yarn dependencies. Point it at a whole
-        solution, a single project, or one <code>package.json</code>.
+        Scan NuGet, NPM, PNPM and Yarn dependencies, using the same feeds and
+        credential providers as <code>dotnet</code>, your package manager and
+        your IDE. Private feeds included.
       </>
     ),
   },
@@ -48,30 +49,6 @@ const FeatureList: FeatureItem[] = [
     ),
   },
   {
-    title: 'License Resolution',
-    emoji: '🔍',
-    to: '/docs/configuration#identifying-packages-and-licenses',
-    description: (
-      <>
-        Resolve SPDX identifiers from NuGet and npm metadata, from GitHub
-        repositories, and from the license text itself. Microsoft's proprietary
-        library licenses are recognised by name.
-      </>
-    ),
-  },
-  {
-    title: 'Private and Internal Feeds',
-    emoji: '🔑',
-    to: '/docs/configuration#about-feeds',
-    description: (
-      <>
-        Uses the same feeds and credential providers as <code>dotnet</code>,
-        your package manager and your IDE. Trust everything on your own feed, or
-        skip a feed entirely.
-      </>
-    ),
-  },
-  {
     title: 'Risk Scores',
     emoji: '📊',
     to: '/docs/risk-metrics',
@@ -89,70 +66,21 @@ const FeatureList: FeatureItem[] = [
     to: '/docs/risk-metrics#security-risk',
     description: (
       <>
-        Read known vulnerabilities from OSV, including transitive ones, their
-        severity and how long they take to get fixed. Check package signing,
-        publisher trust, build provenance, branch protection and the OpenSSF
-        Scorecard.
+        Read known vulnerabilities from OSV, including transitive ones. Check
+        package signing, publisher trust, build provenance, branch protection
+        and the OpenSSF Scorecard.
       </>
     ),
   },
   {
-    title: 'Project Health',
-    emoji: '💓',
-    to: '/docs/risk-metrics#operational-risk',
-    description: (
-      <>
-        Measure release cadence, documentation quality, contributor
-        concentration, issue and pull-request throughput, and CI reliability, so
-        you can see which dependencies are quietly going unmaintained.
-      </>
-    ),
-  },
-  {
-    title: 'Reports You Can Attach',
-    emoji: '📄',
-    to: '/docs/risk-metrics',
-    description: (
-      <>
-        A colored console summary, a self-contained HTML report with the
-        rationale behind every score, and a SARIF file your CI can upload as
-        code-scanning results. The HTML has no scripts and no external assets.
-      </>
-    ),
-  },
-  {
-    title: 'CycloneDX and SPDX SBOM',
+    title: 'Reports and SBOM',
     emoji: '🧾',
     to: '/docs/sbom',
     description: (
       <>
-        Emit the resolved dependency graph as a bill of materials, with package
-        URLs, direct versus transitive scope, declared versus concluded
-        licenses, and vulnerabilities when risk reporting is on.
-      </>
-    ),
-  },
-  {
-    title: 'Caching',
-    emoji: '⚡',
-    to: '/docs/caching-and-rate-limits',
-    description: (
-      <>
-        Cache package, license and risk data on disk with a configurable
-        lifetime. Commit the cache so your CI runs benefit from work that has
-        already been done.
-      </>
-    ),
-  },
-  {
-    title: 'Global Tool or Portable',
-    emoji: '💻',
-    to: '/docs/installation',
-    description: (
-      <>
-        Install it as a .NET global tool, or download the portable zip and run
-        it on Windows, Linux and macOS. The exit code tells your build whether
-        the policy held.
+        A console summary, an HTML report and a SARIF file for code scanning.
+        Emit the dependency graph as CycloneDX or SPDX, with package URLs,
+        license evidence and vulnerabilities.
       </>
     ),
   },
