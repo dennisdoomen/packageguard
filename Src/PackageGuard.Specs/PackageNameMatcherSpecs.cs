@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PackageGuard;
 
 namespace PackageGuard.Specs;
 

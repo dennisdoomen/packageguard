@@ -20,5 +20,5 @@ public class PackageSelector(string id)
     /// <summary>
     /// Gets or sets the path of the configuration file this rule was loaded from, when known.
     /// </summary>
-    public string? SourceFile { get; set; }
+    public string? SourceFile { get; init; }
 }

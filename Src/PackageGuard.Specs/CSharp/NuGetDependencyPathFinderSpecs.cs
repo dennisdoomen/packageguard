@@ -22,7 +22,7 @@ public class NuGetDependencyPathFinderSpecs
         var loader = new DotNetLockFileLoader { Logger = NullLogger.Instance, SkipRestore = false };
         LockFile? lockFile = loader.GetPackageLockFile(ProjectPath);
         lockFile.Should().NotBeNull("the Specs project should already be restored by the build");
-        return lockFile!;
+        return lockFile;
     }
 
     [TestMethod]

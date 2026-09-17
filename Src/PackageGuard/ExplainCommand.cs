@@ -272,7 +272,7 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
         for (int i = 0; i < chain.Hops.Count; i++)
         {
             DependencyHop hop = chain.Hops[i];
-            string indent = new string(' ', 4 + i * 3);
+            string indent = new(' ', 4 + i * 3);
             string suffix = i == 0 && chain.Hops.Count == 1 ? "   (direct)" : "";
             AnsiConsole.MarkupLine($"{indent}-> {Markup.Escape(hop.Name)} {Markup.Escape(hop.Version)}{suffix}");
         }

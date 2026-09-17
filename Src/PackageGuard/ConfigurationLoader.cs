@@ -66,7 +66,7 @@ public class ConfigurationLoader(ILogger logger)
         MergePackagePolicy(target.DenyList, source.DenyList);
         target.DenyList.Prerelease = source.DenyList.Prerelease;
 
-        target.IgnoredFeeds = target.IgnoredFeeds.Concat(source.IgnoredFeeds).ToArray();
+        target.IgnoredFeeds = [..target.IgnoredFeeds, ..source.IgnoredFeeds];
     }
 
     /// <summary>

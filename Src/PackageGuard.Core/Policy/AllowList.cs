@@ -18,7 +18,7 @@ public class AllowList : PackagePolicy
     /// Gets or sets the configuration file each entry in <see cref="Feeds"/> was first introduced by,
     /// keyed by the feed wildcard string. Populated by <c>ConfigurationLoader</c>; empty when unknown.
     /// </summary>
-    public Dictionary<string, string> FeedSourceFiles { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, string> FeedSourceFiles { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Gets or sets a value indicating whether to allow prerelease packages regardless of package name.

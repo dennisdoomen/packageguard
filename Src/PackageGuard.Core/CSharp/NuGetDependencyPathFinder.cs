@@ -57,7 +57,7 @@ internal static class NuGetDependencyPathFinder
             }
 
             var rootHop = new DependencyHop(rootLibrary.Name!, rootLibrary.Version.ToNormalizedString(),
-                FormatRange(directDependency.LibraryRange?.VersionRange));
+                FormatRange(directDependency.LibraryRange.VersionRange));
 
             if (IsMatch(rootLibrary, targetName, targetVersion))
             {
@@ -131,7 +131,7 @@ internal static class NuGetDependencyPathFinder
             }
 
             var hop = new DependencyHop(child.Name!, child.Version.ToNormalizedString(), FormatRange(dependency.VersionRange));
-            queue.Enqueue((child, pathSoFar.Append(hop).ToList()));
+            queue.Enqueue((child, [..pathSoFar, hop]));
         }
     }
 
