@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core.CSharp.FetchingStrategies;
 using PackageGuard.Core.Package;
 
-namespace PackageGuard.Specs;
+namespace PackageGuard.Specs.CSharp;
 
 [TestClass]
 public class WellKnownLicenseUrlFetcherSpecs
