@@ -82,7 +82,7 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
     /// Resolves the package the caller asked to explain against every package used in this run: by name
     /// (exact, partial, or fuzzy), then by version when more than one was found.
     /// </summary>
-    private static ExplainTarget ResolveTarget(ExplainCommandSettings settings, PackageInfo[] allPackages)
+    internal static ExplainTarget ResolveTarget(ExplainCommandSettings settings, PackageInfo[] allPackages)
     {
         PackageNameMatch match = PackageNameMatcher.Resolve(settings.PackageName, allPackages.Select(p => p.Name).ToArray());
         if (match.MatchedName is null)
@@ -115,7 +115,7 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
     /// information to report why one couldn't be pinned down (no match, an unknown version, or an ambiguous
     /// name that resolved to more than one version).
     /// </summary>
-    private sealed record ExplainTarget(
+    internal sealed record ExplainTarget(
         PackageInfo? Package,
         string? MatchedName,
         PackageInfo[] AmbiguousVersions,
