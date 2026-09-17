@@ -75,7 +75,7 @@ public class ConfigurationLoaderSpecs
             {
                 Packages = new[]
                 {
-                    new PackageSelector("PackageGuard", "1.2.3")
+                    new PackageSelector("PackageGuard", "1.2.3") { SourceFile = "test.json" }
                 },
                 Licenses = new[]
                 {
@@ -91,7 +91,7 @@ public class ConfigurationLoaderSpecs
             {
                 Packages = new[]
                 {
-                    new PackageSelector("Bogus", "Package")
+                    new PackageSelector("Bogus", "Package") { SourceFile = "test.json" }
                 },
                 Licenses = new[]
                 {
@@ -412,6 +412,57 @@ public class ConfigurationLoaderSpecs
         policy.AllowList.Packages.Should().HaveCount(1);
         policy.AllowList.Packages.Should().ContainSingle(p => p.Id == "ProjectAPackage");
         policy.AllowList.Packages.Should().NotContain(p => p.Id == "ProjectBPackage");
+    }
+
+    [TestMethod]
+    public void Tracks_which_config_file_each_rule_came_from()
+    {
+        // Arrange
+        var solutionDir = tempDir / "MySolution";
+        solutionDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+        File.WriteAllText(solutionDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "licenses": ["MIT"],
+                        "packages": ["SolutionPackage/1.0.0"]
+                    }
+                }
+            }
+            """);
+
+        var projectDir = solutionDir / "MyProject";
+        projectDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(projectDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "licenses": ["Apache-2.0"],
+                        "packages": ["ProjectPackage/2.0.0"]
+                    }
+                }
+            }
+            """);
+
+        // Act
+        ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(projectDir);
+
+        // Assert
+        string solutionConfigPath = solutionDir / "packageguard.config.json";
+        string projectConfigPath = projectDir / "packageguard.config.json";
+
+        policy.AllowList.Packages.Should().ContainSingle(p => p.Id == "SolutionPackage")
+            .Which.SourceFile.Should().Be(solutionConfigPath);
+        policy.AllowList.Packages.Should().ContainSingle(p => p.Id == "ProjectPackage")
+            .Which.SourceFile.Should().Be(projectConfigPath);
+
+        policy.AllowList.LicenseSourceFiles["MIT"].Should().Be(solutionConfigPath);
+        policy.AllowList.LicenseSourceFiles["Apache-2.0"].Should().Be(projectConfigPath);
     }
 
     [TestMethod]

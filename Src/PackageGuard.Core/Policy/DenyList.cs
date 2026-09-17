@@ -14,17 +14,29 @@ public class DenyList : PackagePolicy
     /// <summary>
     /// Determines if the given package is denied by the licenses or packages defined in this deny list.
     /// </summary>
-    internal bool Denies(PackageInfo package)
+    internal bool Denies(PackageInfo package) => EvaluateDeny(package).IsMatch;
+
+    /// <summary>
+    /// Evaluates the given package against this deny list and explains which rule, if any, denied it.
+    /// </summary>
+    internal PolicyDecision EvaluateDeny(PackageInfo package)
     {
         // Check if prerelease packages are denied
         if (Prerelease && NuGetVersion.Parse(package.Version).IsPrerelease)
         {
-            return true;
+            return new PolicyDecision(true, "prerelease packages are denied by policy");
         }
 
-        if (Licenses.Any() && Licenses.Contains(package.License!, StringComparer.OrdinalIgnoreCase))
+        if (Licenses.Any())
         {
-            return true;
+            string? matchingLicense = Licenses.FirstOrDefault(license =>
+                license.Equals(package.License, StringComparison.OrdinalIgnoreCase));
+
+            if (matchingLicense is not null)
+            {
+                LicenseSourceFiles.TryGetValue(matchingLicense, out string? licenseSourceFile);
+                return new PolicyDecision(true, $"matches deny list license entry \"{matchingLicense}\"", licenseSourceFile);
+            }
         }
 
         foreach (PackageSelector selector in Packages)
@@ -32,10 +44,10 @@ public class DenyList : PackagePolicy
             if (package.Name.MatchesWildcard(selector.Id) &&
                 (selector.VersionRange is null || package.SatisfiesRange(package.Name, selector.VersionRange)))
             {
-                return true;
+                return new PolicyDecision(true, $"matches deny list package entry \"{selector.Id}\"", selector.SourceFile);
             }
         }
 
-        return false;
+        return new PolicyDecision(false, "no deny list rule matched");
     }
 }

@@ -270,6 +270,7 @@ namespace PackageGuard.Core.Policy
     public class AllowList : PackageGuard.Core.Policy.PackagePolicy
     {
         public AllowList() { }
+        public System.Collections.Generic.Dictionary<string, string> FeedSourceFiles { get; set; }
         public System.Collections.Generic.List<string> Feeds { get; set; }
         public bool Prerelease { get; set; }
     }
@@ -282,6 +283,7 @@ namespace PackageGuard.Core.Policy
     public abstract class PackagePolicy
     {
         protected PackagePolicy() { }
+        public System.Collections.Generic.Dictionary<string, string> LicenseSourceFiles { get; set; }
         public System.Collections.Generic.List<string> Licenses { get; set; }
         public System.Collections.Generic.List<PackageGuard.Core.Policy.PackageSelector> Packages { get; set; }
     }
@@ -290,6 +292,7 @@ namespace PackageGuard.Core.Policy
         public PackageSelector(string id) { }
         public PackageSelector(string id, string versionRange) { }
         public string Id { get; set; }
+        public string? SourceFile { get; set; }
         public string? VersionRange { get; set; }
     }
     public class PolicyViolation : System.IEquatable<PackageGuard.Core.Policy.PolicyViolation>
