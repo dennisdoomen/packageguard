@@ -46,6 +46,9 @@ app.Configure(c =>
         logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
         return -1;
     });
+
+    c.AddCommand<ExplainCommand>("explain")
+        .WithDescription("Explains why a specific package is present and how it was evaluated against policy.");
 });
 
 return app.Run(args);

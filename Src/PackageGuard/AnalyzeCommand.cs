@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Reflection;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
@@ -115,9 +114,9 @@ public sealed class AnalyzeCommand : AsyncCommand<AnalyzeCommandSettings>
 
         foreach (var package in packages.OrderByDescending(p => p.RiskScore))
         {
-            var riskColor = GetRiskColor(package.RiskScore);
+            var riskColor = RiskDisplay.GetRiskColor(package.RiskScore);
             AnsiConsole.MarkupLine(
-                $"- {Markup.Escape(package.Name)} {Markup.Escape(package.Version)}: [{riskColor}]{FormatDecimal(package.RiskScore)}/100 ({GetRiskZone(package.RiskScore)})[/]");
+                $"- {Markup.Escape(package.Name)} {Markup.Escape(package.Version)}: [{riskColor}]{RiskDisplay.FormatDecimal(package.RiskScore)}/100 ({RiskDisplay.GetRiskZone(package.RiskScore)})[/]");
         }
 
         AnsiConsole.MarkupLine("");
@@ -174,37 +173,4 @@ public sealed class AnalyzeCommand : AsyncCommand<AnalyzeCommandSettings>
         AnsiConsole.MarkupLine("");
     }
 
-    /// <summary>
-    /// Maps a 0–100 risk score to an Ansi console color name for display.
-    /// </summary>
-    private static string GetRiskColor(double score)
-    {
-        return score switch
-        {
-            >= 60 => "red1",
-            >= 30 => "yellow1",
-            _ => "green3_1"
-        };
-    }
-
-    /// <summary>
-    /// Maps a 0–100 risk score to a risk zone label: Low, Medium, or High.
-    /// </summary>
-    private static string GetRiskZone(double score)
-    {
-        return score switch
-        {
-            >= 60 => "High",
-            >= 30 => "Medium",
-            _ => "Low"
-        };
-    }
-
-    /// <summary>
-    /// Formats a double value to one decimal place using invariant culture.
-    /// </summary>
-    private static string FormatDecimal(double value)
-    {
-        return value.ToString("0.0", CultureInfo.InvariantCulture);
-    }
 }
