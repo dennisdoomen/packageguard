@@ -16,7 +16,7 @@ namespace PackageGuard;
 /// CLI command that runs NuGet package analysis against configured allow/deny policies.
 /// </summary>
 [UsedImplicitly]
-public sealed class AnalyzeCommand : AsyncCommand<AnalyzeCommandSettings>
+public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommandSettings>
 {
     /// <summary>
     /// Exit code indicating the analysis completed with no policy violations.
@@ -33,11 +33,6 @@ public sealed class AnalyzeCommand : AsyncCommand<AnalyzeCommandSettings>
     /// </summary>
     protected override async Task<int> ExecuteAsync(CommandContext context, AnalyzeCommandSettings settings, CancellationToken _)
     {
-        if (context.Data is not ILogger logger)
-        {
-            throw new InvalidOperationException("The command logger was not provided.");
-        }
-
         // Display PackageGuard version
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown";
         logger.LogHeader($"PackageGuard v{version}");
