@@ -44,15 +44,53 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
 
         logger.LogHeader($"Analyzing to explain \"{settings.PackageName}\"");
 
-        AnalysisResult result = await analyzer.ExecuteAnalysisWithRisk(settings.ProjectPath, settings.ToCoreSettings(), getPolicy);
+        // Resolving the target inside the risk-scoring selector, rather than after the analysis completes,
+        // means only the resolved package (and its own dependency closure) ever has its risk signals fetched -
+        // not every package used across the whole solution.
+        ExplainTarget? target = null;
+        AnalysisResult result = await analyzer.ExecuteAnalysisWithRisk(settings.ProjectPath, settings.ToCoreSettings(), getPolicy,
+            allPackages =>
+            {
+                target = ResolveTarget(settings, allPackages);
+                return target.Package is not null ? [target.Package] : [];
+            });
 
-        PackageNameMatch match = PackageNameMatcher.Resolve(settings.PackageName, result.Packages.Select(p => p.Name).ToArray());
-        if (match.MatchedName is null)
+        if (target is null || target.MatchedName is null)
         {
-            return ReportNoMatch(settings.PackageName, match.Suggestions);
+            return ReportNoMatch(settings.PackageName, target?.Suggestions ?? []);
         }
 
-        PackageInfo[] versions = result.Packages
+        if (target.Package is null)
+        {
+            if (target.AmbiguousVersions.Length > 0)
+            {
+                ReportAmbiguousVersion(target.MatchedName, target.AmbiguousVersions);
+                return SuccessExitCode;
+            }
+
+            AnsiConsole.MarkupLine(
+                $"[red1]{Markup.Escape(target.MatchedName)} {Markup.Escape(settings.Version ?? "")} was not found. Available versions: {Markup.Escape(string.Join(", ", target.AvailableVersions))}[/]");
+            return NotFoundExitCode;
+        }
+
+        ExplainPackage(target.Package, getPolicy, lockFilesByProject);
+
+        return SuccessExitCode;
+    }
+
+    /// <summary>
+    /// Resolves the package the caller asked to explain against every package used in this run: by name
+    /// (exact, partial, or fuzzy), then by version when more than one was found.
+    /// </summary>
+    private static ExplainTarget ResolveTarget(ExplainCommandSettings settings, PackageInfo[] allPackages)
+    {
+        PackageNameMatch match = PackageNameMatcher.Resolve(settings.PackageName, allPackages.Select(p => p.Name).ToArray());
+        if (match.MatchedName is null)
+        {
+            return new ExplainTarget(null, null, [], [], match.Suggestions);
+        }
+
+        PackageInfo[] versions = allPackages
             .Where(p => p.Name.Equals(match.MatchedName, StringComparison.OrdinalIgnoreCase))
             .ToArray();
 
@@ -60,25 +98,29 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
 
         if (!string.IsNullOrWhiteSpace(settings.Version))
         {
-            versions = versions.Where(p => p.Version.Equals(settings.Version, StringComparison.OrdinalIgnoreCase)).ToArray();
-            if (versions.Length == 0)
-            {
-                AnsiConsole.MarkupLine(
-                    $"[red1]{Markup.Escape(match.MatchedName)} {Markup.Escape(settings.Version)} was not found. Available versions: {Markup.Escape(string.Join(", ", distinctVersions))}[/]");
-                return NotFoundExitCode;
-            }
+            PackageInfo? exact = versions.FirstOrDefault(p => p.Version.Equals(settings.Version, StringComparison.OrdinalIgnoreCase));
+            return new ExplainTarget(exact, match.MatchedName, [], distinctVersions, []);
         }
-        else if (distinctVersions.Length > 1)
+
+        if (distinctVersions.Length > 1)
         {
-            ReportAmbiguousVersion(match.MatchedName, versions);
-            return SuccessExitCode;
+            return new ExplainTarget(null, match.MatchedName, versions, distinctVersions, []);
         }
 
-        PackageInfo package = versions[0];
-        ExplainPackage(package, getPolicy, lockFilesByProject);
-
-        return SuccessExitCode;
+        return new ExplainTarget(versions[0], match.MatchedName, [], distinctVersions, []);
     }
+
+    /// <summary>
+    /// The outcome of resolving an <c>explain</c> target: either a single package to explain, or enough
+    /// information to report why one couldn't be pinned down (no match, an unknown version, or an ambiguous
+    /// name that resolved to more than one version).
+    /// </summary>
+    private sealed record ExplainTarget(
+        PackageInfo? Package,
+        string? MatchedName,
+        PackageInfo[] AmbiguousVersions,
+        string[] AvailableVersions,
+        IReadOnlyList<string> Suggestions);
 
     /// <summary>
     /// Prints "no exact match" guidance, including any partial-name or edit-distance suggestions found.
