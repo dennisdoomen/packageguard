@@ -32,4 +32,15 @@ public class CSharpProjectScannerSpecs
         // Assert
         projects.Should().ContainSingle(p => p.EndsWith("SlnxApp.csproj"));
     }
+
+    [TestMethod]
+    public void Treats_an_empty_path_as_the_current_directory()
+    {
+        // Act
+        var fromEmptyPath = cSharpProjectScanner.FindProjects("");
+        var fromCurrentDirectory = cSharpProjectScanner.FindProjects(ChainablePath.Current);
+
+        // Assert
+        fromEmptyPath.Should().BeEquivalentTo(fromCurrentDirectory);
+    }
 }
