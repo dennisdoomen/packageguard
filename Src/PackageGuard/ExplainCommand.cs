@@ -48,7 +48,7 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
         // means only the resolved package (and its own dependency closure) ever has its risk signals fetched -
         // not every package used across the whole solution.
         ExplainTarget? target = null;
-        AnalysisResult result = await analyzer.ExecuteAnalysisWithRisk(settings.ProjectPath, settings.ToCoreSettings(), getPolicy,
+        await analyzer.ExecuteAnalysisWithRisk(settings.ProjectPath, settings.ToCoreSettings(), getPolicy,
             allPackages =>
             {
                 target = ResolveTarget(settings, allPackages);
