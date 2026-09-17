@@ -98,6 +98,27 @@ public class LicenseFetcherSpecs
     }
 
     [TestMethod]
+    public async Task Recognizes_a_well_known_license_url_without_fetching_it()
+    {
+        // Arrange
+        var fetcher = new LicenseFetcher(NullLogger.Instance, gitHubApiKey);
+
+        var package = new PackageInfo
+        {
+            Name = "Bogus",
+            Version = "1.0.0",
+            License = null,
+            LicenseUrl = "http://www.apache.org/licenses/LICENSE-2.0"
+        };
+
+        // Act
+        await fetcher.AmendWithMissingLicenseInformation(package);
+
+        // Assert
+        package.License.Should().Be("Apache-2.0");
+    }
+
+    [TestMethod]
     public async Task Falls_back_to_the_next_fetcher_when_a_fetcher_hits_an_http_error()
     {
         // Arrange

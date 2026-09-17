@@ -15,6 +15,7 @@ public sealed class LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
     /// </summary>
     private readonly IReadOnlyList<IFetchLicense> fetchers =
         [
+            new WellKnownLicenseUrlFetcher(),
             new CorrectMisbehavingPackagesFetcher(),
             new GitHubLicenseFetcher(logger, gitHubApiKey),
             new UrlLicenseFetcher(logger)
