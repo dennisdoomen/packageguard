@@ -39,6 +39,16 @@ dotnet run --project Src/PackageGuard -- <path> [options]
 dotnet run --project Src/PackageGuard -- . --config-path .packageguard/config.json
 ```
 
+### Explain why a package is present
+
+`explain` looks up a package (fuzzy name matching supported) and reports its license/feed, the policy rule
+(and configuration file) that allowed or denied it, its NuGet dependency path(s) and version-resolution
+detail, and its risk breakdown:
+
+```bash
+dotnet run --project Src/PackageGuard -- explain Newtonsoft.Json --path . --use-caching
+```
+
 ### Accept API snapshot changes
 
 After changing public APIs in `PackageGuard.Core`:

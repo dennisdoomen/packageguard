@@ -28,15 +28,16 @@ namespace PackageGuard.Core
     {
         public ProjectAnalyzer(PackageGuard.Core.CSharp.LicenseFetcher licenseFetcher, PackageGuard.Core.Risk.RiskEvaluator? riskEvaluator = null) { }
         public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
+        public System.Action<string, NuGet.ProjectModel.LockFile>? OnProjectLockFileLoaded { get; set; }
         public System.Threading.Tasks.Task<PackageGuard.Core.Policy.PolicyViolation[]> ExecuteAnalysis(string projectPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.Policy.GetPolicyByProject getPolicyByProject) { }
-        public System.Threading.Tasks.Task<PackageGuard.Core.AnalysisResult> ExecuteAnalysisWithRisk(string projectPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.Policy.GetPolicyByProject getPolicyByProject) { }
+        public System.Threading.Tasks.Task<PackageGuard.Core.AnalysisResult> ExecuteAnalysisWithRisk(string projectPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.Policy.GetPolicyByProject getPolicyByProject, System.Func<PackageGuard.Core.Package.PackageInfo[], PackageGuard.Core.Package.PackageInfo[]>? selectPackagesForRiskScoring = null) { }
     }
 }
 namespace PackageGuard.Core.CSharp
 {
     public class CSharpProjectAnalysisStrategy
     {
-        public CSharpProjectAnalysisStrategy(PackageGuard.Core.Policy.GetPolicyByProject getPolicyByProject, PackageGuard.Core.CSharp.LicenseFetcher licenseFetcher, Microsoft.Extensions.Logging.ILogger? logger) { }
+        public CSharpProjectAnalysisStrategy(PackageGuard.Core.Policy.GetPolicyByProject getPolicyByProject, PackageGuard.Core.CSharp.LicenseFetcher licenseFetcher, Microsoft.Extensions.Logging.ILogger? logger, System.Action<string, NuGet.ProjectModel.LockFile>? onProjectLockFileLoaded = null) { }
         public System.Threading.Tasks.Task<PackageGuard.Core.Policy.PolicyViolation[]> ExecuteAnalysis(string projectOrSolutionPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.Package.PackageInfoCollection packages) { }
     }
     public class CSharpProjectScanner
@@ -270,6 +271,7 @@ namespace PackageGuard.Core.Policy
     public class AllowList : PackageGuard.Core.Policy.PackagePolicy
     {
         public AllowList() { }
+        public System.Collections.Generic.Dictionary<string, string> FeedSourceFiles { get; }
         public System.Collections.Generic.List<string> Feeds { get; set; }
         public bool Prerelease { get; set; }
     }
@@ -282,6 +284,7 @@ namespace PackageGuard.Core.Policy
     public abstract class PackagePolicy
     {
         protected PackagePolicy() { }
+        public System.Collections.Generic.Dictionary<string, string> LicenseSourceFiles { get; }
         public System.Collections.Generic.List<string> Licenses { get; set; }
         public System.Collections.Generic.List<PackageGuard.Core.Policy.PackageSelector> Packages { get; set; }
     }
@@ -290,6 +293,7 @@ namespace PackageGuard.Core.Policy
         public PackageSelector(string id) { }
         public PackageSelector(string id, string versionRange) { }
         public string Id { get; set; }
+        public string? SourceFile { get; init; }
         public string? VersionRange { get; set; }
     }
     public class PolicyViolation : System.IEquatable<PackageGuard.Core.Policy.PolicyViolation>

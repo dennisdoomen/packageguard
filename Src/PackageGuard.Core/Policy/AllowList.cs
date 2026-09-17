@@ -15,6 +15,12 @@ public class AllowList : PackagePolicy
     public List<string> Feeds { get; set; } = [];
 
     /// <summary>
+    /// Gets or sets the configuration file each entry in <see cref="Feeds"/> was first introduced by,
+    /// keyed by the feed wildcard string. Populated by <c>ConfigurationLoader</c>; empty when unknown.
+    /// </summary>
+    public Dictionary<string, string> FeedSourceFiles { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Gets or sets a value indicating whether to allow prerelease packages regardless of package name.
     /// </summary>
     public bool Prerelease { get; set; } = true;
@@ -23,19 +29,28 @@ public class AllowList : PackagePolicy
     /// Verifies if the given package complies given the feeds, packages and licenses defined in this allow list.
     /// </summary>
     /// <returns>Returns <c>true</c> if the package is allowed according to the policies in this list.</returns>
-    internal bool Allows(PackageInfo package)
+    internal bool Allows(PackageInfo package) => EvaluateAllow(package).IsMatch;
+
+    /// <summary>
+    /// Evaluates the given package against this allow list and explains which rule, if any, decided the outcome.
+    /// </summary>
+    internal PolicyDecision EvaluateAllow(PackageInfo package)
     {
-        if (PackageIsExplicitlyAllowedByFeed(package))
+        string? matchingFeed = Feeds.FirstOrDefault(package.MatchesFeed);
+        if (matchingFeed is not null)
         {
-            return true;
+            FeedSourceFiles.TryGetValue(matchingFeed, out string? feedSourceFile);
+            return new PolicyDecision(true, $"matches allow list feed entry \"{matchingFeed}\"", feedSourceFile);
         }
 
         // Check if prerelease packages are explicitly disallowed
         bool prereleaseComplies = Prerelease || !NuGetVersion.Parse(package.Version).IsPrerelease;
+        if (!prereleaseComplies)
+        {
+            return new PolicyDecision(false, "prerelease packages are not allowed by policy");
+        }
 
         bool licenseComplies = !(Licenses.Any() && !Licenses.Contains(package.License!, StringComparer.OrdinalIgnoreCase));
-
-        bool packageComplies = true;
 
         foreach (PackageSelector selector in Packages)
         {
@@ -44,20 +59,33 @@ public class AllowList : PackagePolicy
                 if (selector.VersionRange is not null &&
                     !package.SatisfiesRange(package.Name, selector.VersionRange))
                 {
-                    packageComplies = false;
-                }
-                else
-                {
-                    // If the package (and version) is allowed, we don't care about the license violation
-                    licenseComplies = true;
+                    return new PolicyDecision(false,
+                        $"matches allow list package entry \"{selector.Id}\" but version {package.Version} does not satisfy \"{selector.VersionRange}\"",
+                        selector.SourceFile);
                 }
 
-                break;
+                // If the package (and version) is allowed, we don't care about the license violation
+                return new PolicyDecision(true, $"matches allow list package entry \"{selector.Id}\"", selector.SourceFile);
             }
         }
 
-        return prereleaseComplies && licenseComplies && packageComplies;
-    }
+        if (!licenseComplies)
+        {
+            return new PolicyDecision(false, $"license \"{package.License}\" is not in the allow list");
+        }
 
-    private bool PackageIsExplicitlyAllowedByFeed(PackageInfo package) => Feeds.Any(package.MatchesFeed);
+        if (Licenses.Any())
+        {
+            string? matchingLicense = Licenses.FirstOrDefault(license =>
+                license.Equals(package.License, StringComparison.OrdinalIgnoreCase));
+
+            if (matchingLicense is not null)
+            {
+                LicenseSourceFiles.TryGetValue(matchingLicense, out string? licenseSourceFile);
+                return new PolicyDecision(true, $"matches allow list license entry \"{matchingLicense}\"", licenseSourceFile);
+            }
+        }
+
+        return new PolicyDecision(true, "no allow list rule matched; no allow list restrictions apply");
+    }
 }

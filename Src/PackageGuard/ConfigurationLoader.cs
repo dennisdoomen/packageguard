@@ -23,8 +23,11 @@ public class ConfigurationLoader(ILogger logger)
             return new ProjectPolicy();
         }
 
-        // Load and merge configurations manually to ensure proper accumulation
-        var mergedSettings = new PolicySettings();
+        var merged = new ProjectPolicy
+        {
+            AllowList = new AllowList(),
+            DenyList = new DenyList()
+        };
 
         foreach (var configPath in configPaths)
         {
@@ -38,11 +41,47 @@ public class ConfigurationLoader(ILogger logger)
             var settings = configuration.GetSection("Settings").Get<PolicySettings>();
             if (settings != null)
             {
-                mergedSettings.MergeWith(settings);
+                MergeInto(merged, ToPolicy(settings, configPath));
             }
         }
 
-        return ToPolicy(mergedSettings);
+        return merged;
+    }
+
+    /// <summary>
+    /// Merges the packages, licenses, feeds, and prerelease flags from <paramref name="source"/> into
+    /// <paramref name="target"/>, preserving which configuration file each rule was first introduced by.
+    /// </summary>
+    private static void MergeInto(ProjectPolicy target, ProjectPolicy source)
+    {
+        MergePackagePolicy(target.AllowList, source.AllowList);
+        target.AllowList.Feeds.AddRange(source.AllowList.Feeds);
+        foreach ((string feed, string sourceFile) in source.AllowList.FeedSourceFiles)
+        {
+            target.AllowList.FeedSourceFiles.TryAdd(feed, sourceFile);
+        }
+
+        target.AllowList.Prerelease = source.AllowList.Prerelease;
+
+        MergePackagePolicy(target.DenyList, source.DenyList);
+        target.DenyList.Prerelease = source.DenyList.Prerelease;
+
+        target.IgnoredFeeds = [..target.IgnoredFeeds, ..source.IgnoredFeeds];
+    }
+
+    /// <summary>
+    /// Merges the packages and licenses from <paramref name="source"/> into <paramref name="target"/>,
+    /// keeping the first configuration file that introduced each license entry.
+    /// </summary>
+    private static void MergePackagePolicy(PackagePolicy target, PackagePolicy source)
+    {
+        target.Packages.AddRange(source.Packages);
+        target.Licenses.AddRange(source.Licenses);
+
+        foreach ((string license, string sourceFile) in source.LicenseSourceFiles)
+        {
+            target.LicenseSourceFiles.TryAdd(license, sourceFile);
+        }
     }
 
     /// <summary>
@@ -115,10 +154,15 @@ public class ConfigurationLoader(ILogger logger)
             .Build();
 
         var settings = configuration.GetSection("Settings").Get<PolicySettings>() ?? new PolicySettings();
-        return ToPolicy(settings);
+        return ToPolicy(settings, configurationPath);
     }
 
-    private static ProjectPolicy ToPolicy(PolicySettings settings)
+    /// <summary>
+    /// Converts the given <paramref name="settings"/> into a <see cref="ProjectPolicy"/>, stamping every
+    /// rule it defines with <paramref name="sourceFile"/> so later merging and the <c>explain</c> command
+    /// can report which configuration file a rule came from.
+    /// </summary>
+    private static ProjectPolicy ToPolicy(PolicySettings settings, string sourceFile)
     {
         var policy = new ProjectPolicy
         {
@@ -129,20 +173,41 @@ public class ConfigurationLoader(ILogger logger)
         foreach (string package in settings.Allow.Packages)
         {
             string[] segments = package.Split("/");
-            policy.AllowList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? ""));
+            policy.AllowList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? "")
+            {
+                SourceFile = sourceFile
+            });
         }
 
         policy.AllowList.Licenses.AddRange(settings.Allow.Licenses);
+        foreach (string license in settings.Allow.Licenses)
+        {
+            policy.AllowList.LicenseSourceFiles[license] = sourceFile;
+        }
+
         policy.AllowList.Feeds.AddRange(settings.Allow.Feeds);
+        foreach (string feed in settings.Allow.Feeds)
+        {
+            policy.AllowList.FeedSourceFiles[feed] = sourceFile;
+        }
+
         policy.AllowList.Prerelease = settings.Allow.Prerelease;
 
         foreach (string package in settings.Deny.Packages)
         {
             string[] segments = package.Split("/");
-            policy.DenyList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? ""));
+            policy.DenyList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? "")
+            {
+                SourceFile = sourceFile
+            });
         }
 
         policy.DenyList.Licenses.AddRange(settings.Deny.Licenses);
+        foreach (string license in settings.Deny.Licenses)
+        {
+            policy.DenyList.LicenseSourceFiles[license] = sourceFile;
+        }
+
         policy.DenyList.Prerelease = settings.Deny.Prerelease;
 
         policy.IgnoredFeeds = settings.IgnoredFeeds;

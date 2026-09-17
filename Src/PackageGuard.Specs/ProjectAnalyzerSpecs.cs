@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
 using PackageGuard.Core.CSharp;
+using PackageGuard.Core.Package;
 using PackageGuard.Core.Policy;
 using Pathy;
 
@@ -51,6 +52,31 @@ public class ProjectAnalyzerSpecs
 
         // Assert
         await act.Should().NotThrowAsync();
+    }
+
+    [TestMethod]
+    [TestCategory("Integration")]
+    public async Task Only_scores_the_packages_selected_for_risk_scoring()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+
+        // Act
+        AnalysisResult result = await analyzer.ExecuteAnalysisWithRisk(ProjectPath, new AnalyzerSettings
+        {
+            ReportRisk = true
+        }, _ => new ProjectPolicy
+        {
+            AllowList = new AllowList { Licenses = ["MIT"] }
+        }, allPackages => allPackages.Where(p => p.Name == "FluentAssertions").ToArray());
+
+        // Assert
+        PackageInfo scoredPackage = result.Packages.Single(p => p.Name == "FluentAssertions");
+        scoredPackage.RiskDimensions.LegalRiskRationale.Should().NotBeEmpty("the selected package should have been evaluated");
+
+        result.Packages.Where(p => p.Name != "FluentAssertions").Should()
+            .OnlyContain(p => p.RiskDimensions.LegalRiskRationale.Length == 0,
+                "packages outside the selection should never be enriched or scored");
     }
 
     [TestMethod]

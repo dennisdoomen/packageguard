@@ -34,7 +34,8 @@ ILogger logger = serviceProvider.GetRequiredService<ILogger>();
 
 using var registrar = new DependencyInjectionRegistrar(services);
 
-var app = new CommandApp<AnalyzeCommand>(registrar).WithData(logger);
+var app = new CommandApp(registrar);
+app.SetDefaultCommand<AnalyzeCommand>();
 app.Configure(c =>
 {
     c.CaseSensitivity(CaseSensitivity.None);
@@ -46,6 +47,11 @@ app.Configure(c =>
         logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
         return -1;
     });
+
+    c.AddCommand<AnalyzeCommand>("analyze")
+        .WithDescription("Analyzes NuGet/NPM dependencies against the configured allow/deny policies.");
+    c.AddCommand<ExplainCommand>("explain")
+        .WithDescription("Explains why a specific package is present and how it was evaluated against policy.");
 });
 
 return app.Run(args);

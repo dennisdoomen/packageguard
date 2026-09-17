@@ -14,6 +14,7 @@ At a glance, PackageGuard can:
 - Scan **NuGet, npm, pnpm and Yarn** dependencies across an entire solution or codebase in one run, direct and transitive alike
 - Enforce **allow- and deny-lists** for open-source licenses, specific packages, and package versions, discovered **hierarchically** across solution-, project- and repository-level configuration files
 - Resolve **licenses** from NuGet/npm metadata, GitHub repositories, and downloaded license text through a chain of fetchers, falling back gracefully when a source doesn't have an answer
+- **Explain** a single package on demand (`packageguard explain <package>`, with fuzzy name matching) - its dependency path, how its version was resolved, the exact policy rule and configuration file that allowed or denied it, and its risk breakdown
 - Score every package's **risk** across three dimensions - Legal, Security and Operational - via `--report-risk`, weighing signals such as license compatibility, known vulnerabilities (OSV), maintainer activity, package signing, release cadence, and dozens more
 - Back every risk score with **evidence, not just a number**: each package card in the HTML report has a dedicated Evidence section with collapsible, collapsed-by-default panels naming the exact packages, versions, GHSA/OSV vulnerability ids and release dates behind its rationale, so you can see *why* a package scored the way it did without digging through logs
 - Produce a **colored console summary**, a **self-contained HTML report** you can open in a browser, and a **SARIF file** for surfacing violations and risk findings directly in GitHub code scanning
@@ -37,4 +38,5 @@ Contact me through [Email](mailto:dennis.doomen@avivasolutions.nl), [Bluesky](ht
 - [Installation](./installation.md) - install the global tool or the portable deployment
 - [Configuration](./configuration.md) - define your allow- and deny-lists
 - [Usage](./usage.md) - run a scan and read the results
+- [Explaining a package](./explain.md) - see why a specific package is present and how it was evaluated
 - [Risk Metrics](./risk-metrics.md) - score packages on legal, security and operational risk
