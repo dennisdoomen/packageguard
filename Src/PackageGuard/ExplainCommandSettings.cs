@@ -25,7 +25,7 @@ public class ExplainCommandSettings : CommandSettings
 
     [Description(
         "The path to a directory containing a .sln/.slnx file and/or a package.json, a specific .sln/.slnx file, a specific .csproj file, or a specific package.json. Defaults to the current working directory")]
-    [CommandOption("--path")]
+    [CommandOption("-p|--path")]
     public string ProjectPath { get; set; } = string.Empty;
 
     [Description(
