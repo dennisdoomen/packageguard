@@ -38,6 +38,10 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
     public async Task<AnalysisResult> ExecuteAnalysisWithRisk(string projectPath, AnalyzerSettings settings,
         GetPolicyByProject getPolicyByProject)
     {
+        // An unspecified path means "the current directory" to every strategy below, but several of their
+        // file-path helpers throw on an empty string rather than treating it that way, so normalize once here.
+        string effectiveProjectPath = string.IsNullOrEmpty(projectPath) ? "." : projectPath;
+
         IProjectAnalysisStrategy[] strategies =
         [
             new CSharpProjectAnalysisStrategy(getPolicyByProject, licenseFetcher, Logger),
@@ -57,7 +61,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
 
         foreach (IProjectAnalysisStrategy strategy in strategies)
         {
-            violations.AddRange(await strategy.ExecuteAnalysis(projectPath, settings, packages));
+            violations.AddRange(await strategy.ExecuteAnalysis(effectiveProjectPath, settings, packages));
         }
 
         PackageInfo[] allPackages = packages.GetAllUsedPackages();

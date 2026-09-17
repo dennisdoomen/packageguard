@@ -14,7 +14,7 @@ public class CSharpProjectScanner(ILogger logger)
 
     public List<string> FindProjects(string path)
     {
-        ChainablePath pathy = path;
+        ChainablePath pathy = string.IsNullOrEmpty(path) ? ChainablePath.Current : path;
 
         logger.LogHeader($"Finding projects in {path}");
 
@@ -49,12 +49,6 @@ public class CSharpProjectScanner(ILogger logger)
                 logger.LogWarning("Solution {Path} does not exist", path);
                 return new List<string>();
             }
-        }
-
-        // If no path was specified, use the current directory
-        if (pathy == ChainablePath.Empty)
-        {
-            pathy = ChainablePath.Current;
         }
 
         if (solution is null && projectFiles.Count == 0 && pathy.IsDirectory)

@@ -38,6 +38,22 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    public async Task Does_not_crash_when_no_project_path_is_specified()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+
+        // Act
+        var act = async () => await analyzer.ExecuteAnalysis("", new AnalyzerSettings(), _ => new ProjectPolicy
+        {
+            AllowList = new AllowList { Licenses = ["MIT"] }
+        });
+
+        // Assert
+        await act.Should().NotThrowAsync();
+    }
+
+    [TestMethod]
     public async Task Can_deny_an_entire_package()
     {
         // Arrange
