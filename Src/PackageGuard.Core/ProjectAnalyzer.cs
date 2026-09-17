@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using NuGet.ProjectModel;
 using PackageGuard.Core.Common;
 using PackageGuard.Core.CSharp;
 using PackageGuard.Core.GitHub;
@@ -20,6 +21,13 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
     /// Gets or sets the logger used to report analysis progress and diagnostics.
     /// </summary>
     public ILogger Logger { get; set; } = NullLogger.Instance;
+
+    /// <summary>
+    /// Gets or sets an optional callback invoked with each C# project's path and restored lock file as it
+    /// is loaded during analysis. Lets callers (such as the <c>explain</c> command) inspect the resolved
+    /// dependency graph without triggering a second restore.
+    /// </summary>
+    public Action<string, LockFile>? OnProjectLockFileLoaded { get; set; }
 
     /// <summary>
     /// Analyzes the project at <paramref name="projectPath"/> against the configured policies and returns any violations found.
@@ -44,7 +52,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
 
         IProjectAnalysisStrategy[] strategies =
         [
-            new CSharpProjectAnalysisStrategy(getPolicyByProject, licenseFetcher, Logger),
+            new CSharpProjectAnalysisStrategy(getPolicyByProject, licenseFetcher, Logger, OnProjectLockFileLoaded),
             new NpmProjectAnalysisStrategy(getPolicyByProject, Logger)
         ];
 

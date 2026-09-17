@@ -28,6 +28,7 @@ namespace PackageGuard.Core
     {
         public ProjectAnalyzer(PackageGuard.Core.CSharp.LicenseFetcher licenseFetcher, PackageGuard.Core.Risk.RiskEvaluator? riskEvaluator = null) { }
         public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
+        public System.Action<string, NuGet.ProjectModel.LockFile>? OnProjectLockFileLoaded { get; set; }
         public System.Threading.Tasks.Task<PackageGuard.Core.Policy.PolicyViolation[]> ExecuteAnalysis(string projectPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.Policy.GetPolicyByProject getPolicyByProject) { }
         public System.Threading.Tasks.Task<PackageGuard.Core.AnalysisResult> ExecuteAnalysisWithRisk(string projectPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.Policy.GetPolicyByProject getPolicyByProject) { }
     }
@@ -36,7 +37,7 @@ namespace PackageGuard.Core.CSharp
 {
     public class CSharpProjectAnalysisStrategy
     {
-        public CSharpProjectAnalysisStrategy(PackageGuard.Core.Policy.GetPolicyByProject getPolicyByProject, PackageGuard.Core.CSharp.LicenseFetcher licenseFetcher, Microsoft.Extensions.Logging.ILogger? logger) { }
+        public CSharpProjectAnalysisStrategy(PackageGuard.Core.Policy.GetPolicyByProject getPolicyByProject, PackageGuard.Core.CSharp.LicenseFetcher licenseFetcher, Microsoft.Extensions.Logging.ILogger? logger, System.Action<string, NuGet.ProjectModel.LockFile>? onProjectLockFileLoaded = null) { }
         public System.Threading.Tasks.Task<PackageGuard.Core.Policy.PolicyViolation[]> ExecuteAnalysis(string projectOrSolutionPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.Package.PackageInfoCollection packages) { }
     }
     public class CSharpProjectScanner

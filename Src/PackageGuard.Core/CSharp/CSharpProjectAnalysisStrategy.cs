@@ -10,8 +10,8 @@ namespace PackageGuard.Core.CSharp;
 /// <summary>
 /// Analyzes C# projects for compliance with defined policies, such as allowed and denied packages, licenses, and feeds.
 /// </summary>
-public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject, LicenseFetcher licenseFetcher, ILogger? logger)
-    : IProjectAnalysisStrategy
+public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject, LicenseFetcher licenseFetcher, ILogger? logger,
+    Action<string, LockFile>? onProjectLockFileLoaded = null) : IProjectAnalysisStrategy
 {
     private readonly ILogger logger = logger ?? NullLogger.Instance;
 
@@ -74,6 +74,8 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
         LockFile? lockFile = lockFileLoader.GetPackageLockFile(projectPath);
         if (lockFile is not null)
         {
+            onProjectLockFileLoaded?.Invoke(projectPath, lockFile);
+
             var dependencyDepths = CalculateDependencyDepths(lockFile);
             var dependencyKeys = BuildDependencyKeys(lockFile);
             var preOneZeroDependencies = FindPackagesDependingOnPreOneZeroPackages(lockFile);
