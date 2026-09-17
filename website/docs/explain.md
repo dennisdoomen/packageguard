@@ -12,6 +12,8 @@ it here, and what did policy decide about it?" for a single package:
 packageguard explain Newtonsoft.Json --path <path-to-solution-file-or-project>
 ```
 
+![Console output of explaining a package](/img/explain-output.png)
+
 The package name doesn't need to be exact - a partial or misspelled name is matched against every package
 found in the solution, and PackageGuard suggests candidates when it can't resolve one unambiguously. If a
 package resolved to more than one version across your projects, pass the version as a second argument to
@@ -36,8 +38,10 @@ packageguard explain Newtonsoft.Json 13.0.3 --path <path-to-solution-file-or-pro
 - **Risk breakdown** - the same per-factor Legal/Security/Operational scores and rationale used by the
   [risk metrics](./risk-metrics.md) HTML report, shown inline.
 
-Like the rest of PackageGuard, `explain` honors `--use-caching` - with a warm cache it runs close to
-instantly, which is what makes it worth reaching for interactively instead of only reading the HTML report.
+`explain` only fetches risk signals for the resolved package and its own dependencies - not every package
+used across the whole solution - so a single lookup stays fast even on a large codebase. Like the rest of
+PackageGuard, it also honors `--use-caching`: with a warm cache it runs close to instantly, which is what
+makes it worth reaching for interactively instead of only reading the HTML report.
 
 **Known limitation:** dependency-path resolution is currently NuGet-only, for the same reason `--sbom`'s
 dependency graph is - npm, yarn, and pnpm lock-file parsing doesn't yet capture a real parent-child graph.

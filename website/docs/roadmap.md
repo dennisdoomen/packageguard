@@ -17,6 +17,7 @@ free to upvote or comment on any of the linked issues if one of them matters to 
 - Add direct support for [Nuke](https://nuke.build/)
 - Add a `--why` flag to `analyze` that shows an abbreviated dependency path inline on a violation, without needing a separate `explain` call
 - Build a real parent-child dependency graph for npm, yarn and pnpm projects, so `--sbom` and `explain` output for those ecosystems is as accurate as it already is for NuGet
+- Scope `explain`'s NuGet registry and license lookups to the resolved package's own dependencies too, the same way its risk-signal fetching already is, so a lookup in a large solution doesn't fetch metadata for every unrelated package first
 
 **Ecosystem support**
 - [#219](https://github.com/dennisdoomen/packageguard/issues/219) Add support for Python dependencies (`requirements.txt`, `poetry.lock`, `uv.lock`)
