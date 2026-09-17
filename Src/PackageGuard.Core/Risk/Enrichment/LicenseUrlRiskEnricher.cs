@@ -37,11 +37,21 @@ internal sealed class LicenseUrlRiskEnricher(ILogger logger, HttpClient? httpCli
     /// Validates the license URL of <paramref name="package"/> and stores the result in
     /// <see cref="PackageInfo.HasValidLicenseUrl"/>.
     /// </summary>
+    /// <remarks>
+    /// A well-known license URL (e.g. an Apache/GNU/OSI canonical URL, or one NuGet generates itself) is
+    /// already known to be reachable, so it is accepted without spending a request on it.
+    /// </remarks>
     public async Task EnrichAsync(PackageInfo package)
     {
         if (string.IsNullOrWhiteSpace(package.LicenseUrl))
         {
             Apply(package, isValid: false);
+            return;
+        }
+
+        if (WellKnownLicenseUrls.IsWellKnown(package.LicenseUrl))
+        {
+            Apply(package, isValid: true);
             return;
         }
 
