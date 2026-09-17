@@ -84,6 +84,18 @@ const FeatureList: FeatureItem[] = [
       </>
     ),
   },
+  {
+    title: 'Explain a Package',
+    emoji: '🔍',
+    to: '/docs/explain',
+    description: (
+      <>
+        Ask <code>packageguard explain</code> why a package is there. Get its
+        dependency path, the exact policy rule and config file that decided
+        it, and its risk breakdown - fuzzy name matching included.
+      </>
+    ),
+  },
 ];
 
 function Feature({title, emoji, description, to}: FeatureItem) {

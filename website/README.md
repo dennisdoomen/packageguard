@@ -120,6 +120,7 @@ This script checks:
 - `docs/installation.md` - Installing the global tool or the portable deployment, plus all CLI options
 - `docs/configuration.md` - Hierarchical configuration, allow/deny lists, feeds
 - `docs/usage.md` - Running a scan and reading the results
+- `docs/explain.md` - Explaining why a specific package is present and how it was evaluated
 - `docs/risk-metrics.md` - Legal, security and operational risk scoring
 - `docs/sbom.md` - CycloneDX and SPDX output
 - `docs/caching-and-rate-limits.md` - Caching and GitHub rate limits
