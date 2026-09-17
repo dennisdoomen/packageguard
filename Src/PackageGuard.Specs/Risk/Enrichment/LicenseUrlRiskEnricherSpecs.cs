@@ -87,6 +87,24 @@ public class LicenseUrlRiskEnricherSpecs
         package.HasValidatedLicenseUrl.Should().BeTrue();
     }
 
+    [TestMethod]
+    public async Task Accepts_a_well_known_license_url_without_a_network_request()
+    {
+        // Arrange
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(ScriptedResponse.NotFound);
+        var enricher = new LicenseUrlRiskEnricher(NullLogger.Instance, new HttpClient(handler));
+        PackageInfo package = CreatePackage("Acme.Core");
+        package.LicenseUrl = "http://www.apache.org/licenses/LICENSE-2.0";
+
+        // Act
+        await enricher.EnrichAsync(package);
+
+        // Assert
+        package.HasValidLicenseUrl.Should().BeTrue();
+        package.HasValidatedLicenseUrl.Should().BeTrue();
+        handler.Requests.Should().BeEmpty();
+    }
+
     private static PackageInfo CreatePackage(string name) =>
         new()
         {
