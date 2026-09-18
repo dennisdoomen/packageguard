@@ -147,6 +147,52 @@ public class GitHubApiClientSpecs
     }
 
     [TestMethod]
+    public async Task Does_not_rewrite_the_persisted_cache_when_revalidation_finds_nothing_changed()
+    {
+        // Arrange
+        string firstCacheFilePath = Path.Combine(Path.GetTempPath(), $"packageguard-{Guid.NewGuid():N}.bin");
+        string secondCacheFilePath = Path.Combine(Path.GetTempPath(), $"packageguard-{Guid.NewGuid():N}.bin");
+
+        var firstRunHandler = ScriptedHttpMessageHandler.AlwaysReturns(() =>
+            ScriptedResponse.Json("""{"name":"widget"}""", eTag: "\"abc123\""));
+
+        var firstRunCache = new GitHubResponseCache(NullLogger.Instance);
+        using (var firstRunClient = new GitHubApiClient(NullLogger.Instance, null, firstRunCache, firstRunHandler))
+        {
+            await firstRunClient.GetJsonAsync(Url);
+        }
+
+        await firstRunCache.SaveAsync(firstCacheFilePath);
+
+        var laterRunCache = new GitHubResponseCache(NullLogger.Instance);
+        await laterRunCache.LoadAsync(firstCacheFilePath);
+
+        var laterRunHandler = ScriptedHttpMessageHandler.AlwaysReturns(ScriptedResponse.NotModified);
+
+        try
+        {
+            // Act
+            using (var laterRunClient = new GitHubApiClient(NullLogger.Instance, null, laterRunCache, laterRunHandler))
+            {
+                await laterRunClient.GetJsonAsync(Url);
+            }
+
+            await laterRunCache.SaveAsync(secondCacheFilePath);
+
+            // Assert
+            byte[] firstRunBytes = await File.ReadAllBytesAsync(firstCacheFilePath);
+            byte[] laterRunBytes = await File.ReadAllBytesAsync(secondCacheFilePath);
+            laterRunBytes.Should().Equal(firstRunBytes,
+                "revalidating an entry that turned out to be unchanged should not alter the persisted cache");
+        }
+        finally
+        {
+            File.Delete(firstCacheFilePath);
+            File.Delete(secondCacheFilePath);
+        }
+    }
+
+    [TestMethod]
     public async Task Remembers_that_a_resource_does_not_exist()
     {
         // Arrange

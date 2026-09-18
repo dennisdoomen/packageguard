@@ -99,9 +99,20 @@ internal sealed class GitHubResponseCache(ILogger logger)
     });
 
     /// <summary>
-    /// Refreshes the revalidation timestamp of an entry that the API confirmed as unchanged.
+    /// Marks an entry the API confirmed as unchanged as fresh for the remainder of this run, without touching its
+    /// stored timestamp, so a run in which nothing actually changed does not rewrite the persisted cache file.
     /// </summary>
-    public void MarkAsRevalidated(string url) => Store(url, _ => { });
+    public void MarkAsRevalidated(string url)
+    {
+        lock (entriesLock)
+        {
+            if (entries.TryGetValue(url, out GitHubResponseCacheEntry? entry))
+            {
+                entry.IsUsed = true;
+                entry.IsFreshThisRun = true;
+            }
+        }
+    }
 
     /// <summary>
     /// Loads previously persisted responses from <paramref name="cacheFilePath"/>, ignoring a missing or unreadable file.
