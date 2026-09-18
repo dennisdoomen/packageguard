@@ -30,7 +30,8 @@ internal sealed partial class GitHubResponseCacheEntry
     public bool IsNotFound { get; set; }
 
     /// <summary>
-    /// The moment the entry was last revalidated against the API.
+    /// The moment the entry's body was last fetched or confirmed missing. A later run that revalidates this entry
+    /// and finds it unchanged does not update this timestamp.
     /// </summary>
     public DateTimeOffset StoredAt { get; set; }
 
