@@ -13,6 +13,11 @@ namespace PackageGuard.Core.CSharp;
 public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject, LicenseFetcher licenseFetcher, ILogger? logger,
     Action<string, LockFile>? onProjectLockFileLoaded = null) : IProjectAnalysisStrategy
 {
+    /// <summary>
+    /// The maximum number of packages whose metadata is fetched concurrently.
+    /// </summary>
+    private const int MaxConcurrentPackages = 6;
+
     private readonly ILogger logger = logger ?? NullLogger.Instance;
 
     /// <summary>
@@ -80,9 +85,13 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
             var dependencyKeys = BuildDependencyKeys(lockFile);
             var preOneZeroDependencies = FindPackagesDependingOnPreOneZeroPackages(lockFile);
 
-            foreach (LockFileLibrary? library in lockFile.Libraries.Where(library => library.Type == "package"))
+            LockFileLibrary[] libraries = lockFile.Libraries.Where(library => library.Type == "package").ToArray();
+
+            if (libraries.Length > 0)
             {
-                await analyzer.CollectPackageMetadata(projectPath, library.Name, library.Version, packages);
+                await Parallel.ForEachAsync(libraries,
+                    new ParallelOptions { MaxDegreeOfParallelism = Math.Min(MaxConcurrentPackages, libraries.Length) },
+                    async (library, _) => await analyzer.CollectPackageMetadata(projectPath, library.Name, library.Version, packages));
             }
 
             foreach (PackageInfo package in packages)

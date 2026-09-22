@@ -27,6 +27,12 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
     private bool isCacheInitialized;
 
     /// <summary>
+    /// Serializes access to <see cref="packages"/> and <see cref="cache"/>, since package metadata is now collected
+    /// concurrently for multiple packages at once.
+    /// </summary>
+    private readonly Lock collectionLock = new();
+
+    /// <summary>
     /// Returns an enumerator that iterates over all packages in the collection.
     /// </summary>
     public IEnumerator<PackageInfo> GetEnumerator() => packages.Values.GetEnumerator();
@@ -38,14 +44,17 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
     /// </summary>
     public PackageInfo Add(PackageInfo package)
     {
-        string packageKey = package.GetCollectionKey();
-        PackageInfo existingPackage = GetOrAddCachedPackage(packageKey, package);
+        lock (collectionLock)
+        {
+            string packageKey = package.GetCollectionKey();
+            PackageInfo existingPackage = GetOrAddCachedPackage(packageKey, package);
 
-        packages[packageKey] = existingPackage;
-        existingPackage.MarkAsUsed();
+            packages[packageKey] = existingPackage;
+            existingPackage.MarkAsUsed();
 
-        UpdateLicenseForWellKnownLicenseUrls(existingPackage);
-        return existingPackage;
+            UpdateLicenseForWellKnownLicenseUrls(existingPackage);
+            return existingPackage;
+        }
     }
 
     /// <summary>
@@ -73,15 +82,18 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
             .Select(source => source.PackageSource.Source)
             .ToArray();
 
-        PackageInfo? package = FindLoadedPackage(name, version, sourceUrls) ?? FindCachedPackage(name, version, sourceUrls);
-
-        if (package is not null)
+        lock (collectionLock)
         {
-            package.MarkAsUsed();
-            return package;
-        }
+            PackageInfo? package = FindLoadedPackage(name, version, sourceUrls) ?? FindCachedPackage(name, version, sourceUrls);
 
-        return null;
+            if (package is not null)
+            {
+                package.MarkAsUsed();
+                return package;
+            }
+
+            return null;
+        }
     }
 
     /// <summary>
