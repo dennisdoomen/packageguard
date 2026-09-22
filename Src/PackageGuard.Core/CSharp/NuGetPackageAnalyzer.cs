@@ -26,6 +26,12 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
     private readonly Dictionary<string, SourceRepository[]> nuGetSourcesByProject = new();
 
     /// <summary>
+    /// Synchronizes access to <see cref="nuGetSourcesByProject"/>, since metadata for multiple packages of the same
+    /// project is now collected concurrently.
+    /// </summary>
+    private readonly Lock nuGetSourcesLock = new();
+
+    /// <summary>
     /// Tracks whether NuGet credential providers have already been configured for this process.
     /// </summary>
     private static bool credentialProvidersConfigured;
@@ -116,46 +122,49 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
     /// <returns>An array of <see cref="SourceRepository"/> instances available to the project.</returns>
     private SourceRepository[] GetNuGetSources(string projectDirectory)
     {
-        if (!nuGetSourcesByProject.TryGetValue(projectDirectory, out SourceRepository[]? sources))
+        lock (nuGetSourcesLock)
         {
-            logger.LogInformation("Finding NuGet sources");
-
-            // Ensure credential providers are configured for Azure DevOps and other authenticated feeds
-            EnsureCredentialProvidersConfigured();
-
-            var settings = Settings.LoadDefaultSettings(projectDirectory);
-            var sourceProvider = new PackageSourceProvider(settings);
-            PackageSource[] configuredSources = sourceProvider.LoadPackageSources()
-                .Where(source => source.IsEnabled)
-                .ToArray();
-
-            var packageSources = new List<PackageSource>();
-            foreach (PackageSource source in configuredSources)
+            if (!nuGetSourcesByProject.TryGetValue(projectDirectory, out SourceRepository[]? sources))
             {
-                if (IgnoredFeeds.Any(pattern => source.Name.MatchesWildcard(pattern) ||
-                                                source.Source.MatchesWildcard(pattern)))
+                logger.LogInformation("Finding NuGet sources");
+
+                // Ensure credential providers are configured for Azure DevOps and other authenticated feeds
+                EnsureCredentialProvidersConfigured();
+
+                var settings = Settings.LoadDefaultSettings(projectDirectory);
+                var sourceProvider = new PackageSourceProvider(settings);
+                PackageSource[] configuredSources = sourceProvider.LoadPackageSources()
+                    .Where(source => source.IsEnabled)
+                    .ToArray();
+
+                var packageSources = new List<PackageSource>();
+                foreach (PackageSource source in configuredSources)
                 {
-                    logger.LogDebug("Ignoring NuGet source {Name} ({Source})", source.Name, source.Source);
+                    if (IgnoredFeeds.Any(pattern => source.Name.MatchesWildcard(pattern) ||
+                                                    source.Source.MatchesWildcard(pattern)))
+                    {
+                        logger.LogDebug("Ignoring NuGet source {Name} ({Source})", source.Name, source.Source);
+                    }
+                    else
+                    {
+                        logger.LogDebug("Found NuGet source {Name} ({Source})", source.Name, source.Source);
+                        packageSources.Add(source);
+                    }
                 }
-                else
+
+                if (!packageSources.Any())
                 {
-                    logger.LogDebug("Found NuGet source {Name} ({Source})", source.Name, source.Source);
-                    packageSources.Add(source);
+                    throw new ApplicationException("No NuGet sources found in configuration.");
                 }
+
+                var providers = Repository.Provider.GetCoreV3();
+                sources = packageSources.Select(s => new SourceRepository(s, providers)).ToArray();
+
+                nuGetSourcesByProject[projectDirectory] = sources;
             }
 
-            if (!packageSources.Any())
-            {
-                throw new ApplicationException("No NuGet sources found in configuration.");
-            }
-
-            var providers = Repository.Provider.GetCoreV3();
-            sources = packageSources.Select(s => new SourceRepository(s, providers)).ToArray();
-
-            nuGetSourcesByProject[projectDirectory] = sources;
+            return nuGetSourcesByProject[projectDirectory];
         }
-
-        return nuGetSourcesByProject[projectDirectory];
     }
 
     /// <summary>
