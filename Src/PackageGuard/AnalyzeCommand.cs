@@ -43,7 +43,7 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         }
 
         var analyzer = BuildAnalyzer(logger, settings);
-        var loader = new ConfigurationLoader(logger);
+        var loader = new ConfigurationLoader(logger, settings.ProjectPath);
 
         GetPolicyByProject getPolicy = _ => loader.GetConfigurationFromConfigPath(settings.ConfigPath);
         if (settings.ConfigPath == AnalyzeCommandSettings.DefaultConfigFileName && !File.Exists(settings.ConfigPath))
