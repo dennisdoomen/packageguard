@@ -1,3 +1,5 @@
+using PackageGuard.Core.Package;
+
 namespace PackageGuard.Core.Policy;
 
 /// <summary>
@@ -20,6 +22,18 @@ public class ProjectPolicy
     public DenyList DenyList { get; set; } = new();
 
     /// <summary>
+    /// If specified, a list of packages and licenses that log a warning instead of failing the build.
+    /// A match in <see cref="DenyList"/> always takes precedence over a match here.
+    /// </summary>
+    public WarnList WarnList { get; set; } = new();
+
+    /// <summary>
+    /// Explicit exceptions that keep specific packages (optionally pinned to a version range) from being
+    /// denied by <see cref="DenyList"/>'s risk-based rules, even if they exceed a threshold.
+    /// </summary>
+    public List<RiskException> RiskExceptions { get; set; } = new();
+
+    /// <summary>
     /// One or more NuGet or NPM feeds that should be completely ignored during the analysis.
     /// </summary>
     /// <value>
@@ -29,14 +43,21 @@ public class ProjectPolicy
 
     /// <summary>
     /// Validates the current project policy to ensure that at least one policy
-    /// (allowlist or denylist) is specified. Throws an exception if no policies
+    /// (allowlist, denylist, or warnlist) is specified. Throws an exception if no policies
     /// are defined.
     /// </summary>
     public void Validate()
     {
-        if (!AllowList.HasPolicies && !DenyList.HasPolicies)
+        if (!AllowList.HasPolicies && !DenyList.HasPolicies && !DenyList.HasRiskPolicies && !WarnList.HasPolicies)
         {
             throw new ArgumentException("Either a allowlist or a denylist must be specified");
         }
     }
+
+    /// <summary>
+    /// Determines whether <paramref name="package"/> is covered by a <see cref="RiskExceptions"/> entry that
+    /// currently applies, exempting it from <see cref="DenyList"/>'s risk-based rules.
+    /// </summary>
+    internal bool IsExcludedFromRiskDenial(PackageInfo package) =>
+        RiskExceptions.Any(exception => exception.Matches(package));
 }

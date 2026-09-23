@@ -43,6 +43,11 @@ public class AnalyzeCommandSettings : CommandSettings
     [DefaultValue(false)]
     public bool IgnoreViolations { get; set; }
 
+    [Description(
+        "Downgrade deny-list violations to warnings instead of failing the build. Defaults to the PACKAGEGUARD_DENY_AS_WARNING environment variable, or false.")]
+    [CommandOption("--treat-deny-as-warning|--treatdenyaswarning")]
+    public bool TreatDenyAsWarning { get; set; } = ParseBoolEnvironmentVariable("PACKAGEGUARD_DENY_AS_WARNING");
+
     [Description("Force restoring the NuGet dependencies, even if the lockfile is up-to-date")]
     [CommandOption("-f|--force-restore|--forcerestore")]
     [DefaultValue(false)]
@@ -140,6 +145,12 @@ public class AnalyzeCommandSettings : CommandSettings
 
         return ValidationResult.Success();
     }
+
+    /// <summary>
+    /// Parses <paramref name="name"/> as a boolean environment variable, defaulting to <c>false</c> when unset or invalid.
+    /// </summary>
+    private static bool ParseBoolEnvironmentVariable(string name) =>
+        bool.TryParse(Environment.GetEnvironmentVariable(name), out bool value) && value;
 
     /// <summary>
     /// Returns the directory or file path that was explicitly provided after <c>--report-risk</c>, or

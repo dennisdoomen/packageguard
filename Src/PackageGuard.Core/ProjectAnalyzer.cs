@@ -84,9 +84,22 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
 
         PackageInfo[] allPackages = packages.GetAllUsedPackages();
 
-        if (settings.ReportRisk)
+        bool anyPolicyNeedsRisk = allPackages
+            .SelectMany(package => package.Projects)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(projectPath => getPolicyByProject(projectPath))
+            .Any(policy => policy.DenyList.HasRiskPolicies);
+
+        if (settings.ReportRisk || anyPolicyNeedsRisk)
         {
+            if (!settings.ReportRisk)
+            {
+                Logger.LogInformation(
+                    "A policy defines risk-based deny rules, so risk enrichment is running automatically even though --report-risk was not specified.");
+            }
+
             await BuildRiskReport(settings, packages, selectPackagesForRiskScoring);
+            violations.AddRange(EvaluateRiskBasedViolations(allPackages, getPolicyByProject));
         }
 
         if (settings.UseCaching)
@@ -151,6 +164,38 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         }
 
         Logger.LogInformation("Risk scoring complete for {PackageCount} packages.", scoringTargets.Length);
+    }
+
+    /// <summary>
+    /// Checks every package against the risk-based deny rules of the policy of each project that references
+    /// it, skipping packages covered by a currently-applicable <see cref="RiskException"/>. Requires
+    /// <paramref name="packages"/> to have already been scored by the risk pipeline.
+    /// </summary>
+    private static PolicyViolation[] EvaluateRiskBasedViolations(PackageInfo[] packages, GetPolicyByProject getPolicyByProject)
+    {
+        List<PolicyViolation> violations = new();
+
+        foreach (PackageInfo package in packages)
+        {
+            foreach (string projectPath in package.Projects)
+            {
+                ProjectPolicy policy = getPolicyByProject(projectPath);
+                if (!policy.DenyList.HasRiskPolicies || policy.IsExcludedFromRiskDenial(package))
+                {
+                    continue;
+                }
+
+                PolicyDecision decision = policy.DenyList.EvaluateRiskDeny(package);
+                if (decision.IsMatch)
+                {
+                    violations.Add(new PolicyViolation(package.Name, package.Version, package.License ?? "",
+                        package.Projects.ToArray(), package.Source, package.SourceUrl, decision.Reason));
+                    break;
+                }
+            }
+        }
+
+        return violations.ToArray();
     }
 
     /// <summary>

@@ -203,11 +203,31 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
 
             PolicyDecision allowDecision = policy.AllowList.EvaluateAllow(package);
             PolicyDecision denyDecision = policy.DenyList.EvaluateDeny(package);
-            bool isViolation = !allowDecision.IsMatch || denyDecision.IsMatch;
+
+            bool riskExcepted = policy.IsExcludedFromRiskDenial(package);
+            PolicyDecision riskDenyDecision = riskExcepted
+                ? new PolicyDecision(false, "excluded by a risk exception")
+                : policy.DenyList.EvaluateRiskDeny(package);
+
+            bool isViolation = !allowDecision.IsMatch || denyDecision.IsMatch || riskDenyDecision.IsMatch;
 
             string status = isViolation ? "DENIED" : "ALLOWED";
             string statusColor = isViolation ? "red1" : "green3_1";
-            PolicyDecision decisive = denyDecision.IsMatch ? denyDecision : allowDecision;
+
+            PolicyDecision decisive = denyDecision.IsMatch ? denyDecision
+                : riskDenyDecision.IsMatch ? riskDenyDecision
+                : allowDecision;
+
+            if (!isViolation)
+            {
+                PolicyDecision warnDecision = policy.WarnList.EvaluateWarn(package);
+                if (warnDecision.IsMatch)
+                {
+                    status = "WARNING";
+                    statusColor = "yellow1";
+                    decisive = warnDecision;
+                }
+            }
 
             string reason = decisive.Reason;
             if (decisive.SourceFile is not null)
