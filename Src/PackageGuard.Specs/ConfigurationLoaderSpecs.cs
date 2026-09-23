@@ -1,8 +1,9 @@
 using System.IO;
+using System.Linq;
 using FluentAssertions;
+using Meziantou.Extensions.Logging.InMemory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PackageGuard.Core;
 using PackageGuard.Core.Policy;
 using Pathy;
 
@@ -536,5 +537,101 @@ public class ConfigurationLoaderSpecs
         ]);
 
         projectBConfig.AllowList.Licenses.Should().NotContain("Apache-2.0");
+    }
+
+    [TestMethod]
+    public void Falls_back_to_the_scan_root_when_a_project_lives_outside_the_solution_directory()
+    {
+        // Arrange
+        // The solution lives in "src", but references a sibling "build" project, so the solution
+        // directory is not an ancestor of that project's own directory.
+        var srcDir = tempDir / "src";
+        srcDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(srcDir / "MySolution.sln", "# Solution file");
+        File.WriteAllText(srcDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "licenses": ["MIT"]
+                    }
+                }
+            }
+            """);
+
+        var buildDir = tempDir / "build";
+        buildDir.CreateDirectoryRecursively();
+
+        var loader = new ConfigurationLoader(NullLogger.Instance, srcDir);
+
+        // Act
+        ProjectPolicy policy = loader.GetEffectiveConfigurationForProject(buildDir);
+
+        // Assert
+        policy.AllowList.Licenses.Should().Contain("MIT");
+    }
+
+    [TestMethod]
+    public void Falls_back_to_the_current_directory_when_no_path_argument_was_given()
+    {
+        // Arrange
+        // Mirrors the CLI default: no [path] argument means ProjectPath is "" (not null), and the
+        // solution is found via the current directory rather than an explicit path.
+        var srcDir = tempDir / "src";
+        srcDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(srcDir / "MySolution.sln", "# Solution file");
+        File.WriteAllText(srcDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "allow": {
+                        "licenses": ["MIT"]
+                    }
+                }
+            }
+            """);
+
+        var buildDir = tempDir / "build";
+        buildDir.CreateDirectoryRecursively();
+
+        var loader = new ConfigurationLoader(NullLogger.Instance, string.Empty);
+
+        string originalDirectory = Directory.GetCurrentDirectory();
+        try
+        {
+            Directory.SetCurrentDirectory(srcDir);
+
+            // Act
+            ProjectPolicy policy = loader.GetEffectiveConfigurationForProject(buildDir);
+
+            // Assert
+            policy.AllowList.Licenses.Should().Contain("MIT");
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(originalDirectory);
+        }
+    }
+
+    [TestMethod]
+    public void Logs_the_directories_it_searched_for_configuration_files()
+    {
+        // Arrange
+        var solutionDir = tempDir / "MySolution";
+        solutionDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+
+        var loggingProvider = new InMemoryLoggerProvider();
+        var loader = new ConfigurationLoader(loggingProvider.CreateLogger(""));
+
+        // Act
+        loader.GetEffectiveConfigurationForProject(solutionDir);
+
+        // Assert
+        loggingProvider.Logs.Select(x => x.Message)
+            .Should().ContainMatch($"*Looking for configuration files in {solutionDir}*");
     }
 }

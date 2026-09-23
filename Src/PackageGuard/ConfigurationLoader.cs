@@ -1,12 +1,11 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using PackageGuard.Core;
 using PackageGuard.Core.Policy;
 using Pathy;
 
 namespace PackageGuard;
 
-public class ConfigurationLoader(ILogger logger)
+public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
 {
     /// <summary>
     /// Gets the effective configuration for a specific project by merging solution-level and project-level configurations.
@@ -91,7 +90,7 @@ public class ConfigurationLoader(ILogger logger)
     /// 2. The specific project level only (not sibling projects)
     /// </summary>
     /// <param name="projectPath">Path to the specific project directory or file</param>
-    private static List<string> DiscoverConfigurationFiles(string projectPath)
+    private List<string> DiscoverConfigurationFiles(string projectPath)
     {
         var configFiles = new List<string>();
         ChainablePath path = string.IsNullOrEmpty(projectPath) ? ChainablePath.Current : projectPath;
@@ -104,6 +103,18 @@ public class ConfigurationLoader(ILogger logger)
 
         // Find solution directory and add its config files
         ChainablePath solutionDirectory = path.FindParentWithFileMatching("*.sln", "*.slnx");
+
+        if (solutionDirectory.IsNull && scanRoot is not null)
+        {
+            // The project isn't necessarily nested under the solution directory (e.g. a solution in
+            // "src/" that includes sibling "build/" or "tests/" projects), so fall back to the root
+            // path that was originally scanned instead of missing the solution-level config entirely.
+            // An empty scanRoot (the default when no path argument was given) means the current
+            // directory, matching how the rest of this method and the project scanner treat it.
+            ChainablePath root = string.IsNullOrEmpty(scanRoot) ? ChainablePath.Current : scanRoot;
+            solutionDirectory = root.IsFile ? root.Directory : root;
+        }
+
         if (!solutionDirectory.IsNull)
         {
             AddConfigFilesFromDirectory(configFiles, solutionDirectory);
@@ -122,13 +133,16 @@ public class ConfigurationLoader(ILogger logger)
     /// <summary>
     /// Adds configuration files from a specific directory if they exist.
     /// </summary>
-    private static void AddConfigFilesFromDirectory(List<string> configFiles, ChainablePath directory)
+    private void AddConfigFilesFromDirectory(List<string> configFiles, ChainablePath directory)
     {
+        logger.LogDebug("Looking for configuration files in {Directory}", directory);
+
         // Check for packageguard.config.json in the directory
         var packageGuardConfig = directory / "packageguard.config.json";
         if (packageGuardConfig.IsFile)
         {
             configFiles.Add(packageGuardConfig);
+            logger.LogDebug("Found {Path}", packageGuardConfig);
         }
 
         // Check for config.json in .packageguard subdirectory
@@ -136,6 +150,7 @@ public class ConfigurationLoader(ILogger logger)
         if (dotPackageGuardConfig.IsFile)
         {
             configFiles.Add(dotPackageGuardConfig);
+            logger.LogDebug("Found {Path}", dotPackageGuardConfig);
         }
     }
 
