@@ -129,6 +129,83 @@ Here's a summary of the version-range notations:
 | `Package/(1.0,2.0)`  | 1.0 &lt; v &lt; 2.0  |
 | `Package/[1.0,2.0)`  | 1.0 ≤ v &lt; 2.0  |
 
+## Gating on risk and package age
+
+Besides package identity and license, the `deny` section can also gate on the [risk score](./risk-metrics.md) and other signals collected for a package. Setting any of these automatically triggers risk enrichment for that project, even without `--report-risk`, since otherwise there'd be no data to gate on:
+
+```json
+{
+    "settings": {
+        "deny": {
+            "maxOverallRisk": 60,
+            "maxLegalRisk": 5,
+            "maxSecurityRisk": 7,
+            "maxOperationalRisk": 8,
+            "maxOsvSeverityScore": 7.0,
+            "denyUnsigned": true,
+            "denyDeprecated": true,
+            "denyWithoutRepository": true,
+            "minPackageAgeDays": {
+                "npm": 14,
+                "nuget": 3
+            }
+        }
+    }
+}
+```
+
+- `maxOverallRisk` - denies a package whose overall risk score (`0`-`100`) exceeds this value.
+- `maxLegalRisk`, `maxSecurityRisk`, `maxOperationalRisk` - deny a package whose legal, security or operational dimension score (`0`-`10` each) exceeds this value. A package can be operationally awful and still land under `maxOverallRisk`, so these give you more targeted control than the blended score alone.
+- `maxOsvSeverityScore` - denies a package whose highest known OSV/CVSS severity exceeds this value (for example `7.0` to deny anything "High" or above), independent of the blended security score.
+- `denyUnsigned` - denies packages that aren't signed. Packages for which signing can't be evaluated (for example npm packages) are never denied by this rule.
+- `denyDeprecated` - denies packages marked as deprecated by their registry.
+- `denyWithoutRepository` - denies packages that don't declare a repository URL.
+- `minPackageAgeDays` - denies a package published more recently than the given number of days, keyed by ecosystem (`npm` or `nuget`). This is a cheap and effective defence against the typical account-compromise pattern where a malicious version is published and yanked within hours.
+
+A build can pass today and fail tomorrow because a new CVE was published or a risk score shifted - that's expected once you gate on live risk data. Use `riskExceptions` below for packages you've deliberately accepted the risk on.
+
+### Risk exceptions
+
+`riskExceptions` is an allow-list style override that excludes a specific package - optionally pinned to a version or version range, and optionally with an expiry date - from the risk-based `deny` rules above, even if it exceeds a threshold or has a known vulnerability. It has no effect on ordinary package/license allow/deny matching.
+
+```json
+{
+    "settings": {
+        "riskExceptions": [
+            {
+                "package": "left-pad",
+                "reason": "Vetted manually on 2026-01-15, won't-fix CVE-2025-12345 does not apply to our usage",
+                "expiresOn": "2026-07-01"
+            },
+            {
+                "package": "some-native-lib",
+                "versions": "[1.0.0,2.0.0)",
+                "reason": "Signing certificate expired but publisher identity verified out-of-band"
+            }
+        ]
+    }
+}
+```
+
+Once `expiresOn` has passed, the exception stops applying and the package is denied again if it still violates a risk rule.
+
+## Warnings instead of build failures
+
+A `warn` section mirrors `deny`'s `packages`, `licenses` and `prerelease` matching, but a match only logs a warning instead of failing the build. A `deny` match always takes precedence over a `warn` match on the same package.
+
+```json
+{
+    "settings": {
+        "warn": {
+            "licenses": ["GPL-3.0"],
+            "packages": ["some-package"]
+        }
+    }
+}
+```
+
+To downgrade every `deny` violation to a warning at run time - for example to keep shipping while you work through remediation for a newly added rule - pass `--treat-deny-as-warning` or set the `PACKAGEGUARD_DENY_AS_WARNING` environment variable to `true`. This applies to both the ordinary `deny` rules and the risk-based rules above.
+
 ## About feeds
 
 PackageGuard follows the same logic for getting the applicable NuGet or NPM feeds as `dotnet`, NPM package managers or your IDE does. That also means that it will use the configured credential providers to access authenticated and private feeds.

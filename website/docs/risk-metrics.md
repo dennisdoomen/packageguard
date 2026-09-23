@@ -22,6 +22,8 @@ The overall score is weighted instead of averaged:
 
 Each dimension is scored from `0` to `10`, and the weighted total is scaled to `0` to `100`.
 
+Risk scores aren't just for reporting - your [configuration](./configuration.md#gating-on-risk-and-package-age) can deny packages that exceed a risk threshold, minimum package age, or OSV severity cap, with documented exceptions for accepted-risk packages.
+
 ## What gets measured?
 
 PackageGuard combines package metadata, repository evidence, workflow signals, dependency-graph data, signing checks and OSV vulnerability intelligence.

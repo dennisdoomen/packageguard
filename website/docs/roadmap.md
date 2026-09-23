@@ -11,8 +11,6 @@ free to upvote or comment on any of the linked issues if one of them matters to 
 **Minor features**
 - Allow specifying the location of `dotnet.exe`
 - Allow ignoring certain .csproj files or folders using Globs or wildcards (e.g. build.csproj)
-- Allow marking all violations as a warning
-- Allow marking individual violations as a warning
 - Expose the internal engine through the `PackageGuard.Core` NuGet package
 - Add direct support for [Nuke](https://nuke.build/)
 - Add a `--why` flag to `analyze` that shows an abbreviated dependency path inline on a violation, without needing a separate `explain` call
@@ -32,7 +30,6 @@ free to upvote or comment on any of the linked issues if one of them matters to 
 - [#218](https://github.com/dennisdoomen/packageguard/issues/218) Built-in policy presets that configurations can extend
 - [#217](https://github.com/dennisdoomen/packageguard/issues/217) Support SPDX license expressions (`OR`, `AND`, `WITH`) instead of plain identifiers
 - [#225](https://github.com/dennisdoomen/packageguard/issues/225) A feed provenance policy asserting which feed a package must come from
-- [#212](https://github.com/dennisdoomen/packageguard/issues/212) Allow policies to gate on risk scores and package age
 - [#211](https://github.com/dennisdoomen/packageguard/issues/211) A baseline and suppression file so existing codebases can adopt PackageGuard incrementally
 
 **Reporting and output**
