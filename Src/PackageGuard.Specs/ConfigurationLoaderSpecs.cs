@@ -1,5 +1,7 @@
 using System.IO;
+using System.Linq;
 using FluentAssertions;
+using Meziantou.Extensions.Logging.InMemory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core.Policy;
@@ -611,5 +613,25 @@ public class ConfigurationLoaderSpecs
         {
             Directory.SetCurrentDirectory(originalDirectory);
         }
+    }
+
+    [TestMethod]
+    public void Logs_the_directories_it_searched_for_configuration_files()
+    {
+        // Arrange
+        var solutionDir = tempDir / "MySolution";
+        solutionDir.CreateDirectoryRecursively();
+
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+
+        var loggingProvider = new InMemoryLoggerProvider();
+        var loader = new ConfigurationLoader(loggingProvider.CreateLogger(""));
+
+        // Act
+        loader.GetEffectiveConfigurationForProject(solutionDir);
+
+        // Assert
+        loggingProvider.Logs.Select(x => x.Message)
+            .Should().ContainMatch($"*Looking for configuration files in {solutionDir}*");
     }
 }

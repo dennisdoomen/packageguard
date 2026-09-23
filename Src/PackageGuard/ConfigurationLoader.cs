@@ -133,13 +133,16 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
     /// <summary>
     /// Adds configuration files from a specific directory if they exist.
     /// </summary>
-    private static void AddConfigFilesFromDirectory(List<string> configFiles, ChainablePath directory)
+    private void AddConfigFilesFromDirectory(List<string> configFiles, ChainablePath directory)
     {
+        logger.LogDebug("Looking for configuration files in {Directory}", directory);
+
         // Check for packageguard.config.json in the directory
         var packageGuardConfig = directory / "packageguard.config.json";
         if (packageGuardConfig.IsFile)
         {
             configFiles.Add(packageGuardConfig);
+            logger.LogDebug("Found {Path}", packageGuardConfig);
         }
 
         // Check for config.json in .packageguard subdirectory
@@ -147,6 +150,7 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         if (dotPackageGuardConfig.IsFile)
         {
             configFiles.Add(dotPackageGuardConfig);
+            logger.LogDebug("Found {Path}", dotPackageGuardConfig);
         }
     }
 
