@@ -278,6 +278,15 @@ namespace PackageGuard.Core.Policy
     public class DenyList : PackageGuard.Core.Policy.PackagePolicy
     {
         public DenyList() { }
+        public bool DenyDeprecated { get; set; }
+        public bool DenyUnsigned { get; set; }
+        public bool DenyWithoutRepository { get; set; }
+        public double? MaxLegalRisk { get; set; }
+        public double? MaxOperationalRisk { get; set; }
+        public double? MaxOsvSeverityScore { get; set; }
+        public double? MaxOverallRisk { get; set; }
+        public double? MaxSecurityRisk { get; set; }
+        public System.Collections.Generic.Dictionary<string, int> MinPackageAgeDays { get; }
         public bool Prerelease { get; set; }
     }
     public delegate PackageGuard.Core.Policy.ProjectPolicy GetPolicyByProject(string projectPath);
@@ -298,12 +307,14 @@ namespace PackageGuard.Core.Policy
     }
     public class PolicyViolation : System.IEquatable<PackageGuard.Core.Policy.PolicyViolation>
     {
-        public PolicyViolation(string PackageId, string Version, string License, string[] Projects, string FeedName, string FeedUrl) { }
+        public PolicyViolation(string PackageId, string Version, string License, string[] Projects, string FeedName, string FeedUrl, string Reason = "", bool IsWarning = false) { }
         public string FeedName { get; init; }
         public string FeedUrl { get; init; }
+        public bool IsWarning { get; init; }
         public string License { get; init; }
         public string PackageId { get; init; }
         public string[] Projects { get; init; }
+        public string Reason { get; init; }
         public string Version { get; init; }
     }
     public class ProjectPolicy
@@ -312,7 +323,23 @@ namespace PackageGuard.Core.Policy
         public PackageGuard.Core.Policy.AllowList AllowList { get; set; }
         public PackageGuard.Core.Policy.DenyList DenyList { get; set; }
         public string[] IgnoredFeeds { get; set; }
+        public System.Collections.Generic.List<PackageGuard.Core.Policy.RiskException> RiskExceptions { get; init; }
+        public PackageGuard.Core.Policy.WarnList WarnList { get; init; }
         public void Validate() { }
+    }
+    public class RiskException
+    {
+        public RiskException() { }
+        public System.DateOnly? ExpiresOn { get; init; }
+        public string Package { get; init; }
+        public string Reason { get; init; }
+        public string? SourceFile { get; init; }
+        public string? Versions { get; init; }
+    }
+    public class WarnList : PackageGuard.Core.Policy.PackagePolicy
+    {
+        public WarnList() { }
+        public bool Prerelease { get; set; }
     }
 }
 namespace PackageGuard.Core.Risk

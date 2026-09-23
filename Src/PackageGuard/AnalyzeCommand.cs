@@ -130,9 +130,17 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
 
             foreach (var violation in violations)
             {
-                logger.LogInformation("{Id} {Version}", violation.PackageId, violation.Version);
+                bool isWarning = violation.IsWarning || settings.TreatDenyAsWarning;
+                string label = isWarning ? "WARNING" : "DENIED";
+
+                logger.LogInformation("{Id} {Version} [{Label}]", violation.PackageId, violation.Version, label);
                 logger.LogInformation("- License: {License}", violation.License);
                 logger.LogInformation("- Feed: {Source} ({Url})", violation.FeedName, violation.FeedUrl);
+
+                if (!string.IsNullOrWhiteSpace(violation.Reason))
+                {
+                    logger.LogInformation("- Reason: {Reason}", violation.Reason);
+                }
 
                 if (violation.Projects.Any())
                 {
@@ -147,7 +155,8 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
                 AnsiConsole.MarkupLine("");
             }
 
-            return settings.IgnoreViolations ? SuccessExitCode : FailureExitCode;
+            bool hasFailingViolation = violations.Any(violation => !violation.IsWarning) && !settings.TreatDenyAsWarning;
+            return hasFailingViolation && !settings.IgnoreViolations ? FailureExitCode : SuccessExitCode;
         }
 
         AnsiConsole.MarkupLine("[green3_1]No policy violations found.[/]");

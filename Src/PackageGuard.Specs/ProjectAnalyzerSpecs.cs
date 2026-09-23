@@ -80,6 +80,43 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [TestCategory("Integration")]
+    public async Task Denies_a_package_that_exceeds_the_configured_risk_threshold_even_without_report_risk()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+
+        // Act - no ReportRisk setting: a risk-based deny rule alone should trigger risk enrichment automatically
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
+        {
+            AllowList = new AllowList { Licenses = ["MIT"] },
+            DenyList = new DenyList { MaxOverallRisk = 0 }
+        });
+
+        // Assert
+        violations.Should().Contain(violation =>
+            violation.PackageId == "FluentAssertions" && violation.Reason.Contains("overall risk score"));
+    }
+
+    [TestMethod]
+    [TestCategory("Integration")]
+    public async Task A_risk_exception_keeps_an_otherwise_denied_package_out_of_the_violations()
+    {
+        // Arrange
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+
+        // Act
+        var violations = await analyzer.ExecuteAnalysis(ProjectPath, new AnalyzerSettings(), _ => new ProjectPolicy
+        {
+            DenyList = new DenyList { MaxOverallRisk = 0 },
+            RiskExceptions = [new RiskException { Package = "FluentAssertions", Reason = "Vetted" }]
+        });
+
+        // Assert
+        violations.Should().NotContain(violation => violation.PackageId == "FluentAssertions");
+    }
+
+    [TestMethod]
     public async Task Can_deny_an_entire_package()
     {
         // Arrange
