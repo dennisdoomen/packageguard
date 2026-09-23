@@ -56,7 +56,7 @@ public class DenyList : PackagePolicy
     /// Denies a package published more recently than the configured number of days, keyed by package ecosystem
     /// ("nuget" or "npm"). Packages without a known publish date are not denied.
     /// </summary>
-    public Dictionary<string, int> MinPackageAgeDays { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, int> MinPackageAgeDays { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Gets a value indicating whether this deny list defines any rule that requires a package's risk signals

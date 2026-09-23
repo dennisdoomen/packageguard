@@ -13,27 +13,27 @@ public class RiskException
     /// <summary>
     /// The package name, or wildcard, this exception applies to.
     /// </summary>
-    public string Package { get; set; } = "";
+    public string Package { get; init; } = "";
 
     /// <summary>
     /// An optional NuGet version range this exception is limited to. Applies to every version when omitted.
     /// </summary>
-    public string? Versions { get; set; }
+    public string? Versions { get; init; }
 
     /// <summary>
     /// A human-readable explanation for why this package is excluded from risk-based denial.
     /// </summary>
-    public string Reason { get; set; } = "";
+    public string Reason { get; init; } = "";
 
     /// <summary>
     /// An optional date after which this exception no longer applies.
     /// </summary>
-    public DateOnly? ExpiresOn { get; set; }
+    public DateOnly? ExpiresOn { get; init; }
 
     /// <summary>
-    /// Gets or sets the configuration file this exception was loaded from, when known.
+    /// Gets the configuration file this exception was loaded from, when known.
     /// </summary>
-    public string? SourceFile { get; set; }
+    public string? SourceFile { get; init; }
 
     /// <summary>
     /// Determines whether this exception currently applies to the given package.

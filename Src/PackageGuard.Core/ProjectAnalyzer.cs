@@ -87,7 +87,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
         bool anyPolicyNeedsRisk = allPackages
             .SelectMany(package => package.Projects)
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Select(projectPath => getPolicyByProject(projectPath))
+            .Select(usedProjectPath => getPolicyByProject(usedProjectPath))
             .Any(policy => policy.DenyList.HasRiskPolicies);
 
         if (settings.ReportRisk || anyPolicyNeedsRisk)

@@ -286,7 +286,7 @@ namespace PackageGuard.Core.Policy
         public double? MaxOsvSeverityScore { get; set; }
         public double? MaxOverallRisk { get; set; }
         public double? MaxSecurityRisk { get; set; }
-        public System.Collections.Generic.Dictionary<string, int> MinPackageAgeDays { get; set; }
+        public System.Collections.Generic.Dictionary<string, int> MinPackageAgeDays { get; }
         public bool Prerelease { get; set; }
     }
     public delegate PackageGuard.Core.Policy.ProjectPolicy GetPolicyByProject(string projectPath);
@@ -323,18 +323,18 @@ namespace PackageGuard.Core.Policy
         public PackageGuard.Core.Policy.AllowList AllowList { get; set; }
         public PackageGuard.Core.Policy.DenyList DenyList { get; set; }
         public string[] IgnoredFeeds { get; set; }
-        public System.Collections.Generic.List<PackageGuard.Core.Policy.RiskException> RiskExceptions { get; set; }
-        public PackageGuard.Core.Policy.WarnList WarnList { get; set; }
+        public System.Collections.Generic.List<PackageGuard.Core.Policy.RiskException> RiskExceptions { get; init; }
+        public PackageGuard.Core.Policy.WarnList WarnList { get; init; }
         public void Validate() { }
     }
     public class RiskException
     {
         public RiskException() { }
-        public System.DateOnly? ExpiresOn { get; set; }
-        public string Package { get; set; }
-        public string Reason { get; set; }
-        public string? SourceFile { get; set; }
-        public string? Versions { get; set; }
+        public System.DateOnly? ExpiresOn { get; init; }
+        public string Package { get; init; }
+        public string Reason { get; init; }
+        public string? SourceFile { get; init; }
+        public string? Versions { get; init; }
     }
     public class WarnList : PackageGuard.Core.Policy.PackagePolicy
     {

@@ -25,13 +25,13 @@ public class ProjectPolicy
     /// If specified, a list of packages and licenses that log a warning instead of failing the build.
     /// A match in <see cref="DenyList"/> always takes precedence over a match here.
     /// </summary>
-    public WarnList WarnList { get; set; } = new();
+    public WarnList WarnList { get; init; } = new();
 
     /// <summary>
     /// Explicit exceptions that keep specific packages (optionally pinned to a version range) from being
     /// denied by <see cref="DenyList"/>'s risk-based rules, even if they exceed a threshold.
     /// </summary>
-    public List<RiskException> RiskExceptions { get; set; } = new();
+    public List<RiskException> RiskExceptions { get; init; } = new();
 
     /// <summary>
     /// One or more NuGet or NPM feeds that should be completely ignored during the analysis.
@@ -48,16 +48,27 @@ public class ProjectPolicy
     /// </summary>
     public void Validate()
     {
-        if (!AllowList.HasPolicies && !DenyList.HasPolicies && !DenyList.HasRiskPolicies && !WarnList.HasPolicies)
+        if (this is
+            {
+                AllowList.HasPolicies: false,
+                DenyList: { HasPolicies: false, HasRiskPolicies: false },
+                WarnList.HasPolicies: false
+            })
         {
             throw new ArgumentException("Either a allowlist or a denylist must be specified");
         }
     }
 
     /// <summary>
+    /// Returns the <see cref="RiskExceptions"/> entry that currently applies to <paramref name="package"/>,
+    /// exempting it from <see cref="DenyList"/>'s risk-based rules, or <see langword="null"/> when none applies.
+    /// </summary>
+    internal RiskException? FindApplicableRiskException(PackageInfo package) =>
+        RiskExceptions.FirstOrDefault(exception => exception.Matches(package));
+
+    /// <summary>
     /// Determines whether <paramref name="package"/> is covered by a <see cref="RiskExceptions"/> entry that
     /// currently applies, exempting it from <see cref="DenyList"/>'s risk-based rules.
     /// </summary>
-    internal bool IsExcludedFromRiskDenial(PackageInfo package) =>
-        RiskExceptions.Any(exception => exception.Matches(package));
+    internal bool IsExcludedFromRiskDenial(PackageInfo package) => FindApplicableRiskException(package) is not null;
 }

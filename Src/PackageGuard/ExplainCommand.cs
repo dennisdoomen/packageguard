@@ -204,9 +204,9 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
             PolicyDecision allowDecision = policy.AllowList.EvaluateAllow(package);
             PolicyDecision denyDecision = policy.DenyList.EvaluateDeny(package);
 
-            bool riskExcepted = policy.IsExcludedFromRiskDenial(package);
-            PolicyDecision riskDenyDecision = riskExcepted
-                ? new PolicyDecision(false, "excluded by a risk exception")
+            RiskException? riskException = policy.FindApplicableRiskException(package);
+            PolicyDecision riskDenyDecision = riskException is not null
+                ? new PolicyDecision(false, DescribeRiskException(riskException), riskException.SourceFile)
                 : policy.DenyList.EvaluateRiskDeny(package);
 
             bool isViolation = !allowDecision.IsMatch || denyDecision.IsMatch || riskDenyDecision.IsMatch;
@@ -239,6 +239,15 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
             AnsiConsole.MarkupLine($"  {label} [{statusColor}]{status}[/] ({Markup.Escape(reason)})");
         }
     }
+
+    /// <summary>
+    /// Builds a human-readable explanation for why <paramref name="exception"/> currently exempts a package
+    /// from risk-based denial, including its documented reason when one was provided.
+    /// </summary>
+    private static string DescribeRiskException(RiskException exception) =>
+        string.IsNullOrWhiteSpace(exception.Reason)
+            ? "excluded by a risk exception"
+            : $"excluded by a risk exception: {exception.Reason}";
 
     /// <summary>
     /// Resolves and prints the dependency chain(s) that pull the package into each referencing NuGet

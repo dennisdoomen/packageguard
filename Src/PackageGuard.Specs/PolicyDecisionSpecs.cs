@@ -353,4 +353,15 @@ public class PolicyDecisionSpecs
     {
         new WarnList().EvaluateWarn(CreatePackage()).IsMatch.Should().BeFalse();
     }
+
+    [TestMethod]
+    public void EvaluateWarn_and_Warns_agree_on_the_outcome()
+    {
+        // Arrange
+        var warnList = new WarnList { Licenses = { "GPL-3.0" } };
+        PackageInfo package = CreatePackage();
+
+        // Act & Assert
+        warnList.Warns(package).Should().Be(warnList.EvaluateWarn(package).IsMatch);
+    }
 }
