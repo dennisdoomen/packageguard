@@ -17,7 +17,7 @@ public class InitPolicyBuilderSpecs
     [TestMethod]
     public void Includes_only_licenses_that_were_actually_found()
     {
-        LicenseUsage[] usages = [new LicenseUsage("MIT", 5, LicenseCategory.Permissive, [])];
+        LicenseUsage[] usages = [new("MIT", 5, LicenseCategory.Permissive, [])];
 
         var allowed = InitPolicyBuilder.BuildAllowedLicenses(usages, SoftwareProfile.OpenSource);
 
@@ -29,8 +29,8 @@ public class InitPolicyBuilderSpecs
     {
         LicenseUsage[] usages =
         [
-            new LicenseUsage("MIT", 5, LicenseCategory.Permissive, []),
-            new LicenseUsage("GPL-3.0-only", 1, LicenseCategory.StrongCopyleft, [])
+            new("MIT", 5, LicenseCategory.Permissive, []),
+            new("GPL-3.0-only", 1, LicenseCategory.StrongCopyleft, [])
         ];
 
         var allowed = InitPolicyBuilder.BuildAllowedLicenses(usages, SoftwareProfile.Proprietary);
@@ -41,7 +41,7 @@ public class InitPolicyBuilderSpecs
     [TestMethod]
     public void Never_allows_a_null_license_regardless_of_profile()
     {
-        LicenseUsage[] usages = [new LicenseUsage(null, 1, LicenseCategory.Unknown, ["Obscure 1.0.0"])];
+        LicenseUsage[] usages = [new(null, 1, LicenseCategory.Unknown, ["Obscure 1.0.0"])];
 
         var allowed = InitPolicyBuilder.BuildAllowedLicenses(usages, SoftwareProfile.OpenSource);
 
@@ -53,8 +53,8 @@ public class InitPolicyBuilderSpecs
     {
         LicenseUsage[] usages =
         [
-            new LicenseUsage("MIT", 5, LicenseCategory.Permissive, []),
-            new LicenseUsage("Apache-2.0", 3, LicenseCategory.Permissive, [])
+            new("MIT", 5, LicenseCategory.Permissive, []),
+            new("Apache-2.0", 3, LicenseCategory.Permissive, [])
         ];
 
         var allowed = InitPolicyBuilder.BuildAllowedLicenses(usages, SoftwareProfile.Proprietary);
