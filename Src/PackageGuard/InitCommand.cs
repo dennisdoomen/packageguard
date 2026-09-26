@@ -103,12 +103,12 @@ public sealed class InitCommand(ILogger logger) : AsyncCommand<InitCommandSettin
         var licenseFetcher = new LicenseFetcher(logger, settings.GitHubApiKey);
         var analyzer = new ProjectAnalyzer(licenseFetcher) { Logger = logger };
 
-        GetPolicyByProject allowEverything = _ => new ProjectPolicy
+        ProjectPolicy AllowEverything(string _) => new()
         {
             AllowList = new AllowList { Packages = [new PackageSelector("*")] }
         };
 
-        AnalysisResult result = await analyzer.ExecuteAnalysisWithRisk(settings.ProjectPath, settings.ToCoreSettings(), allowEverything);
+        AnalysisResult result = await analyzer.ExecuteAnalysisWithRisk(settings.ProjectPath, settings.ToCoreSettings(), AllowEverything);
         return result.Packages;
     }
 

@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Spectre.Console;
-using Spectre.Console.Cli;
 
 namespace PackageGuard.Specs;
 

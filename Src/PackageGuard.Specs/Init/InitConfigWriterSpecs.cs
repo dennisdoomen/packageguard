@@ -45,7 +45,7 @@ public class InitConfigWriterSpecs
 
         ProjectPolicy policy = ParseGeneratedConfig(json);
 
-        policy.AllowList.Licenses.Should().BeEquivalentTo(["Apache-2.0", "MIT"]);
+        policy.AllowList.Licenses.Should().BeEquivalentTo("Apache-2.0", "MIT");
     }
 
     [TestMethod]
