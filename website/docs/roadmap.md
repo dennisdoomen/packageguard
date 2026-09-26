@@ -28,7 +28,6 @@ free to upvote or comment on any of the linked issues if one of them matters to 
 - [#215](https://github.com/dennisdoomen/packageguard/issues/215) A pull-request diff mode that analyses only added or upgraded packages
 
 **Policy and configuration**
-- [#222](https://github.com/dennisdoomen/packageguard/issues/222) A `packageguard init` command that scaffolds a configuration from your actual dependencies
 - [#218](https://github.com/dennisdoomen/packageguard/issues/218) Built-in policy presets that configurations can extend
 - [#217](https://github.com/dennisdoomen/packageguard/issues/217) Support SPDX license expressions (`OR`, `AND`, `WITH`) instead of plain identifiers
 - [#225](https://github.com/dennisdoomen/packageguard/issues/225) A feed provenance policy asserting which feed a package must come from
