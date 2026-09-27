@@ -59,7 +59,7 @@ internal sealed class RiskAnalysisPipeline(ILogger logger, GetPolicyByProject ge
             enrichmentSet.Length);
 
         var enricher = new ParallelPackageRiskEnricher(logger, settings.GitHubApiKey);
-        await enricher.EnrichAsync(enrichmentSet);
+        await enricher.EnrichAsync(enrichmentSet, logger);
 
         IReadOnlyDictionary<string, PackageInfo> packagesByKey = packages.CreatePackagesByKey();
         var transitiveVulnEnricher = new TransitiveVulnerabilityCountEnricher(packagesByKey);

@@ -48,7 +48,9 @@ internal sealed class ParallelPackageRiskEnricher
     /// Enriches each package in <paramref name="packages"/> with risk information from all registered enrichers.
     /// </summary>
     /// <param name="packages">The packages to enrich.</param>
-    public async Task EnrichAsync(IEnumerable<PackageInfo> packages)
+    /// <param name="logger">When specified, reports progress at a handful of points during enrichment, since
+    /// this step makes many network calls and can otherwise look stuck for a while.</param>
+    public async Task EnrichAsync(IEnumerable<PackageInfo> packages, ILogger? logger = null)
     {
         PackageInfo[] packageArray = packages as PackageInfo[] ?? packages.ToArray();
         if (packageArray.Length == 0)
@@ -57,6 +59,9 @@ internal sealed class ParallelPackageRiskEnricher
         }
 
         await PrimeAsync(packageArray);
+
+        int completedCount = 0;
+        int progressInterval = Math.Max(1, packageArray.Length / 10);
 
         await Parallel.ForEachAsync(packageArray,
             new ParallelOptions
@@ -73,6 +78,12 @@ internal sealed class ParallelPackageRiskEnricher
                     }
 
                     await enricher.EnrichAsync(package);
+                }
+
+                int completed = Interlocked.Increment(ref completedCount);
+                if (completed % progressInterval == 0 || completed == packageArray.Length)
+                {
+                    logger?.LogInformation("Enriched {Completed}/{Total} packages", completed, packageArray.Length);
                 }
             });
     }
