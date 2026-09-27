@@ -10,6 +10,206 @@
             "Packages": [
                 "FluentAssertions"
             ]
-        }
+        },
+        "Deny": {
+            "MaxOverallRisk": 60,
+            "MaxLegalRisk": 5,
+            "MaxSecurityRisk": 7,
+            "MaxOperationalRisk": 8,
+            "MaxOsvSeverityScore": 7.0,
+            "DenyUnsigned": true,
+            "DenyDeprecated": true,
+            "DenyWithoutRepository": true,
+            "MinPackageAgeDays": {
+                "npm": 14,
+                "nuget": 3
+            }
+        },
+        "RiskExceptions": [
+            {
+                "Package": "Newtonsoft.Json",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "SharpCompress",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Argon",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "EmptyFiles",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "FluentAssertions",
+                "Reason": "Moved to a non-standard/commercial license starting with v8, which the Allow.Packages entry above already accepts; this exception keeps that acceptance consistent under the legal-risk gate."
+            },
+            {
+                "Package": "Azure.Core",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Azure.Identity",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Azure.Security.KeyVault.Certificates",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Azure.Security.KeyVault.Keys",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Azure.Security.KeyVault.Secrets",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Castle.Core",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "DiffPlex",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Microsoft.ApplicationInsights",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Microsoft.Bcl.AsyncInterfaces",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Microsoft.Build",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Microsoft.Build.Framework",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Microsoft.Build.Tasks.Core",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Microsoft.Build.Utilities.Core",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Microsoft.Extensions.DependencyInjection.Abstractions",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Microsoft.Extensions.Logging.Abstractions",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Microsoft.Extensions.ObjectPool",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Microsoft.NET.StringTools",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Mono.Cecil",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Serilog.Formatting.Compact",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Serilog.Formatting.Compact.Reader",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "SharpZipLib",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "System.ClientModel",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "System.CodeDom",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "System.Configuration.ConfigurationManager",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "System.Diagnostics.EventLog",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "System.Formats.Nrbf",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "System.Memory.Data",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "System.Reflection.MetadataLoadContext",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "System.Resources.Extensions",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "System.Security.Cryptography.Pkcs",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "System.Security.Cryptography.ProtectedData",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Verify.DiffPlex",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "YamlDotNet",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "vertical-spectreconsolelogger",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "xunit",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "xunit.abstractions",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "xunit.analyzers",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "xunit.assert",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "xunit.core",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "xunit.extensibility.core",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "xunit.extensibility.execution",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            }
+        ]
     }
 }

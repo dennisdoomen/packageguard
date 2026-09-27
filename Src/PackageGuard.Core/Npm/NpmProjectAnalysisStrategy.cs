@@ -106,13 +106,27 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
 
         foreach (PackageInfo package in packages)
         {
-            if (!package.SourceUrl.MatchesAnyWildcard(policy.IgnoredFeeds))
+            if (package.SourceUrl.MatchesAnyWildcard(policy.IgnoredFeeds))
             {
-                if (!policy.AllowList.Allows(package) || policy.DenyList.Denies(package))
+                continue;
+            }
+
+            PolicyDecision allowDecision = policy.AllowList.EvaluateAllow(package);
+            PolicyDecision denyDecision = policy.DenyList.EvaluateDeny(package);
+
+            if (!allowDecision.IsMatch || denyDecision.IsMatch)
+            {
+                PolicyDecision decision = denyDecision.IsMatch ? denyDecision : allowDecision;
+                violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(),
+                    package.Source, package.SourceUrl, decision.Reason));
+            }
+            else
+            {
+                PolicyDecision warnDecision = policy.WarnList.EvaluateWarn(package);
+                if (warnDecision.IsMatch)
                 {
-                    violations.Add(new PolicyViolation(package.Name, package.Version, package.License!,
-                        package.Projects.ToArray(),
-                        package.Source, package.SourceUrl));
+                    violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(),
+                        package.Source, package.SourceUrl, warnDecision.Reason, IsWarning: true));
                 }
             }
         }

@@ -1,4 +1,4 @@
-﻿namespace PackageGuard.Core.Policy;
+namespace PackageGuard.Core.Policy;
 
 public record PolicyViolation(
     string PackageId,
@@ -6,4 +6,6 @@ public record PolicyViolation(
     string License,
     string[] Projects,
     string FeedName,
-    string FeedUrl);
+    string FeedUrl,
+    string Reason = "",
+    bool IsWarning = false);

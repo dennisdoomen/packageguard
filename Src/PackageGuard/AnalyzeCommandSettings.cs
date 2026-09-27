@@ -43,6 +43,11 @@ public class AnalyzeCommandSettings : CommandSettings
     [DefaultValue(false)]
     public bool IgnoreViolations { get; set; }
 
+    [Description(
+        "Downgrade deny-list violations to warnings instead of failing the build. Defaults to true if the PACKAGEGUARD_DENY_AS_WARNING environment variable is set to anything other than \"false\", or false if it is unset.")]
+    [CommandOption("--treat-deny-as-warning|--treatdenyaswarning")]
+    public bool TreatDenyAsWarning { get; set; } = IsEnvironmentVariablePresentAndNotFalse("PACKAGEGUARD_DENY_AS_WARNING");
+
     [Description("Force restoring the NuGet dependencies, even if the lockfile is up-to-date")]
     [CommandOption("-f|--force-restore|--forcerestore")]
     [DefaultValue(false)]
@@ -139,6 +144,17 @@ public class AnalyzeCommandSettings : CommandSettings
         }
 
         return ValidationResult.Success();
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> when the environment variable <paramref name="name"/> is set to anything other than
+    /// "false" (case-insensitive), and <c>false</c> when it is unset or explicitly set to "false".
+    /// </summary>
+    private static bool IsEnvironmentVariablePresentAndNotFalse(string name)
+    {
+        string? value = Environment.GetEnvironmentVariable(name);
+
+        return value is not null && !value.Equals("false", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

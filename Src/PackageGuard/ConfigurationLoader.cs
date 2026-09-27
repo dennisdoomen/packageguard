@@ -25,7 +25,8 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         var merged = new ProjectPolicy
         {
             AllowList = new AllowList(),
-            DenyList = new DenyList()
+            DenyList = new DenyList(),
+            WarnList = new WarnList()
         };
 
         foreach (var configPath in configPaths)
@@ -64,6 +65,23 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
 
         MergePackagePolicy(target.DenyList, source.DenyList);
         target.DenyList.Prerelease = source.DenyList.Prerelease;
+        target.DenyList.MaxOverallRisk = source.DenyList.MaxOverallRisk ?? target.DenyList.MaxOverallRisk;
+        target.DenyList.MaxLegalRisk = source.DenyList.MaxLegalRisk ?? target.DenyList.MaxLegalRisk;
+        target.DenyList.MaxSecurityRisk = source.DenyList.MaxSecurityRisk ?? target.DenyList.MaxSecurityRisk;
+        target.DenyList.MaxOperationalRisk = source.DenyList.MaxOperationalRisk ?? target.DenyList.MaxOperationalRisk;
+        target.DenyList.MaxOsvSeverityScore = source.DenyList.MaxOsvSeverityScore ?? target.DenyList.MaxOsvSeverityScore;
+        target.DenyList.DenyUnsigned = source.DenyList.DenyUnsigned;
+        target.DenyList.DenyDeprecated = source.DenyList.DenyDeprecated;
+        target.DenyList.DenyWithoutRepository = source.DenyList.DenyWithoutRepository;
+        foreach ((string ecosystem, int minAgeDays) in source.DenyList.MinPackageAgeDays)
+        {
+            target.DenyList.MinPackageAgeDays[ecosystem] = minAgeDays;
+        }
+
+        MergePackagePolicy(target.WarnList, source.WarnList);
+        target.WarnList.Prerelease = source.WarnList.Prerelease;
+
+        target.RiskExceptions.AddRange(source.RiskExceptions);
 
         target.IgnoredFeeds = [..target.IgnoredFeeds, ..source.IgnoredFeeds];
     }
@@ -182,7 +200,8 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         var policy = new ProjectPolicy
         {
             AllowList = new AllowList(),
-            DenyList = new DenyList()
+            DenyList = new DenyList(),
+            WarnList = new WarnList()
         };
 
         foreach (string package in settings.Allow.Packages)
@@ -224,6 +243,47 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         }
 
         policy.DenyList.Prerelease = settings.Deny.Prerelease;
+        policy.DenyList.MaxOverallRisk = settings.Deny.MaxOverallRisk;
+        policy.DenyList.MaxLegalRisk = settings.Deny.MaxLegalRisk;
+        policy.DenyList.MaxSecurityRisk = settings.Deny.MaxSecurityRisk;
+        policy.DenyList.MaxOperationalRisk = settings.Deny.MaxOperationalRisk;
+        policy.DenyList.MaxOsvSeverityScore = settings.Deny.MaxOsvSeverityScore;
+        policy.DenyList.DenyUnsigned = settings.Deny.DenyUnsigned;
+        policy.DenyList.DenyDeprecated = settings.Deny.DenyDeprecated;
+        policy.DenyList.DenyWithoutRepository = settings.Deny.DenyWithoutRepository;
+        foreach ((string ecosystem, int minAgeDays) in settings.Deny.MinPackageAgeDays)
+        {
+            policy.DenyList.MinPackageAgeDays[ecosystem] = minAgeDays;
+        }
+
+        foreach (string package in settings.Warn.Packages)
+        {
+            string[] segments = package.Split("/");
+            policy.WarnList.Packages.Add(new PackageSelector(segments[0], segments.ElementAtOrDefault(1) ?? "")
+            {
+                SourceFile = sourceFile
+            });
+        }
+
+        policy.WarnList.Licenses.AddRange(settings.Warn.Licenses);
+        foreach (string license in settings.Warn.Licenses)
+        {
+            policy.WarnList.LicenseSourceFiles[license] = sourceFile;
+        }
+
+        policy.WarnList.Prerelease = settings.Warn.Prerelease;
+
+        foreach (PolicySettings.RiskExceptionItem exception in settings.RiskExceptions)
+        {
+            policy.RiskExceptions.Add(new RiskException
+            {
+                Package = exception.Package,
+                Versions = exception.Versions,
+                Reason = exception.Reason,
+                ExpiresOn = exception.ExpiresOn,
+                SourceFile = sourceFile
+            });
+        }
 
         policy.IgnoredFeeds = settings.IgnoredFeeds;
 

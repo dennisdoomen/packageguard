@@ -128,10 +128,23 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
         {
             UpdateLicensePolicyCompatibility(package, policy);
 
-            if (!policy.AllowList.Allows(package) || policy.DenyList.Denies(package))
+            PolicyDecision allowDecision = policy.AllowList.EvaluateAllow(package);
+            PolicyDecision denyDecision = policy.DenyList.EvaluateDeny(package);
+
+            if (!allowDecision.IsMatch || denyDecision.IsMatch)
             {
+                PolicyDecision decision = denyDecision.IsMatch ? denyDecision : allowDecision;
                 violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(),
-                    package.Source, package.SourceUrl));
+                    package.Source, package.SourceUrl, decision.Reason));
+            }
+            else
+            {
+                PolicyDecision warnDecision = policy.WarnList.EvaluateWarn(package);
+                if (warnDecision.IsMatch)
+                {
+                    violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(),
+                        package.Source, package.SourceUrl, warnDecision.Reason, IsWarning: true));
+                }
             }
         }
 

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using FluentAssertions;
@@ -537,6 +539,148 @@ public class ConfigurationLoaderSpecs
         ]);
 
         projectBConfig.AllowList.Licenses.Should().NotContain("Apache-2.0");
+    }
+
+    [TestMethod]
+    public void Can_parse_risk_gating_settings()
+    {
+        // Arrange
+        File.WriteAllText(ChainablePath.Current / "test.json",
+            """
+            {
+                "settings": {
+                    "deny": {
+                        "maxOverallRisk": 60,
+                        "maxLegalRisk": 5,
+                        "maxSecurityRisk": 7,
+                        "maxOperationalRisk": 8,
+                        "maxOsvSeverityScore": 7.0,
+                        "denyUnsigned": true,
+                        "denyDeprecated": true,
+                        "denyWithoutRepository": true,
+                        "minPackageAgeDays": {
+                            "npm": 14,
+                            "nuget": 3
+                        }
+                    },
+                    "warn": {
+                        "licenses": ["GPL-3.0"],
+                        "packages": ["some-package"]
+                    },
+                    "riskExceptions": [
+                        {
+                            "package": "left-pad",
+                            "reason": "Vetted manually",
+                            "expiresOn": "2026-07-01"
+                        },
+                        {
+                            "package": "some-native-lib",
+                            "versions": "[1.0.0,2.0.0)",
+                            "reason": "Signing certificate expired but publisher identity verified out-of-band"
+                        }
+                    ]
+                }
+            }
+            """);
+
+        // Act
+        ProjectPolicy policy = configurationLoader.GetConfigurationFromConfigPath("test.json");
+
+        // Assert
+        policy.DenyList.MaxOverallRisk.Should().Be(60);
+        policy.DenyList.MaxLegalRisk.Should().Be(5);
+        policy.DenyList.MaxSecurityRisk.Should().Be(7);
+        policy.DenyList.MaxOperationalRisk.Should().Be(8);
+        policy.DenyList.MaxOsvSeverityScore.Should().Be(7.0);
+        policy.DenyList.DenyUnsigned.Should().BeTrue();
+        policy.DenyList.DenyDeprecated.Should().BeTrue();
+        policy.DenyList.DenyWithoutRepository.Should().BeTrue();
+        policy.DenyList.MinPackageAgeDays.Should().BeEquivalentTo(new Dictionary<string, int> { ["npm"] = 14, ["nuget"] = 3 });
+
+        policy.WarnList.Licenses.Should().Contain("GPL-3.0");
+        policy.WarnList.Packages.Should().ContainSingle(p => p.Id == "some-package");
+
+        policy.RiskExceptions.Should().HaveCount(2);
+        policy.RiskExceptions.Should().ContainSingle(exception => exception.Package == "left-pad")
+            .Which.ExpiresOn.Should().Be(new DateOnly(2026, 7, 1));
+        policy.RiskExceptions.Should().ContainSingle(exception => exception.Package == "some-native-lib")
+            .Which.Versions.Should().Be("[1.0.0,2.0.0)");
+    }
+
+    [TestMethod]
+    public void Project_level_config_without_a_risk_threshold_keeps_the_solution_level_threshold()
+    {
+        // Arrange
+        var solutionDir = tempDir / "MySolution";
+        solutionDir.CreateDirectoryRecursively();
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+        File.WriteAllText(solutionDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "deny": {
+                        "maxOverallRisk": 60
+                    }
+                }
+            }
+            """);
+
+        var projectDir = solutionDir / "MyProject";
+        projectDir.CreateDirectoryRecursively();
+        File.WriteAllText(projectDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "deny": {
+                        "packages": ["Bogus/1.0.0"]
+                    }
+                }
+            }
+            """);
+
+        // Act
+        ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(projectDir);
+
+        // Assert
+        policy.DenyList.MaxOverallRisk.Should().Be(60, "the project config didn't set this, so the solution-level threshold should still apply");
+    }
+
+    [TestMethod]
+    public void Project_level_config_can_override_the_solution_level_risk_threshold()
+    {
+        // Arrange
+        var solutionDir = tempDir / "MySolution";
+        solutionDir.CreateDirectoryRecursively();
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+        File.WriteAllText(solutionDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "deny": {
+                        "maxOverallRisk": 60
+                    }
+                }
+            }
+            """);
+
+        var projectDir = solutionDir / "MyProject";
+        projectDir.CreateDirectoryRecursively();
+        File.WriteAllText(projectDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "deny": {
+                        "maxOverallRisk": 40
+                    }
+                }
+            }
+            """);
+
+        // Act
+        ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(projectDir);
+
+        // Assert
+        policy.DenyList.MaxOverallRisk.Should().Be(40);
     }
 
     [TestMethod]
