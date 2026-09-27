@@ -320,8 +320,8 @@ namespace PackageGuard.Core.Policy
     public class ProjectPolicy
     {
         public ProjectPolicy() { }
-        public PackageGuard.Core.Policy.AllowList AllowList { get; set; }
-        public PackageGuard.Core.Policy.DenyList DenyList { get; set; }
+        public PackageGuard.Core.Policy.AllowList AllowList { get; init; }
+        public PackageGuard.Core.Policy.DenyList DenyList { get; init; }
         public string[] IgnoredFeeds { get; set; }
         public System.Collections.Generic.List<PackageGuard.Core.Policy.RiskException> RiskExceptions { get; init; }
         public PackageGuard.Core.Policy.WarnList WarnList { get; init; }

@@ -14,12 +14,12 @@ public class ProjectPolicy
     /// <remarks>
     /// Can be overridden by <see cref="DenyList"/>
     /// </remarks>
-    public AllowList AllowList { get; set; } = new();
+    public AllowList AllowList { get; init; } = new();
 
     /// <summary>
     /// If specified, a list of packages, versions, and licenses that are forbidden, even if it was listed in <see cref="AllowList"/>.
     /// </summary>
-    public DenyList DenyList { get; set; } = new();
+    public DenyList DenyList { get; init; } = new();
 
     /// <summary>
     /// If specified, a list of packages and licenses that log a warning instead of failing the build.
