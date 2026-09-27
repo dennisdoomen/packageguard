@@ -60,8 +60,11 @@ public class NuGetPackageAnalyzerSpecs
         var packages = new PackageInfoCollection(nullLogger);
 
         // Act
+
+        // Must match the FluentAssertions PackageReference version in this project, since the nuspec this test relies
+        // on is only present in the local NuGet cache for the version that was actually restored.
         await analyzer.CollectPackageMetadata(ChainablePath.Current.Parent.Parent, "FluentAssertions",
-            NuGetVersion.Parse("8.10.0"),
+            NuGetVersion.Parse("8.11.0"),
             packages);
 
         // Assert
