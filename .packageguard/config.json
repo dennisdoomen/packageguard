@@ -27,6 +27,22 @@
         },
         "RiskExceptions": [
             {
+                "Package": "Newtonsoft.Json",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "SharpCompress",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "Argon",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
+                "Package": "EmptyFiles",
+                "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
+            },
+            {
                 "Package": "FluentAssertions",
                 "Reason": "Moved to a non-standard/commercial license starting with v8, which the Allow.Packages entry above already accepts; this exception keeps that acceptance consistent under the legal-risk gate."
             },
