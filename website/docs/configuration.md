@@ -204,7 +204,7 @@ A `warn` section mirrors `deny`'s `packages`, `licenses` and `prerelease` matchi
 }
 ```
 
-To downgrade every `deny` violation to a warning at run time - for example to keep shipping while you work through remediation for a newly added rule - pass `--treat-deny-as-warning` or set the `PACKAGEGUARD_DENY_AS_WARNING` environment variable to `true`. This applies to both the ordinary `deny` rules and the risk-based rules above.
+To downgrade every `deny` violation to a warning at run time - for example to keep shipping while you work through remediation for a newly added rule - pass `--treat-deny-as-warning`, or set the `PACKAGEGUARD_DENY_AS_WARNING` environment variable. Just setting the variable is enough to enable it; set it to `false` (case-insensitive) to explicitly disable it. This applies to both the ordinary `deny` rules and the risk-based rules above.
 
 ## About feeds
 
