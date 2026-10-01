@@ -22,7 +22,7 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
     private const int SuccessExitCode = 0;
     private const int NotFoundExitCode = 1;
 
-    protected override async Task<int> ExecuteAsync(CommandContext context, ExplainCommandSettings settings, CancellationToken _)
+    public override async Task<int> ExecuteAsync(CommandContext context, ExplainCommandSettings settings, CancellationToken _)
     {
         if (settings.Verbose)
         {
