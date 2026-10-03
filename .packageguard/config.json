@@ -71,6 +71,10 @@
                 "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
             },
             {
+                "Package": "DiffEngine",
+                "Reason": "Test-only transitive dependency of Verify (PackageGuard.ApiVerificationTests), never shipped. Its operational risk score (8.5) drifted just over the MaxOperationalRisk limit of 8 as release-cadence signals aged, without any actual concern."
+            },
+            {
                 "Package": "DiffPlex",
                 "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
             },
