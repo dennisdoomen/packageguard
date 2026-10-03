@@ -20,6 +20,7 @@ The exit code indicates either 0 for success or 1 for failure.
 
 ## Where to next?
 
+- [Getting started with `init`](./init.md) - scaffold a configuration from the licenses you actually use
 - [Explaining a package](./explain.md) - see why a specific package is present and how it was evaluated
 - [Risk Metrics](./risk-metrics.md) - score every package on legal, security and operational risk
 - [Software Bill of Materials](./sbom.md) - emit the dependency graph as CycloneDX or SPDX
