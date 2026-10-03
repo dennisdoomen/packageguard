@@ -1,4 +1,4 @@
-namespace PackageGuard.Core.Init;
+namespace PackageGuard.Core.Scaffolding;
 
 /// <summary>
 /// Maps a <see cref="SoftwareProfile"/> to the license categories it tolerates, and to the CLI-facing preset

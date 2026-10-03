@@ -1,8 +1,8 @@
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PackageGuard.Core.Init;
+using PackageGuard.Core.Scaffolding;
 
-namespace PackageGuard.Specs.Init;
+namespace PackageGuard.Specs.Scaffolding;
 
 [TestClass]
 public class LicenseClassifierSpecs

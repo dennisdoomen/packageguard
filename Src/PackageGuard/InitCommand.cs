@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core;
 using PackageGuard.Core.CSharp;
-using PackageGuard.Core.Init;
+using PackageGuard.Core.Scaffolding;
 using PackageGuard.Core.Package;
 using PackageGuard.Core.Policy;
 using Pathy;
@@ -58,11 +58,11 @@ public sealed class InitCommand(ILogger logger) : AsyncCommand<InitCommandSettin
         PrintLicenseUsage(usages);
 
         SoftwareProfile profile = ResolveProfile(settings);
-        IReadOnlyList<string> allowedLicenses = InitPolicyBuilder.BuildAllowedLicenses(usages, profile);
-        IReadOnlyList<string> warnLicenses = InitPolicyBuilder.BuildWarnLicenses(usages, profile);
+        IReadOnlyList<string> allowedLicenses = PolicyScaffolder.BuildAllowedLicenses(usages, profile);
+        IReadOnlyList<string> warnLicenses = PolicyScaffolder.BuildWarnLicenses(usages, profile);
         bool includeRiskGates = ResolveRiskGates(settings);
 
-        string json = InitConfigWriter.BuildConfigJson(profile, allowedLicenses, warnLicenses, includeRiskGates);
+        string json = ConfigScaffolder.BuildConfigJson(profile, allowedLicenses, warnLicenses, includeRiskGates);
         WriteConfigFile(configPath, json);
 
         AnsiConsole.MarkupLine("");
@@ -212,8 +212,8 @@ public sealed class InitCommand(ILogger logger) : AsyncCommand<InitCommandSettin
     private static void ReportSuggestedPolicyOutcome(PackageInfo[] packages, IReadOnlyList<string> allowedLicenses,
         IReadOnlyList<string> warnLicenses, bool includeRiskGates)
     {
-        int violations = InitPolicyBuilder.CountViolations(packages, allowedLicenses);
-        int warnings = InitPolicyBuilder.CountWarnings(packages, allowedLicenses, warnLicenses);
+        int violations = PolicyScaffolder.CountViolations(packages, allowedLicenses);
+        int warnings = PolicyScaffolder.CountWarnings(packages, allowedLicenses, warnLicenses);
 
         if (violations == 0)
         {

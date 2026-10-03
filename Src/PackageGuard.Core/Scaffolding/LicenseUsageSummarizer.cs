@@ -1,6 +1,6 @@
 using PackageGuard.Core.Package;
 
-namespace PackageGuard.Core.Init;
+namespace PackageGuard.Core.Scaffolding;
 
 /// <summary>
 /// Groups the packages found by a scan into per-license usage counts for <c>packageguard init</c> to display

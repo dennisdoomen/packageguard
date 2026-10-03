@@ -1,4 +1,4 @@
-namespace PackageGuard.Core.Init;
+namespace PackageGuard.Core.Scaffolding;
 
 /// <summary>
 /// Summarizes how often a single license (or the absence of one) occurs among the packages found by

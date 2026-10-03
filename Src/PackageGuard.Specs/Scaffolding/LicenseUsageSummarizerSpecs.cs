@@ -2,10 +2,10 @@
 using System.Linq;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PackageGuard.Core.Init;
+using PackageGuard.Core.Scaffolding;
 using PackageGuard.Core.Package;
 
-namespace PackageGuard.Specs.Init;
+namespace PackageGuard.Specs.Scaffolding;
 
 [TestClass]
 public class LicenseUsageSummarizerSpecs

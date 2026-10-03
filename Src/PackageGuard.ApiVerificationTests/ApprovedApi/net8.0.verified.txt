@@ -85,58 +85,6 @@ namespace PackageGuard.Core.CSharp.FetchingStrategies
         public System.Threading.Tasks.Task FetchLicenseAsync(PackageGuard.Core.Package.PackageInfo package) { }
     }
 }
-namespace PackageGuard.Core.Init
-{
-    public static class InitConfigWriter
-    {
-        public static string BuildConfigJson(PackageGuard.Core.Init.SoftwareProfile profile, System.Collections.Generic.IReadOnlyList<string> allowedLicenses, System.Collections.Generic.IReadOnlyList<string> warnLicenses, bool includeRiskGates) { }
-    }
-    public static class InitPolicyBuilder
-    {
-        public static System.Collections.Generic.IReadOnlyList<string> BuildAllowedLicenses(System.Collections.Generic.IEnumerable<PackageGuard.Core.Init.LicenseUsage> usages, PackageGuard.Core.Init.SoftwareProfile profile) { }
-        public static System.Collections.Generic.IReadOnlyList<string> BuildWarnLicenses(System.Collections.Generic.IEnumerable<PackageGuard.Core.Init.LicenseUsage> usages, PackageGuard.Core.Init.SoftwareProfile profile) { }
-        public static int CountViolations(System.Collections.Generic.IEnumerable<PackageGuard.Core.Package.PackageInfo> packages, System.Collections.Generic.IEnumerable<string> allowedLicenses) { }
-        public static int CountWarnings(System.Collections.Generic.IEnumerable<PackageGuard.Core.Package.PackageInfo> packages, System.Collections.Generic.IEnumerable<string> allowedLicenses, System.Collections.Generic.IEnumerable<string> warnLicenses) { }
-    }
-    public enum LicenseCategory
-    {
-        Unknown = 0,
-        Permissive = 1,
-        WeakCopyleft = 2,
-        StrongCopyleft = 3,
-        NetworkCopyleft = 4,
-    }
-    public static class LicenseClassifier
-    {
-        public static PackageGuard.Core.Init.LicenseCategory Classify(string? license) { }
-        public static bool IsCopyleft(PackageGuard.Core.Init.LicenseCategory category) { }
-    }
-    public static class LicensePresets
-    {
-        public static System.Collections.Generic.IReadOnlyList<string> PresetNames { get; }
-        public static System.Collections.Generic.IReadOnlySet<PackageGuard.Core.Init.LicenseCategory> GetAllowedCategories(PackageGuard.Core.Init.SoftwareProfile profile) { }
-        public static string GetPresetName(PackageGuard.Core.Init.SoftwareProfile profile) { }
-        public static bool TryParsePresetName(string presetName, out PackageGuard.Core.Init.SoftwareProfile profile) { }
-    }
-    public class LicenseUsage : System.IEquatable<PackageGuard.Core.Init.LicenseUsage>
-    {
-        public LicenseUsage(string? License, int PackageCount, PackageGuard.Core.Init.LicenseCategory Category, System.Collections.Generic.IReadOnlyList<string> ExamplePackages) { }
-        public PackageGuard.Core.Init.LicenseCategory Category { get; init; }
-        public System.Collections.Generic.IReadOnlyList<string> ExamplePackages { get; init; }
-        public string? License { get; init; }
-        public int PackageCount { get; init; }
-    }
-    public static class LicenseUsageSummarizer
-    {
-        public static System.Collections.Generic.IReadOnlyList<PackageGuard.Core.Init.LicenseUsage> Summarize(System.Collections.Generic.IEnumerable<PackageGuard.Core.Package.PackageInfo> packages) { }
-    }
-    public enum SoftwareProfile
-    {
-        Proprietary = 0,
-        Saas = 1,
-        OpenSource = 2,
-    }
-}
 namespace PackageGuard.Core.Npm
 {
     public enum NpmPackageManager
@@ -412,5 +360,57 @@ namespace PackageGuard.Core.Risk
     {
         public RiskEvaluator(Microsoft.Extensions.Logging.ILogger logger) { }
         public void EvaluateRisk(PackageGuard.Core.Package.PackageInfo package) { }
+    }
+}
+namespace PackageGuard.Core.Scaffolding
+{
+    public static class ConfigScaffolder
+    {
+        public static string BuildConfigJson(PackageGuard.Core.Scaffolding.SoftwareProfile profile, System.Collections.Generic.IReadOnlyList<string> allowedLicenses, System.Collections.Generic.IReadOnlyList<string> warnLicenses, bool includeRiskGates) { }
+    }
+    public enum LicenseCategory
+    {
+        Unknown = 0,
+        Permissive = 1,
+        WeakCopyleft = 2,
+        StrongCopyleft = 3,
+        NetworkCopyleft = 4,
+    }
+    public static class LicenseClassifier
+    {
+        public static PackageGuard.Core.Scaffolding.LicenseCategory Classify(string? license) { }
+        public static bool IsCopyleft(PackageGuard.Core.Scaffolding.LicenseCategory category) { }
+    }
+    public static class LicensePresets
+    {
+        public static System.Collections.Generic.IReadOnlyList<string> PresetNames { get; }
+        public static System.Collections.Generic.IReadOnlySet<PackageGuard.Core.Scaffolding.LicenseCategory> GetAllowedCategories(PackageGuard.Core.Scaffolding.SoftwareProfile profile) { }
+        public static string GetPresetName(PackageGuard.Core.Scaffolding.SoftwareProfile profile) { }
+        public static bool TryParsePresetName(string presetName, out PackageGuard.Core.Scaffolding.SoftwareProfile profile) { }
+    }
+    public class LicenseUsage : System.IEquatable<PackageGuard.Core.Scaffolding.LicenseUsage>
+    {
+        public LicenseUsage(string? License, int PackageCount, PackageGuard.Core.Scaffolding.LicenseCategory Category, System.Collections.Generic.IReadOnlyList<string> ExamplePackages) { }
+        public PackageGuard.Core.Scaffolding.LicenseCategory Category { get; init; }
+        public System.Collections.Generic.IReadOnlyList<string> ExamplePackages { get; init; }
+        public string? License { get; init; }
+        public int PackageCount { get; init; }
+    }
+    public static class LicenseUsageSummarizer
+    {
+        public static System.Collections.Generic.IReadOnlyList<PackageGuard.Core.Scaffolding.LicenseUsage> Summarize(System.Collections.Generic.IEnumerable<PackageGuard.Core.Package.PackageInfo> packages) { }
+    }
+    public static class PolicyScaffolder
+    {
+        public static System.Collections.Generic.IReadOnlyList<string> BuildAllowedLicenses(System.Collections.Generic.IEnumerable<PackageGuard.Core.Scaffolding.LicenseUsage> usages, PackageGuard.Core.Scaffolding.SoftwareProfile profile) { }
+        public static System.Collections.Generic.IReadOnlyList<string> BuildWarnLicenses(System.Collections.Generic.IEnumerable<PackageGuard.Core.Scaffolding.LicenseUsage> usages, PackageGuard.Core.Scaffolding.SoftwareProfile profile) { }
+        public static int CountViolations(System.Collections.Generic.IEnumerable<PackageGuard.Core.Package.PackageInfo> packages, System.Collections.Generic.IEnumerable<string> allowedLicenses) { }
+        public static int CountWarnings(System.Collections.Generic.IEnumerable<PackageGuard.Core.Package.PackageInfo> packages, System.Collections.Generic.IEnumerable<string> allowedLicenses, System.Collections.Generic.IEnumerable<string> warnLicenses) { }
+    }
+    public enum SoftwareProfile
+    {
+        Proprietary = 0,
+        Saas = 1,
+        OpenSource = 2,
     }
 }

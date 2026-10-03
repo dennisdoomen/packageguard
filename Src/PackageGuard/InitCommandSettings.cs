@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using JetBrains.Annotations;
 using PackageGuard.Core;
-using PackageGuard.Core.Init;
+using PackageGuard.Core.Scaffolding;
 using PackageGuard.Core.Npm;
 using Spectre.Console;
 using Spectre.Console.Cli;

@@ -1,13 +1,13 @@
 #nullable enable
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PackageGuard.Core.Init;
+using PackageGuard.Core.Scaffolding;
 using PackageGuard.Core.Package;
 
-namespace PackageGuard.Specs.Init;
+namespace PackageGuard.Specs.Scaffolding;
 
 [TestClass]
-public class InitPolicyBuilderSpecs
+public class PolicyScaffolderSpecs
 {
     private static PackageInfo CreatePackage(string name, string? license, string version = "1.0.0")
     {
@@ -19,7 +19,7 @@ public class InitPolicyBuilderSpecs
     {
         LicenseUsage[] usages = [new("MIT", 5, LicenseCategory.Permissive, [])];
 
-        var allowed = InitPolicyBuilder.BuildAllowedLicenses(usages, SoftwareProfile.OpenSource);
+        var allowed = PolicyScaffolder.BuildAllowedLicenses(usages, SoftwareProfile.OpenSource);
 
         allowed.Should().Equal("MIT");
     }
@@ -33,7 +33,7 @@ public class InitPolicyBuilderSpecs
             new("GPL-3.0-only", 1, LicenseCategory.StrongCopyleft, [])
         ];
 
-        var allowed = InitPolicyBuilder.BuildAllowedLicenses(usages, SoftwareProfile.Proprietary);
+        var allowed = PolicyScaffolder.BuildAllowedLicenses(usages, SoftwareProfile.Proprietary);
 
         allowed.Should().Equal("MIT");
     }
@@ -43,7 +43,7 @@ public class InitPolicyBuilderSpecs
     {
         LicenseUsage[] usages = [new(null, 1, LicenseCategory.Unknown, ["Obscure 1.0.0"])];
 
-        var allowed = InitPolicyBuilder.BuildAllowedLicenses(usages, SoftwareProfile.OpenSource);
+        var allowed = PolicyScaffolder.BuildAllowedLicenses(usages, SoftwareProfile.OpenSource);
 
         allowed.Should().BeEmpty();
     }
@@ -57,7 +57,7 @@ public class InitPolicyBuilderSpecs
             new("Apache-2.0", 3, LicenseCategory.Permissive, [])
         ];
 
-        var allowed = InitPolicyBuilder.BuildAllowedLicenses(usages, SoftwareProfile.Proprietary);
+        var allowed = PolicyScaffolder.BuildAllowedLicenses(usages, SoftwareProfile.Proprietary);
 
         allowed.Should().Equal("Apache-2.0", "MIT");
     }
@@ -67,7 +67,7 @@ public class InitPolicyBuilderSpecs
     {
         PackageInfo[] packages = [CreatePackage("A", "MIT"), CreatePackage("B", "GPL-3.0-only")];
 
-        int violations = InitPolicyBuilder.CountViolations(packages, ["MIT"]);
+        int violations = PolicyScaffolder.CountViolations(packages, ["MIT"]);
 
         violations.Should().Be(1);
     }
@@ -77,7 +77,7 @@ public class InitPolicyBuilderSpecs
     {
         PackageInfo[] packages = [CreatePackage("A", null)];
 
-        int violations = InitPolicyBuilder.CountViolations(packages, ["MIT"]);
+        int violations = PolicyScaffolder.CountViolations(packages, ["MIT"]);
 
         violations.Should().Be(1);
     }
@@ -87,7 +87,7 @@ public class InitPolicyBuilderSpecs
     {
         PackageInfo[] packages = [CreatePackage("A", "MIT"), CreatePackage("B", "MIT")];
 
-        int violations = InitPolicyBuilder.CountViolations(packages, ["MIT"]);
+        int violations = PolicyScaffolder.CountViolations(packages, ["MIT"]);
 
         violations.Should().Be(0);
     }
@@ -102,9 +102,9 @@ public class InitPolicyBuilderSpecs
             new("GPL-3.0-only", 1, LicenseCategory.StrongCopyleft, [])
         ];
 
-        InitPolicyBuilder.BuildWarnLicenses(usages, SoftwareProfile.Saas).Should().Equal("LGPL-2.1-only");
-        InitPolicyBuilder.BuildWarnLicenses(usages, SoftwareProfile.Proprietary).Should().BeEmpty();
-        InitPolicyBuilder.BuildWarnLicenses(usages, SoftwareProfile.OpenSource).Should().Equal("GPL-3.0-only", "LGPL-2.1-only");
+        PolicyScaffolder.BuildWarnLicenses(usages, SoftwareProfile.Saas).Should().Equal("LGPL-2.1-only");
+        PolicyScaffolder.BuildWarnLicenses(usages, SoftwareProfile.Proprietary).Should().BeEmpty();
+        PolicyScaffolder.BuildWarnLicenses(usages, SoftwareProfile.OpenSource).Should().Equal("GPL-3.0-only", "LGPL-2.1-only");
     }
 
     [TestMethod]
@@ -114,7 +114,7 @@ public class InitPolicyBuilderSpecs
         string[] allowed = ["MIT", "LGPL-2.1-only"];
         string[] warn = ["LGPL-2.1-only"];
 
-        InitPolicyBuilder.CountWarnings(packages, allowed, warn).Should().Be(1);
-        InitPolicyBuilder.CountViolations(packages, allowed).Should().Be(1);
+        PolicyScaffolder.CountWarnings(packages, allowed, warn).Should().Be(1);
+        PolicyScaffolder.CountViolations(packages, allowed).Should().Be(1);
     }
 }

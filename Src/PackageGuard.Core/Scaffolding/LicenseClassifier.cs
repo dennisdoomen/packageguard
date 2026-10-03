@@ -1,4 +1,4 @@
-namespace PackageGuard.Core.Init;
+namespace PackageGuard.Core.Scaffolding;
 
 /// <summary>
 /// Classifies SPDX license identifiers by the copyleft obligations they impose, so <c>packageguard init</c>

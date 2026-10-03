@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace PackageGuard.Core.Init;
+namespace PackageGuard.Core.Scaffolding;
 
 /// <summary>
 /// Renders the JSON configuration file written by <c>packageguard init</c>: a <c>settings.allow.licenses</c>
@@ -8,7 +8,7 @@ namespace PackageGuard.Core.Init;
 /// copyleft licenses, and optional risk gates in the <c>deny</c> section, annotated with comments that explain
 /// each part.
 /// </summary>
-public static class InitConfigWriter
+public static class ConfigScaffolder
 {
     private const string Indent = "    ";
 

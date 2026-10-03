@@ -1,4 +1,4 @@
-namespace PackageGuard.Core.Init;
+namespace PackageGuard.Core.Scaffolding;
 
 /// <summary>
 /// Describes how the analyzed software is distributed or operated, which determines how much copyleft

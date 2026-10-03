@@ -1,4 +1,4 @@
-namespace PackageGuard.Core.Init;
+namespace PackageGuard.Core.Scaffolding;
 
 /// <summary>
 /// Classifies a license by the copyleft obligations it imposes, used by <see cref="LicenseClassifier"/> and

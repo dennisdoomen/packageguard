@@ -2,14 +2,14 @@ using System.IO;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PackageGuard.Core.Init;
+using PackageGuard.Core.Scaffolding;
 using PackageGuard.Core.Policy;
 using Pathy;
 
-namespace PackageGuard.Specs.Init;
+namespace PackageGuard.Specs.Scaffolding;
 
 [TestClass]
-public class InitConfigWriterSpecs
+public class ConfigScaffolderSpecs
 {
     private ChainablePath configPath;
 
@@ -30,7 +30,7 @@ public class InitConfigWriterSpecs
 
     /// <summary>
     /// Parses the generated JSON through the same <see cref="ConfigurationLoader"/> the <c>analyze</c> command
-    /// uses, proving the comments and formatting <see cref="InitConfigWriter"/> emits are actually valid.
+    /// uses, proving the comments and formatting <see cref="ConfigScaffolder"/> emits are actually valid.
     /// </summary>
     private ProjectPolicy ParseGeneratedConfig(string json)
     {
@@ -41,7 +41,7 @@ public class InitConfigWriterSpecs
     [TestMethod]
     public void Generated_json_is_parsed_by_the_same_configuration_pipeline_analyze_uses()
     {
-        string json = InitConfigWriter.BuildConfigJson(SoftwareProfile.Proprietary, ["Apache-2.0", "MIT"], [], false);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, ["Apache-2.0", "MIT"], [], false);
 
         ProjectPolicy policy = ParseGeneratedConfig(json);
 
@@ -51,7 +51,7 @@ public class InitConfigWriterSpecs
     [TestMethod]
     public void Generated_json_parses_cleanly_with_an_empty_allow_list()
     {
-        string json = InitConfigWriter.BuildConfigJson(SoftwareProfile.Proprietary, [], [], false);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, [], [], false);
 
         ProjectPolicy policy = ParseGeneratedConfig(json);
 
@@ -61,7 +61,7 @@ public class InitConfigWriterSpecs
     [TestMethod]
     public void Includes_the_preset_name_as_a_comment()
     {
-        string json = InitConfigWriter.BuildConfigJson(SoftwareProfile.Saas, ["MIT"], [], false);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Saas, ["MIT"], [], false);
 
         json.Should().Contain("no-network-copyleft");
     }
@@ -69,7 +69,7 @@ public class InitConfigWriterSpecs
     [TestMethod]
     public void Explains_copyleft_for_the_reader()
     {
-        string json = InitConfigWriter.BuildConfigJson(SoftwareProfile.Proprietary, ["MIT"], [], false);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, ["MIT"], [], false);
 
         json.Should().Contain("Copyleft");
     }
@@ -77,7 +77,7 @@ public class InitConfigWriterSpecs
     [TestMethod]
     public void Generated_json_with_warn_licenses_parses_into_the_warn_list()
     {
-        string json = InitConfigWriter.BuildConfigJson(SoftwareProfile.Saas, ["LGPL-2.1-only", "MIT"], ["LGPL-2.1-only"], false);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Saas, ["LGPL-2.1-only", "MIT"], ["LGPL-2.1-only"], false);
 
         ProjectPolicy policy = ParseGeneratedConfig(json);
 
@@ -88,7 +88,7 @@ public class InitConfigWriterSpecs
     [TestMethod]
     public void Generated_json_with_risk_gates_parses_into_risk_deny_rules()
     {
-        string json = InitConfigWriter.BuildConfigJson(SoftwareProfile.Proprietary, ["MIT"], [], true);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, ["MIT"], [], true);
 
         ProjectPolicy policy = ParseGeneratedConfig(json);
 
@@ -103,7 +103,7 @@ public class InitConfigWriterSpecs
     [TestMethod]
     public void Generated_json_without_risk_gates_has_no_risk_rules()
     {
-        string json = InitConfigWriter.BuildConfigJson(SoftwareProfile.Proprietary, ["MIT"], [], false);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, ["MIT"], [], false);
 
         ProjectPolicy policy = ParseGeneratedConfig(json);
 
@@ -114,7 +114,7 @@ public class InitConfigWriterSpecs
     [TestMethod]
     public void Mentions_risk_exceptions_only_as_a_comment()
     {
-        string json = InitConfigWriter.BuildConfigJson(SoftwareProfile.Proprietary, ["MIT"], [], true);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, ["MIT"], [], true);
 
         ParseGeneratedConfig(json).RiskExceptions.Should().BeEmpty();
         json.Should().Contain("riskExceptions");

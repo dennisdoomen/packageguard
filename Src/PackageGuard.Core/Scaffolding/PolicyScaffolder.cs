@@ -1,13 +1,13 @@
 using PackageGuard.Core.Package;
 using PackageGuard.Core.Policy;
 
-namespace PackageGuard.Core.Init;
+namespace PackageGuard.Core.Scaffolding;
 
 /// <summary>
 /// Turns a license usage summary and a <see cref="SoftwareProfile"/> into a suggested allow-list policy, and
 /// evaluates how many of the scanned packages would violate it.
 /// </summary>
-public static class InitPolicyBuilder
+public static class PolicyScaffolder
 {
     /// <summary>
     /// Builds the list of licenses to allow for <paramref name="profile"/>, limited to the licenses that were
