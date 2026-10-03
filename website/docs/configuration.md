@@ -60,6 +60,8 @@ Each configuration file should follow this JSON format:
 }
 ```
 
+Configuration files may contain comments: both `// line` and `/* block */` comments are ignored, so you can explain why a license or package is allowed or denied.
+
 In this example, only NuGet and NPM packages with the MIT or Apache 2.0 licenses are allowed, the use of the package `ProhibitedPackage` and any pre-release packages (e.g. `0.1.2` or `1.0.2-beta.2`) are prohibited, and `MyPackage` should stick to version 7 only. Both the `allow` and `deny` sections support the `licenses` and `packages` properties. But licenses and packages listed under `allow` have precedence over those under the `deny` section.
 
 :::warning

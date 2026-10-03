@@ -33,6 +33,34 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
+    public void Can_parse_a_configuration_file_with_comments()
+    {
+        // Arrange
+        ChainablePath path = tempDir / "commented.json";
+        File.WriteAllText(path,
+            """
+            {
+                // A line comment
+                "settings": {
+                    /* A block comment */
+                    "allow": {
+                        "licenses": [
+                            "MIT", // Trailing comment
+                            "Apache-2.0"
+                        ]
+                    }
+                }
+            }
+            """);
+
+        // Act
+        ProjectPolicy policy = configurationLoader.GetConfigurationFromConfigPath(path);
+
+        // Assert
+        policy.AllowList.Licenses.Should().BeEquivalentTo("MIT", "Apache-2.0");
+    }
+
+    [TestMethod]
     public void Can_parse_the_configuration_file()
     {
         // Arrange
