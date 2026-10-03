@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
 using PackageGuard.Core.CSharp;
+using PackageGuard.Core.CSharp.FetchingStrategies;
+using PackageGuard.Core.Package;
 using PackageGuard.Core.Policy;
 using Pathy;
 
@@ -153,9 +155,11 @@ public class ProjectAnalyzerSpecs
 
         // NetArchTest.Rules 1.3.2 declares neither a <license> nor a licenseUrl, and its projectUrl points to a
         // blog post rather than its GitHub repository. Its nuspec does declare a <repository> element pointing at
-        // https://github.com/BenMorris/NetArchTest, which the GitHub license fallback should use instead. See
+        // https://github.com/BenMorris/NetArchTest, which the license fallback should use instead. See
         // https://github.com/dennisdoomen/packageguard/issues/246.
-        var analyzer = new ProjectAnalyzer(licenseFetcher);
+        var deterministicLicenseFetcher = new LicenseFetcher(NullLogger.Instance, null,
+            [new RepositoryLicenseFetcher("NetArchTest.Rules", "https://github.com/BenMorris/NetArchTest")]);
+        var analyzer = new ProjectAnalyzer(deterministicLicenseFetcher);
         var projectPath = ChainablePath.Current / "TestCases" / "NetArchTestApp" / "ConsoleApp.csproj";
 
         // Act
@@ -236,5 +240,18 @@ public class ProjectAnalyzerSpecs
             Version = "8.3.0",
             License = "Unknown"
         });
+    }
+
+    private sealed class RepositoryLicenseFetcher(string packageName, string repositoryUrl) : IFetchLicense
+    {
+        public Task FetchLicenseAsync(PackageInfo package)
+        {
+            if (package.Name != packageName || package.RepositoryUrl == repositoryUrl)
+            {
+                package.License = "MIT";
+            }
+
+            return Task.CompletedTask;
+        }
     }
 }
