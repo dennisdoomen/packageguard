@@ -25,16 +25,45 @@ public static class InitPolicyBuilder
     }
 
     /// <summary>
+    /// Builds the list of licenses to report as warnings: the licenses that <paramref name="profile"/> tolerates
+    /// but that still carry copyleft obligations, so they are visible without failing the build.
+    /// </summary>
+    public static IReadOnlyList<string> BuildWarnLicenses(IEnumerable<LicenseUsage> usages, SoftwareProfile profile)
+    {
+        return BuildAllowedLicenses(usages, profile)
+            .Where(license => LicenseClassifier.IsCopyleft(LicenseClassifier.Classify(license)))
+            .ToArray();
+    }
+
+    /// <summary>
     /// Counts how many of <paramref name="packages"/> would violate an allow-list policy restricted to
     /// <paramref name="allowedLicenses"/>.
     /// </summary>
     public static int CountViolations(IEnumerable<PackageInfo> packages, IEnumerable<string> allowedLicenses)
     {
-        var policy = new ProjectPolicy
-        {
-            AllowList = new AllowList { Licenses = allowedLicenses.ToList() }
-        };
+        ProjectPolicy policy = CreatePolicy(allowedLicenses, []);
 
         return packages.Count(package => !policy.AllowList.Allows(package));
+    }
+
+    /// <summary>
+    /// Counts how many of <paramref name="packages"/> are allowed by <paramref name="allowedLicenses"/> but
+    /// would be reported as a warning because their license is in <paramref name="warnLicenses"/>.
+    /// </summary>
+    public static int CountWarnings(IEnumerable<PackageInfo> packages, IEnumerable<string> allowedLicenses,
+        IEnumerable<string> warnLicenses)
+    {
+        ProjectPolicy policy = CreatePolicy(allowedLicenses, warnLicenses);
+
+        return packages.Count(package => policy.AllowList.Allows(package) && policy.WarnList.Warns(package));
+    }
+
+    private static ProjectPolicy CreatePolicy(IEnumerable<string> allowedLicenses, IEnumerable<string> warnLicenses)
+    {
+        return new ProjectPolicy
+        {
+            AllowList = new AllowList { Licenses = allowedLicenses.ToList() },
+            WarnList = new WarnList { Licenses = warnLicenses.ToList() }
+        };
     }
 }

@@ -35,6 +35,12 @@ public class InitCommandSettings : CommandSettings
     [CommandOption("--preset")]
     public string? Preset { get; set; }
 
+    [Description(
+        "Also add risk-based deny rules (risk score, vulnerability severity, deprecation and package age). Without it, you are asked interactively unless --preset is given.")]
+    [CommandOption("--risk-gates")]
+    [DefaultValue(false)]
+    public bool RiskGates { get; set; }
+
     [Description("Run without any interactive prompts. Requires --preset.")]
     [CommandOption("-y|--yes")]
     [DefaultValue(false)]

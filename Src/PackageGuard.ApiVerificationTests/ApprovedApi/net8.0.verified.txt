@@ -89,12 +89,14 @@ namespace PackageGuard.Core.Init
 {
     public static class InitConfigWriter
     {
-        public static string BuildConfigJson(PackageGuard.Core.Init.SoftwareProfile profile, System.Collections.Generic.IReadOnlyList<string> allowedLicenses) { }
+        public static string BuildConfigJson(PackageGuard.Core.Init.SoftwareProfile profile, System.Collections.Generic.IReadOnlyList<string> allowedLicenses, System.Collections.Generic.IReadOnlyList<string> warnLicenses, bool includeRiskGates) { }
     }
     public static class InitPolicyBuilder
     {
         public static System.Collections.Generic.IReadOnlyList<string> BuildAllowedLicenses(System.Collections.Generic.IEnumerable<PackageGuard.Core.Init.LicenseUsage> usages, PackageGuard.Core.Init.SoftwareProfile profile) { }
+        public static System.Collections.Generic.IReadOnlyList<string> BuildWarnLicenses(System.Collections.Generic.IEnumerable<PackageGuard.Core.Init.LicenseUsage> usages, PackageGuard.Core.Init.SoftwareProfile profile) { }
         public static int CountViolations(System.Collections.Generic.IEnumerable<PackageGuard.Core.Package.PackageInfo> packages, System.Collections.Generic.IEnumerable<string> allowedLicenses) { }
+        public static int CountWarnings(System.Collections.Generic.IEnumerable<PackageGuard.Core.Package.PackageInfo> packages, System.Collections.Generic.IEnumerable<string> allowedLicenses, System.Collections.Generic.IEnumerable<string> warnLicenses) { }
     }
     public enum LicenseCategory
     {

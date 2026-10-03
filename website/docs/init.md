@@ -48,6 +48,34 @@ Written .packageguard/config.json
 2 packages violate the suggested policy. Run `packageguard .` to see them.
 ```
 
+## Warnings for tolerated copyleft
+
+Copyleft licenses that the chosen profile tolerates (for example LGPL for SaaS software) are allowed, but
+`init` also lists them in a [`warn` section](./configuration.md#warnings-instead-of-build-failures). They
+never fail the build, but they show up as warnings so the obligations stay visible. When some packages
+violate the suggested policy, `init` also reminds you that `--treat-deny-as-warning` lets you adopt the
+policy gradually, reporting violations without failing the build yet.
+
+## Risk gates
+
+Optionally, `init` can also add [risk-based `deny` rules](./configuration.md#gating-on-risk-and-package-age)
+to the generated file. You are asked about it interactively, or you can pass `--risk-gates`:
+
+```json
+"deny": {
+    "maxOverallRisk": 60,
+    "maxSecurityRisk": 7,
+    "maxOsvSeverityScore": 7.0,
+    "denyDeprecated": true,
+    "minPackageAgeDays": { "npm": 14, "nuget": 3 }
+}
+```
+
+This is off by default, because gating on risk makes every run slower: PackageGuard has to collect risk
+data for each package, which works best with a GitHub API key. `init` itself doesn't collect risk data, so
+these rules are only evaluated by your next `packageguard .` run. The file also contains a commented-out
+`riskExceptions` example, for packages whose risk you have decided to accept.
+
 ## Non-interactive use
 
 For scripted setup, CI, or project templates, skip the question with `--preset` and `--yes`:
@@ -63,6 +91,8 @@ questions above.
 
 - `--config-path <path>` - where to write the generated file. Defaults to `.packageguard/config.json` next to
   the solution (or the resolved project directory when no solution is found).
+- `--risk-gates` - also add the risk-based `deny` rules described above. Without it, `--preset` skips the
+  question and leaves them out.
 - `--force` - overwrite a configuration file that already exists at that path. Without it, `init` refuses to
   run rather than silently replacing your policy.
 - `--npm`, `--npm-exe-path`, `--nuget`, `-i`/`-f`/`-s` - the same project-discovery and restore options

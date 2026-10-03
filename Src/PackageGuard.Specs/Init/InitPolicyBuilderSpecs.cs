@@ -91,4 +91,30 @@ public class InitPolicyBuilderSpecs
 
         violations.Should().Be(0);
     }
+
+    [TestMethod]
+    public void Warns_only_about_tolerated_copyleft_licenses()
+    {
+        LicenseUsage[] usages =
+        [
+            new("MIT", 5, LicenseCategory.Permissive, []),
+            new("LGPL-2.1-only", 2, LicenseCategory.WeakCopyleft, []),
+            new("GPL-3.0-only", 1, LicenseCategory.StrongCopyleft, [])
+        ];
+
+        InitPolicyBuilder.BuildWarnLicenses(usages, SoftwareProfile.Saas).Should().Equal("LGPL-2.1-only");
+        InitPolicyBuilder.BuildWarnLicenses(usages, SoftwareProfile.Proprietary).Should().BeEmpty();
+        InitPolicyBuilder.BuildWarnLicenses(usages, SoftwareProfile.OpenSource).Should().Equal("GPL-3.0-only", "LGPL-2.1-only");
+    }
+
+    [TestMethod]
+    public void Counts_allowed_packages_with_a_warn_license_as_warnings_not_violations()
+    {
+        PackageInfo[] packages = [CreatePackage("A", "MIT"), CreatePackage("B", "LGPL-2.1-only"), CreatePackage("C", "GPL-3.0-only")];
+        string[] allowed = ["MIT", "LGPL-2.1-only"];
+        string[] warn = ["LGPL-2.1-only"];
+
+        InitPolicyBuilder.CountWarnings(packages, allowed, warn).Should().Be(1);
+        InitPolicyBuilder.CountViolations(packages, allowed).Should().Be(1);
+    }
 }

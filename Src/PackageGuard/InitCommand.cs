@@ -59,13 +59,16 @@ public sealed class InitCommand(ILogger logger) : AsyncCommand<InitCommandSettin
 
         SoftwareProfile profile = ResolveProfile(settings);
         IReadOnlyList<string> allowedLicenses = InitPolicyBuilder.BuildAllowedLicenses(usages, profile);
+        IReadOnlyList<string> warnLicenses = InitPolicyBuilder.BuildWarnLicenses(usages, profile);
+        bool includeRiskGates = ResolveRiskGates(settings);
 
-        WriteConfigFile(configPath, profile, allowedLicenses);
+        string json = InitConfigWriter.BuildConfigJson(profile, allowedLicenses, warnLicenses, includeRiskGates);
+        WriteConfigFile(configPath, json);
 
         AnsiConsole.MarkupLine("");
         AnsiConsole.MarkupLine($"Written [blue]{Markup.Escape(configPath)}[/]");
 
-        ReportSuggestedPolicyOutcome(packages, allowedLicenses);
+        ReportSuggestedPolicyOutcome(packages, allowedLicenses, warnLicenses, includeRiskGates);
 
         return SuccessExitCode;
     }
@@ -179,27 +182,59 @@ public sealed class InitCommand(ILogger logger) : AsyncCommand<InitCommandSettin
         };
     }
 
-    private static void WriteConfigFile(ChainablePath configPath, SoftwareProfile profile, IReadOnlyList<string> allowedLicenses)
+    /// <summary>
+    /// Decides whether to add risk gates: <c>--risk-gates</c> opts in, a preset (non-interactive use) opts out
+    /// by default, and otherwise the user is asked, defaulting to no because risk gating makes every run slower.
+    /// </summary>
+    private static bool ResolveRiskGates(InitCommandSettings settings)
+    {
+        if (settings.RiskGates || !string.IsNullOrWhiteSpace(settings.Preset))
+        {
+            return settings.RiskGates;
+        }
+
+        return AnsiConsole.Confirm(
+            "Also deny packages with a high risk score, serious vulnerabilities, or a very recent release? " +
+            "(makes every run slower)",
+            defaultValue: false);
+    }
+
+    private static void WriteConfigFile(ChainablePath configPath, string json)
     {
         configPath.Directory.CreateDirectoryRecursively();
-        File.WriteAllText(configPath, InitConfigWriter.BuildConfigJson(profile, allowedLicenses));
+        File.WriteAllText(configPath, json);
     }
 
     /// <summary>
-    /// Reports how many of the scanned packages would violate the suggested policy, pointing to <c>analyze</c>
-    /// for details when at least one does.
+    /// Reports how many of the scanned packages would violate or warn under the suggested policy, pointing to
+    /// <c>analyze</c> for details and to <c>--treat-deny-as-warning</c> for gradual adoption.
     /// </summary>
-    private static void ReportSuggestedPolicyOutcome(PackageInfo[] packages, IReadOnlyList<string> allowedLicenses)
+    private static void ReportSuggestedPolicyOutcome(PackageInfo[] packages, IReadOnlyList<string> allowedLicenses,
+        IReadOnlyList<string> warnLicenses, bool includeRiskGates)
     {
         int violations = InitPolicyBuilder.CountViolations(packages, allowedLicenses);
+        int warnings = InitPolicyBuilder.CountWarnings(packages, allowedLicenses, warnLicenses);
+
         if (violations == 0)
         {
             AnsiConsole.MarkupLine("[green3_1]No packages violate the suggested policy.[/]");
-            return;
+        }
+        else
+        {
+            string packageWord = violations == 1 ? "package" : "packages";
+            AnsiConsole.MarkupLine(
+                $"[yellow1]{violations} {packageWord} violate the suggested policy. Run `packageguard .` to see them.[/]");
+            AnsiConsole.MarkupLine("To adopt it gradually, add --treat-deny-as-warning so violations don't fail the build yet.");
         }
 
-        string packageWord = violations == 1 ? "package" : "packages";
-        AnsiConsole.MarkupLine(
-            $"[yellow1]{violations} {packageWord} violate the suggested policy. Run `packageguard .` to see them.[/]");
+        if (warnings > 0)
+        {
+            AnsiConsole.MarkupLine($"{warnings} {(warnings == 1 ? "package is" : "packages are")} allowed but will be reported as warnings (copyleft).");
+        }
+
+        if (includeRiskGates)
+        {
+            AnsiConsole.MarkupLine("Risk gates are only evaluated by `packageguard .`, since they need risk data that `init` doesn't collect.");
+        }
     }
 }

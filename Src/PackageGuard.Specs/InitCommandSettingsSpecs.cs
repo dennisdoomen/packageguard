@@ -63,4 +63,11 @@ public class InitCommandSettingsSpecs
 
         settings.ToCoreSettings().ReportRisk.Should().BeFalse();
     }
+
+    [TestMethod]
+    public void Accepts_risk_gates_with_or_without_a_preset()
+    {
+        new InitCommandSettings { RiskGates = true }.Validate().Successful.Should().BeTrue();
+        new InitCommandSettings { RiskGates = true, Preset = "oss-friendly", Yes = true }.Validate().Successful.Should().BeTrue();
+    }
 }
