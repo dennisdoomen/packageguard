@@ -7,5 +7,5 @@ namespace PackageGuard.Core.Scaffolding;
 /// <param name="License">The SPDX license identifier, or <see langword="null"/> when it could not be resolved.</param>
 /// <param name="PackageCount">The number of packages that resolved to this license.</param>
 /// <param name="Category">The copyleft classification of <paramref name="License"/>.</param>
-/// <param name="ExamplePackages">A handful of "name version" examples of packages using this license.</param>
-internal record LicenseUsage(string? License, int PackageCount, LicenseCategory Category, IReadOnlyList<string> ExamplePackages);
+/// <param name="ExamplePackage">A "name version" example of a package using this license.</param>
+internal record LicenseUsage(string? License, int PackageCount, LicenseCategory Category, string? ExamplePackage);

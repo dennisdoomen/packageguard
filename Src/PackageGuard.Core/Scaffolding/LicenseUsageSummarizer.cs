@@ -9,8 +9,8 @@ namespace PackageGuard.Core.Scaffolding;
 internal static class LicenseUsageSummarizer
 {
     /// <summary>
-    /// Groups <paramref name="packages"/> by license, classifying each group and collecting a few example
-    /// packages per group. Results are ordered by package count (descending), then by license name.
+    /// Groups <paramref name="packages"/> by license, classifying each group and collecting one example
+    /// package per group. Results are ordered by package count (descending), then by license name.
     /// </summary>
     public static IReadOnlyList<LicenseUsage> Summarize(IEnumerable<PackageInfo> packages)
     {
@@ -25,8 +25,8 @@ internal static class LicenseUsageSummarizer
     private static LicenseUsage ToUsage(IGrouping<string, PackageInfo> group)
     {
         string? license = group.Key.Length == 0 ? null : group.Key;
-        string[] examples = group.Select(package => $"{package.Name} {package.Version}").Take(3).ToArray();
+        PackageInfo example = group.First();
 
-        return new LicenseUsage(license, group.Count(), LicenseClassifier.Classify(license), examples);
+        return new LicenseUsage(license, group.Count(), LicenseClassifier.Classify(license), $"{example.Name} {example.Version}");
     }
 }

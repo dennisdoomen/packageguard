@@ -41,7 +41,7 @@ public class ConfigScaffolderSpecs
     [TestMethod]
     public void Generated_json_is_parsed_by_the_same_configuration_pipeline_analyze_uses()
     {
-        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, ["Apache-2.0", "MIT"], [], false);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, allowedLicenses: ["Apache-2.0", "MIT"], warnLicenses: [], includeRiskGates: false);
 
         ProjectPolicy policy = ParseGeneratedConfig(json);
 
@@ -51,7 +51,7 @@ public class ConfigScaffolderSpecs
     [TestMethod]
     public void Generated_json_parses_cleanly_with_an_empty_allow_list()
     {
-        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, [], [], false);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, allowedLicenses: [], warnLicenses: [], includeRiskGates: false);
 
         ProjectPolicy policy = ParseGeneratedConfig(json);
 
@@ -61,7 +61,7 @@ public class ConfigScaffolderSpecs
     [TestMethod]
     public void Includes_the_preset_name_as_a_comment()
     {
-        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Saas, ["MIT"], [], false);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Saas, allowedLicenses: ["MIT"], warnLicenses: [], includeRiskGates: false);
 
         json.Should().Contain("no-network-copyleft");
     }
@@ -69,7 +69,7 @@ public class ConfigScaffolderSpecs
     [TestMethod]
     public void Explains_copyleft_for_the_reader()
     {
-        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, ["MIT"], [], false);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, allowedLicenses: ["MIT"], warnLicenses: [], includeRiskGates: false);
 
         json.Should().Contain("Copyleft");
     }
@@ -77,7 +77,7 @@ public class ConfigScaffolderSpecs
     [TestMethod]
     public void Generated_json_with_warn_licenses_parses_into_the_warn_list()
     {
-        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Saas, ["LGPL-2.1-only", "MIT"], ["LGPL-2.1-only"], false);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Saas, allowedLicenses: ["LGPL-2.1-only", "MIT"], warnLicenses: ["LGPL-2.1-only"], includeRiskGates: false);
 
         ProjectPolicy policy = ParseGeneratedConfig(json);
 
@@ -88,7 +88,7 @@ public class ConfigScaffolderSpecs
     [TestMethod]
     public void Generated_json_with_risk_gates_parses_into_risk_deny_rules()
     {
-        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, ["MIT"], [], true);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, allowedLicenses: ["MIT"], warnLicenses: [], includeRiskGates: true);
 
         ProjectPolicy policy = ParseGeneratedConfig(json);
 
@@ -103,7 +103,7 @@ public class ConfigScaffolderSpecs
     [TestMethod]
     public void Generated_json_without_risk_gates_has_no_risk_rules()
     {
-        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, ["MIT"], [], false);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, allowedLicenses: ["MIT"], warnLicenses: [], includeRiskGates: false);
 
         ProjectPolicy policy = ParseGeneratedConfig(json);
 
@@ -114,7 +114,7 @@ public class ConfigScaffolderSpecs
     [TestMethod]
     public void Mentions_risk_exceptions_only_as_a_comment()
     {
-        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, ["MIT"], [], true);
+        string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.Proprietary, allowedLicenses: ["MIT"], warnLicenses: [], includeRiskGates: true);
 
         ParseGeneratedConfig(json).RiskExceptions.Should().BeEmpty();
         json.Should().Contain("riskExceptions");

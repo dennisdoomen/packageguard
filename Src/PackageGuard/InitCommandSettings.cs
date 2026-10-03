@@ -26,9 +26,9 @@ public class InitCommandSettings : CommandSettings
     public string? ConfigPath { get; set; }
 
     [Description("Overwrite an existing configuration file instead of refusing to run.")]
-    [CommandOption("--force")]
+    [CommandOption("--overwrite")]
     [DefaultValue(false)]
-    public bool Force { get; set; }
+    public bool Overwrite { get; set; }
 
     [Description(
         "Skip the interactive question about the kind of software this is, and use the given preset instead: permissive-only, no-network-copyleft, or oss-friendly.")]
@@ -40,11 +40,6 @@ public class InitCommandSettings : CommandSettings
     [CommandOption("--risk-gates")]
     [DefaultValue(false)]
     public bool RiskGates { get; set; }
-
-    [Description("Run without any interactive prompts. Requires --preset.")]
-    [CommandOption("-y|--yes")]
-    [DefaultValue(false)]
-    public bool Yes { get; set; }
 
     [Description("Allow enabling or disabling an interactive mode of \"dotnet restore\". Defaults to true")]
     [CommandOption("-i|--restore-interactive|--restoreinteractive")]
@@ -87,8 +82,7 @@ public class InitCommandSettings : CommandSettings
     public bool Verbose { get; set; }
 
     /// <summary>
-    /// Validates that <see cref="Preset"/>, when specified, is a recognized preset name, and that
-    /// <see cref="Yes"/> is only used together with an explicit preset.
+    /// Validates that <see cref="Preset"/>, when specified, is a recognized preset name.
     /// </summary>
     public override ValidationResult Validate()
     {
@@ -96,11 +90,6 @@ public class InitCommandSettings : CommandSettings
         {
             return ValidationResult.Error(
                 $"--preset must be one of {FormatPresetNames()}, but was \"{Preset}\".");
-        }
-
-        if (Yes && string.IsNullOrWhiteSpace(Preset))
-        {
-            return ValidationResult.Error("--yes requires --preset to be specified, since there is nothing left to answer interactively.");
         }
 
         return ValidationResult.Success();

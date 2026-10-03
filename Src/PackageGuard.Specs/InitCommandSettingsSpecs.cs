@@ -38,25 +38,6 @@ public class InitCommandSettingsSpecs
     }
 
     [TestMethod]
-    public void Requires_a_preset_when_yes_is_specified()
-    {
-        var settings = new InitCommandSettings { Yes = true };
-
-        ValidationResult result = settings.Validate();
-
-        result.Successful.Should().BeFalse();
-        result.Message.Should().Contain("--yes");
-    }
-
-    [TestMethod]
-    public void Accepts_yes_when_combined_with_a_preset()
-    {
-        var settings = new InitCommandSettings { Yes = true, Preset = "permissive-only" };
-
-        settings.Validate().Successful.Should().BeTrue();
-    }
-
-    [TestMethod]
     public void Never_enables_risk_reporting()
     {
         var settings = new InitCommandSettings();
@@ -68,6 +49,6 @@ public class InitCommandSettingsSpecs
     public void Accepts_risk_gates_with_or_without_a_preset()
     {
         new InitCommandSettings { RiskGates = true }.Validate().Successful.Should().BeTrue();
-        new InitCommandSettings { RiskGates = true, Preset = "oss-friendly", Yes = true }.Validate().Successful.Should().BeTrue();
+        new InitCommandSettings { RiskGates = true, Preset = "oss-friendly" }.Validate().Successful.Should().BeTrue();
     }
 }

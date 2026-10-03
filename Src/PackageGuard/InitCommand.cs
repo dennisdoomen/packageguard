@@ -33,37 +33,58 @@ public sealed class InitCommand(ILogger logger) : AsyncCommand<InitCommandSettin
         }
 
         ChainablePath configPath = ResolveConfigPath(settings);
-        if (configPath.IsFile && !settings.Force)
+        if (configPath.IsFile && !settings.Overwrite)
         {
             AnsiConsole.MarkupLine($"[red1]A configuration file already exists at {Markup.Escape(configPath)}.[/]");
-            AnsiConsole.MarkupLine("Use --force to overwrite it.");
+            AnsiConsole.MarkupLine("Use --overwrite to replace it.");
             return RefusedExitCode;
         }
 
-        string scanPath = string.IsNullOrEmpty(settings.ProjectPath) ? Directory.GetCurrentDirectory() : settings.ProjectPath;
-        AnsiConsole.MarkupLine($"Scanning [blue]{Markup.Escape(scanPath)}[/]...");
-
-        PackageInfo[] packages = await ScanAsync(settings);
+        PackageInfo[] packages = await ScanAndReportAsync(settings);
         if (packages.Length == 0)
         {
             AnsiConsole.MarkupLine("[yellow1]No packages were found, so no configuration file was written.[/]");
             return SuccessExitCode;
         }
 
-        AnsiConsole.MarkupLine("");
-        AnsiConsole.MarkupLine($"Found {packages.Length} packages across {CountDistinctProjects(packages)} projects.");
-        AnsiConsole.MarkupLine("");
+        return ScaffoldConfiguration(settings, configPath, packages);
+    }
 
+    private async Task<PackageInfo[]> ScanAndReportAsync(InitCommandSettings settings)
+    {
+        string scanPath = string.IsNullOrEmpty(settings.ProjectPath) ? Directory.GetCurrentDirectory() : settings.ProjectPath;
+        AnsiConsole.MarkupLine($"Scanning [blue]{Markup.Escape(scanPath)}[/]...");
+
+        PackageInfo[] packages = await ScanAsync(settings);
+        if (packages.Length > 0)
+        {
+            AnsiConsole.MarkupLine("");
+            AnsiConsole.MarkupLine($"Found {packages.Length} packages across {CountDistinctProjects(packages)} projects.");
+            AnsiConsole.MarkupLine("");
+            PrintLicenseUsage(LicenseUsageSummarizer.Summarize(packages));
+        }
+
+        return packages;
+    }
+
+    private static int ScaffoldConfiguration(InitCommandSettings settings, ChainablePath configPath, PackageInfo[] packages)
+    {
         IReadOnlyList<LicenseUsage> usages = LicenseUsageSummarizer.Summarize(packages);
-        PrintLicenseUsage(usages);
-
         SoftwareProfile profile = ResolveProfile(settings);
         IReadOnlyList<string> allowedLicenses = PolicyScaffolder.BuildAllowedLicenses(usages, profile);
+
+        if (allowedLicenses.Count == 0)
+        {
+            // An empty allow list would allow every package, so never write one.
+            AnsiConsole.MarkupLine(
+                $"[red1]None of the licenses found fit the {LicensePresets.GetPresetName(profile)} preset, so no configuration file was written.[/]");
+            return RefusedExitCode;
+        }
+
         IReadOnlyList<string> warnLicenses = PolicyScaffolder.BuildWarnLicenses(usages, profile);
         bool includeRiskGates = ResolveRiskGates(settings);
 
-        string json = ConfigScaffolder.BuildConfigJson(profile, allowedLicenses, warnLicenses, includeRiskGates);
-        WriteConfigFile(configPath, json);
+        WriteConfigFile(configPath, ConfigScaffolder.BuildConfigJson(profile, allowedLicenses, warnLicenses, includeRiskGates));
 
         AnsiConsole.MarkupLine("");
         AnsiConsole.MarkupLine($"Written [blue]{Markup.Escape(configPath)}[/]");
@@ -78,7 +99,7 @@ public sealed class InitCommand(ILogger logger) : AsyncCommand<InitCommandSettin
     /// or <c>.packageguard/config.json</c> under the solution directory (falling back to the resolved project
     /// directory when no solution file is found).
     /// </summary>
-    private static ChainablePath ResolveConfigPath(InitCommandSettings settings)
+    internal static ChainablePath ResolveConfigPath(InitCommandSettings settings)
     {
         if (!string.IsNullOrWhiteSpace(settings.ConfigPath))
         {
@@ -149,7 +170,7 @@ public sealed class InitCommand(ILogger logger) : AsyncCommand<InitCommandSettin
             LicenseCategory.WeakCopyleft => "   <- weak copyleft",
             LicenseCategory.StrongCopyleft => "   <- strong copyleft",
             LicenseCategory.NetworkCopyleft => "   <- network copyleft",
-            LicenseCategory.Unknown when usage.ExamplePackages.Count > 0 => $"   <- {usage.ExamplePackages[0]}",
+            LicenseCategory.Unknown when usage.ExamplePackage is not null => $"   <- {usage.ExamplePackage}",
             _ => ""
         };
     }

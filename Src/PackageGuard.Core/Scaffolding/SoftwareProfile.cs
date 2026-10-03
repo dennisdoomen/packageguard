@@ -18,7 +18,7 @@ internal enum SoftwareProfile
     Saas,
 
     /// <summary>
-    /// Open-source software. Permissive, weak-copyleft, and strong-copyleft licenses are all suggested.
+    /// Open-source software. Permissive and every copyleft category (weak, strong and network) are suggested.
     /// </summary>
     OpenSource
 }

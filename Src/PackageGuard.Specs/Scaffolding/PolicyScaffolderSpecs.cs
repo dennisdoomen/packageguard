@@ -17,7 +17,7 @@ public class PolicyScaffolderSpecs
     [TestMethod]
     public void Includes_only_licenses_that_were_actually_found()
     {
-        LicenseUsage[] usages = [new("MIT", 5, LicenseCategory.Permissive, [])];
+        LicenseUsage[] usages = [new("MIT", 5, LicenseCategory.Permissive, null)];
 
         var allowed = PolicyScaffolder.BuildAllowedLicenses(usages, SoftwareProfile.OpenSource);
 
@@ -29,8 +29,8 @@ public class PolicyScaffolderSpecs
     {
         LicenseUsage[] usages =
         [
-            new("MIT", 5, LicenseCategory.Permissive, []),
-            new("GPL-3.0-only", 1, LicenseCategory.StrongCopyleft, [])
+            new("MIT", 5, LicenseCategory.Permissive, null),
+            new("GPL-3.0-only", 1, LicenseCategory.StrongCopyleft, null)
         ];
 
         var allowed = PolicyScaffolder.BuildAllowedLicenses(usages, SoftwareProfile.Proprietary);
@@ -41,7 +41,7 @@ public class PolicyScaffolderSpecs
     [TestMethod]
     public void Never_allows_a_null_license_regardless_of_profile()
     {
-        LicenseUsage[] usages = [new(null, 1, LicenseCategory.Unknown, ["Obscure 1.0.0"])];
+        LicenseUsage[] usages = [new(null, 1, LicenseCategory.Unknown, "Obscure 1.0.0")];
 
         var allowed = PolicyScaffolder.BuildAllowedLicenses(usages, SoftwareProfile.OpenSource);
 
@@ -53,8 +53,8 @@ public class PolicyScaffolderSpecs
     {
         LicenseUsage[] usages =
         [
-            new("MIT", 5, LicenseCategory.Permissive, []),
-            new("Apache-2.0", 3, LicenseCategory.Permissive, [])
+            new("MIT", 5, LicenseCategory.Permissive, null),
+            new("Apache-2.0", 3, LicenseCategory.Permissive, null)
         ];
 
         var allowed = PolicyScaffolder.BuildAllowedLicenses(usages, SoftwareProfile.Proprietary);
@@ -97,9 +97,9 @@ public class PolicyScaffolderSpecs
     {
         LicenseUsage[] usages =
         [
-            new("MIT", 5, LicenseCategory.Permissive, []),
-            new("LGPL-2.1-only", 2, LicenseCategory.WeakCopyleft, []),
-            new("GPL-3.0-only", 1, LicenseCategory.StrongCopyleft, [])
+            new("MIT", 5, LicenseCategory.Permissive, null),
+            new("LGPL-2.1-only", 2, LicenseCategory.WeakCopyleft, null),
+            new("GPL-3.0-only", 1, LicenseCategory.StrongCopyleft, null)
         ];
 
         PolicyScaffolder.BuildWarnLicenses(usages, SoftwareProfile.Saas).Should().Equal("LGPL-2.1-only");

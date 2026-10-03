@@ -70,19 +70,13 @@ public class LicenseUsageSummarizerSpecs
     }
 
     [TestMethod]
-    public void Collects_a_handful_of_example_packages_per_license()
+    public void Names_one_example_package_per_license()
     {
-        PackageInfo[] packages =
-        [
-            CreatePackage("A", "1.0.0", "MIT"),
-            CreatePackage("B", "1.0.0", "MIT"),
-            CreatePackage("C", "1.0.0", "MIT"),
-            CreatePackage("D", "1.0.0", "MIT")
-        ];
+        PackageInfo[] packages = [CreatePackage("A", "1.0.0", "MIT"), CreatePackage("B", "2.0.0", "MIT")];
 
         var usages = LicenseUsageSummarizer.Summarize(packages);
 
-        usages.Single().ExamplePackages.Should().HaveCount(3);
+        usages.Single().ExamplePackage.Should().Be("A 1.0.0");
     }
 
     [TestMethod]

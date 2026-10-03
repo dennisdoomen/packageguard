@@ -78,10 +78,10 @@ these rules are only evaluated by your next `packageguard .` run. The file also 
 
 ## Non-interactive use
 
-For scripted setup, CI, or project templates, skip the question with `--preset` and `--yes`:
+For scripted setup, CI, or project templates, skip the question with `--preset`:
 
 ```bash
-packageguard init --preset permissive-only --yes
+packageguard init --preset permissive-only
 ```
 
 The available presets are `permissive-only`, `no-network-copyleft`, and `oss-friendly`, matching the three
@@ -93,7 +93,7 @@ questions above.
   the solution (or the resolved project directory when no solution is found).
 - `--risk-gates` - also add the risk-based `deny` rules described above. Without it, `--preset` skips the
   question and leaves them out.
-- `--force` - overwrite a configuration file that already exists at that path. Without it, `init` refuses to
+- `--overwrite` - overwrite a configuration file that already exists at that path. Without it, `init` refuses to
   run rather than silently replacing your policy.
 - `--npm`, `--npm-exe-path`, `--nuget`, `-i`/`-f`/`-s` - the same project-discovery and restore options
   `analyze` supports, since `init` scans the repository the same way.

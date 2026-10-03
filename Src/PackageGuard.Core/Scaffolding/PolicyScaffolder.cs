@@ -30,9 +30,7 @@ internal static class PolicyScaffolder
     /// </summary>
     public static IReadOnlyList<string> BuildWarnLicenses(IEnumerable<LicenseUsage> usages, SoftwareProfile profile)
     {
-        return BuildAllowedLicenses(usages, profile)
-            .Where(license => LicenseClassifier.IsCopyleft(LicenseClassifier.Classify(license)))
-            .ToArray();
+        return BuildAllowedLicenses(usages.Where(usage => LicenseClassifier.IsCopyleft(usage.Category)), profile);
     }
 
     /// <summary>
