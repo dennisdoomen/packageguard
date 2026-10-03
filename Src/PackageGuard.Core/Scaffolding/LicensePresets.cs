@@ -4,7 +4,7 @@ namespace PackageGuard.Core.Scaffolding;
 /// Maps a <see cref="SoftwareProfile"/> to the license categories it tolerates, and to the CLI-facing preset
 /// name used by <c>packageguard init --preset</c>.
 /// </summary>
-public static class LicensePresets
+internal static class LicensePresets
 {
     /// <summary>
     /// Returns the license categories that are considered acceptable for the given <paramref name="profile"/>.

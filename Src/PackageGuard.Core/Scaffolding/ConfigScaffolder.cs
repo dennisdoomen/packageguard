@@ -8,7 +8,7 @@ namespace PackageGuard.Core.Scaffolding;
 /// copyleft licenses, and optional risk gates in the <c>deny</c> section, annotated with comments that explain
 /// each part.
 /// </summary>
-public static class ConfigScaffolder
+internal static class ConfigScaffolder
 {
     private const string Indent = "    ";
 

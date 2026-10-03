@@ -4,7 +4,7 @@ namespace PackageGuard.Core.Scaffolding;
 /// Classifies SPDX license identifiers by the copyleft obligations they impose, so <c>packageguard init</c>
 /// can flag copyleft licenses and suggest a policy that matches the project's <see cref="SoftwareProfile"/>.
 /// </summary>
-public static class LicenseClassifier
+internal static class LicenseClassifier
 {
     /// <summary>
     /// Known license identifiers mapped to their <see cref="LicenseCategory"/>. Any license not listed here,

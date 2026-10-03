@@ -1,3 +1,4 @@
+using System;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core.Scaffolding;
@@ -35,26 +36,28 @@ public class LicensePresetsSpecs
     }
 
     [TestMethod]
-    [DataRow(SoftwareProfile.Proprietary, "permissive-only")]
-    [DataRow(SoftwareProfile.Saas, "no-network-copyleft")]
-    [DataRow(SoftwareProfile.OpenSource, "oss-friendly")]
-    public void Maps_each_profile_to_its_stable_preset_name(SoftwareProfile profile, string expectedName)
+    [DataRow("Proprietary", "permissive-only")]
+    [DataRow("Saas", "no-network-copyleft")]
+    [DataRow("OpenSource", "oss-friendly")]
+    public void Maps_each_profile_to_its_stable_preset_name(string profileName, string expectedName)
     {
+        var profile = Enum.Parse<SoftwareProfile>(profileName);
+
         LicensePresets.GetPresetName(profile).Should().Be(expectedName);
     }
 
     [TestMethod]
-    [DataRow("permissive-only", SoftwareProfile.Proprietary)]
-    [DataRow("no-network-copyleft", SoftwareProfile.Saas)]
-    [DataRow("oss-friendly", SoftwareProfile.OpenSource)]
-    [DataRow("OSS-FRIENDLY", SoftwareProfile.OpenSource)]
-    [DataRow("  oss-friendly  ", SoftwareProfile.OpenSource)]
-    public void Parses_a_recognized_preset_name(string presetName, SoftwareProfile expectedProfile)
+    [DataRow("permissive-only", "Proprietary")]
+    [DataRow("no-network-copyleft", "Saas")]
+    [DataRow("oss-friendly", "OpenSource")]
+    [DataRow("OSS-FRIENDLY", "OpenSource")]
+    [DataRow("  oss-friendly  ", "OpenSource")]
+    public void Parses_a_recognized_preset_name(string presetName, string expectedProfileName)
     {
         bool parsed = LicensePresets.TryParsePresetName(presetName, out SoftwareProfile profile);
 
         parsed.Should().BeTrue();
-        profile.Should().Be(expectedProfile);
+        profile.Should().Be(Enum.Parse<SoftwareProfile>(expectedProfileName));
     }
 
     [TestMethod]

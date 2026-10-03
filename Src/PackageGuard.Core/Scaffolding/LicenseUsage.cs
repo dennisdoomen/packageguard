@@ -8,4 +8,4 @@ namespace PackageGuard.Core.Scaffolding;
 /// <param name="PackageCount">The number of packages that resolved to this license.</param>
 /// <param name="Category">The copyleft classification of <paramref name="License"/>.</param>
 /// <param name="ExamplePackages">A handful of "name version" examples of packages using this license.</param>
-public record LicenseUsage(string? License, int PackageCount, LicenseCategory Category, IReadOnlyList<string> ExamplePackages);
+internal record LicenseUsage(string? License, int PackageCount, LicenseCategory Category, IReadOnlyList<string> ExamplePackages);

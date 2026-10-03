@@ -6,7 +6,7 @@ namespace PackageGuard.Core.Scaffolding;
 /// Groups the packages found by a scan into per-license usage counts for <c>packageguard init</c> to display
 /// and to build a suggested policy from.
 /// </summary>
-public static class LicenseUsageSummarizer
+internal static class LicenseUsageSummarizer
 {
     /// <summary>
     /// Groups <paramref name="packages"/> by license, classifying each group and collecting a few example

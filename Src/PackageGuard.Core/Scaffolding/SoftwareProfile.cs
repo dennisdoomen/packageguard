@@ -4,7 +4,7 @@ namespace PackageGuard.Core.Scaffolding;
 /// Describes how the analyzed software is distributed or operated, which determines how much copyleft
 /// exposure <see cref="LicensePresets"/> suggests tolerating.
 /// </summary>
-public enum SoftwareProfile
+internal enum SoftwareProfile
 {
     /// <summary>
     /// Proprietary or commercial software that is distributed to customers. Only permissive licenses are suggested.

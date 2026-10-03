@@ -4,7 +4,7 @@ namespace PackageGuard.Core.Scaffolding;
 /// Classifies a license by the copyleft obligations it imposes, used by <see cref="LicenseClassifier"/> and
 /// <see cref="LicensePresets"/> to decide which licenses fit a given <see cref="SoftwareProfile"/>.
 /// </summary>
-public enum LicenseCategory
+internal enum LicenseCategory
 {
     /// <summary>
     /// The license could not be resolved, or isn't recognized. Never included in a suggested allow list.
