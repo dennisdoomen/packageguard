@@ -16,6 +16,9 @@ namespace PackageGuard.Specs;
 [TestClass]
 public class PackageInfoSpecs
 {
+    // Not under the current directory, because other specs change it while specs run in parallel
+    private readonly string cachePath = ChainablePath.Temp / $"packageguard-{Guid.NewGuid():N}.bin";
+
     [TestMethod]
     public void Can_match_on_case_insensitive_name_only()
     {
@@ -131,12 +134,12 @@ public class PackageInfoSpecs
             }
         };
 
-        await priorCollection.WriteToCache(ChainablePath.Current / "cache.bin");
+        await priorCollection.WriteToCache(cachePath);
 
         var currentCollection = new PackageInfoCollection(NullLogger.Instance);
 
         // Act
-        await currentCollection.TryInitializeFromCache(ChainablePath.Current / "cache.bin");
+        await currentCollection.TryInitializeFromCache(cachePath);
 
         // Assert
         currentCollection.Should().BeEmpty();
@@ -158,11 +161,11 @@ public class PackageInfoSpecs
             }
         };
 
-        await priorCollection.WriteToCache(ChainablePath.Current / "cache.bin");
+        await priorCollection.WriteToCache(cachePath);
 
         // Act
         var currentCollection = new PackageInfoCollection(NullLogger.Instance);
-        await currentCollection.TryInitializeFromCache(ChainablePath.Current / "cache.bin");
+        await currentCollection.TryInitializeFromCache(cachePath);
 
         // Assert
         PackageInfo package = currentCollection.Find("Bogus", "2.0.0", [source]);
@@ -191,11 +194,11 @@ public class PackageInfoSpecs
 
         existingPackage.IsUsed = false;
 
-        await priorCollection.WriteToCache(ChainablePath.Current / "cache.bin");
+        await priorCollection.WriteToCache(cachePath);
 
         // Act
         var currentCollection = new PackageInfoCollection(NullLogger.Instance);
-        await currentCollection.TryInitializeFromCache(ChainablePath.Current / "cache.bin");
+        await currentCollection.TryInitializeFromCache(cachePath);
 
         // Assert
         PackageInfo package = currentCollection.Find("Bogus", "2.0.0", [source]);
@@ -235,11 +238,11 @@ public class PackageInfoSpecs
             }
         };
 
-        await priorCollection.WriteToCache(ChainablePath.Current / "cache.bin");
+        await priorCollection.WriteToCache(cachePath);
 
         // Act
         var currentCollection = new PackageInfoCollection(NullLogger.Instance);
-        await currentCollection.TryInitializeFromCache(ChainablePath.Current / "cache.bin");
+        await currentCollection.TryInitializeFromCache(cachePath);
         PackageInfo package = currentCollection.Find("Bogus", "2.0.0", [source]);
 
         // Assert
@@ -268,7 +271,6 @@ public class PackageInfoSpecs
     {
         // Arrange
         var source = new SourceRepository(new PackageSource("https://nuget.org"), Array.Empty<INuGetResourceProvider>());
-        string cachePath = ChainablePath.Current / "cache.bin";
 
         PackageInfo[] cachedPackages =
         [
@@ -316,7 +318,7 @@ public class PackageInfoSpecs
             }
         };
 
-        await priorCollection.WriteToCache(ChainablePath.Current / "cache.bin");
+        await priorCollection.WriteToCache(cachePath);
 
         // Act
         var currentCollection = new PackageInfoCollection(NullLogger.Instance, new AnalyzerSettings
@@ -325,7 +327,7 @@ public class PackageInfoSpecs
             RefreshRiskCache = true
         });
 
-        await currentCollection.TryInitializeFromCache(ChainablePath.Current / "cache.bin");
+        await currentCollection.TryInitializeFromCache(cachePath);
         PackageInfo package = currentCollection.Find("Bogus", "2.0.0", [source]);
 
         // Assert
