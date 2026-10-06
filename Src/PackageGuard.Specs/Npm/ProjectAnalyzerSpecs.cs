@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
 using PackageGuard.Core.CSharp;
 using PackageGuard.Core.Npm;
+using PackageGuard.Core.Package;
 using PackageGuard.Core.Policy;
 using PackageGuard.Specs.Common;
 using Pathy;
@@ -182,6 +183,39 @@ public class ProjectAnalyzerSpecs
             PackageId = "debug",
             Version = "2.6.9"
         });
+    }
+
+    [TestMethod]
+    public async Task Finds_the_yarn_lock_file_next_to_an_explicitly_specified_solution_file()
+    {
+        // Arrange
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            var source = ChainablePath.Current / "TestCases" / "YarnApp";
+            File.Copy(source / "package.json", Path.Combine(directory, "package.json"));
+            File.Copy(source / "yarn.lock", Path.Combine(directory, "yarn.lock"));
+            File.WriteAllText(Path.Combine(directory, "First.slnx"), "<Solution />");
+            File.WriteAllText(Path.Combine(directory, "Second.slnx"), "<Solution />");
+
+            var logger = ConsoleTestLogger.Create("Test");
+            var settings = new AnalyzerSettings();
+            var packages = new PackageInfoCollection(logger, settings);
+            var strategy = new NpmProjectAnalysisStrategy(_ => new ProjectPolicy(), logger);
+
+            // Act
+            await strategy.ExecuteAnalysis(Path.Combine(directory, "First.slnx"), settings, packages);
+
+            // Assert
+            settings.NpmPackageManager.Should().Be(NpmPackageManager.Yarn);
+            packages.Should().Contain(p => p.Name == "debug" && p.Version == "2.6.9");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
     }
 
     [TestMethod]

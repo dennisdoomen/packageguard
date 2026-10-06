@@ -14,6 +14,8 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
     {
         List<PolicyViolation> violations = new();
 
+        projectOrSolutionPath = GetDirectoryIfDotNetFile(projectOrSolutionPath);
+
         // Based on the settings, files on disk or the environment, determine which package manager to use
         DetectPackageManager(projectOrSolutionPath, settings);
 
@@ -49,6 +51,20 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
         }
 
         return violations.ToArray();
+    }
+
+    /// <summary>
+    /// When the path points to a .NET solution or project file, the npm files live next to it, so look in its directory.
+    /// </summary>
+    private static string GetDirectoryIfDotNetFile(string path)
+    {
+        string extension = Path.GetExtension(path);
+
+        bool isDotNetFile = extension.Equals(".sln", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".slnx", StringComparison.OrdinalIgnoreCase) ||
+                            extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase);
+
+        return isDotNetFile ? Path.GetDirectoryName(Path.GetFullPath(path))! : path;
     }
 
     private async Task CollectPackageMetadataFrom(ChainablePath lockFile, AnalyzerSettings settings,
