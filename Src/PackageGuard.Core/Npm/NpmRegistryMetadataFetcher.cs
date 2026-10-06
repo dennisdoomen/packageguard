@@ -230,6 +230,20 @@ public class NpmRegistryMetadataFetcher
         }
     }
 
+    /// <summary>
+    /// Reads a license value, which is normally a string but may also be the legacy <c>{ "type": "MIT" }</c> object.
+    /// </summary>
+    private static string? GetLicenseText(JsonElement element)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.String => element.GetString(),
+            JsonValueKind.Object when element.TryGetProperty("type", out JsonElement type) &&
+                                      type.ValueKind == JsonValueKind.String => type.GetString(),
+            _ => null
+        };
+    }
+
     /// <summary>Parses license, repository URL, deprecation status, and license URL from the registry response.</summary>
     private void ParsePackageMetadata(PackageInfo package, JsonElement root)
     {
@@ -241,11 +255,11 @@ public class NpmRegistryMetadataFetcher
             if (currentVersionMetadata.ValueKind == JsonValueKind.Object &&
                 currentVersionMetadata.TryGetProperty("license", out JsonElement currentLicenseElement))
             {
-                package.License = currentLicenseElement.GetString();
+                package.License = GetLicenseText(currentLicenseElement);
             }
             else if (root.TryGetProperty("license", out JsonElement licenseElement))
             {
-                package.License = licenseElement.GetString();
+                package.License = GetLicenseText(licenseElement);
             }
 
             if (package.License is not null)

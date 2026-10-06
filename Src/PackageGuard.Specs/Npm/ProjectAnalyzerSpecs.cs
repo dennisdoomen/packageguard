@@ -261,6 +261,38 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    public async Task Uses_the_package_manager_of_an_explicitly_specified_lock_file_even_if_another_lock_file_is_present()
+    {
+        // Arrange
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            var source = ChainablePath.Current / "TestCases" / "YarnApp";
+            File.Copy(source / "package.json", Path.Combine(directory, "package.json"));
+            File.Copy(source / "yarn.lock", Path.Combine(directory, "yarn.lock"));
+            File.WriteAllText(Path.Combine(directory, "package-lock.json"), "{}");
+
+            var logger = ConsoleTestLogger.Create("Test");
+            var settings = new AnalyzerSettings();
+            var packages = new PackageInfoCollection(logger, settings);
+            var strategy = new NpmProjectAnalysisStrategy(_ => new ProjectPolicy(), logger);
+
+            // Act
+            await strategy.ExecuteAnalysis(Path.Combine(directory, "yarn.lock"), settings, packages);
+
+            // Assert
+            settings.NpmPackageManager.Should().Be(NpmPackageManager.Yarn);
+            packages.Should().Contain(p => p.Name == "debug" && p.Version == "2.6.9");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [TestMethod]
     public async Task Can_analyze_yarn_projects_without_lock_file()
     {
         // Arrange

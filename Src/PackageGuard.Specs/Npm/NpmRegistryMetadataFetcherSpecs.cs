@@ -57,6 +57,23 @@ public class NpmRegistryMetadataFetcherSpecs
     }
 
     [TestMethod]
+    public async Task Reads_a_license_that_the_registry_describes_as_an_object()
+    {
+        // Arrange
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() => ScriptedResponse.Json(
+            """{"name":"legacy","license":{"type":"MIT","url":"https://example.com/license"},"dist-tags":{"latest":"1.0.0"},"versions":{"1.0.0":{"license":{"type":"MIT","url":"https://example.com/license"}}}}"""));
+
+        var fetcher = new NpmRegistryMetadataFetcher(NullLogger.Instance, new HttpClient(handler));
+        PackageInfo package = CreatePackage("1.0.0", "legacy");
+
+        // Act
+        await fetcher.FetchMetadataAsync(package);
+
+        // Assert
+        package.License.Should().Be("MIT");
+    }
+
+    [TestMethod]
     public async Task Resolves_the_download_counts_of_several_packages_in_one_request()
     {
         // Arrange

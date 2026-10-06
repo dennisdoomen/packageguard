@@ -14,12 +14,16 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
     {
         List<PolicyViolation> violations = new();
 
-        projectOrSolutionPath = string.IsNullOrWhiteSpace(settings.NpmProjectPath)
+        string target = string.IsNullOrWhiteSpace(settings.NpmProjectPath)
             ? GetDirectoryIfDotNetFile(projectOrSolutionPath)
-            : GetDirectoryIfNpmFile(settings.NpmProjectPath);
+            : settings.NpmProjectPath;
 
-        // Based on the settings, files on disk or the environment, determine which package manager to use
-        DetectPackageManager(projectOrSolutionPath, settings);
+        // Based on the settings, files on disk or the environment, determine which package manager to use. When the
+        // target is a lock file, its name decides, even if the directory also contains files of another package manager.
+        bool isPackageJson = Path.GetFileName(target).Equals("package.json", StringComparison.OrdinalIgnoreCase);
+        DetectPackageManager(isPackageJson ? GetDirectoryIfNpmFile(target) : target, settings);
+
+        projectOrSolutionPath = GetDirectoryIfNpmFile(target);
 
         if (settings.NpmPackageManager == NpmPackageManager.None)
         {
