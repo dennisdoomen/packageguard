@@ -283,20 +283,13 @@ public class NpmRegistryMetadataFetcher
 
             if (repositoryElement.ValueKind == JsonValueKind.String)
             {
-                package.RepositoryUrl = repositoryElement.GetString();
+                package.RepositoryUrl = RepositoryUrlNormalizer.Normalize(repositoryElement.GetString());
             }
             else if (repositoryElement.ValueKind == JsonValueKind.Object &&
-                     repositoryElement.TryGetProperty("url", out JsonElement urlElement))
+                     repositoryElement.TryGetProperty("url", out JsonElement urlElement) &&
+                     urlElement.ValueKind == JsonValueKind.String)
             {
-                string? repoUrl = urlElement.GetString();
-                if (repoUrl is not null)
-                {
-                    // Clean up git+ prefix and .git suffix if present
-                    package.RepositoryUrl = repoUrl
-                        .Replace("git+", "")
-                        .Replace("git://", "https://")
-                        .TrimEnd('/', '.', 'g', 'i', 't');
-                }
+                package.RepositoryUrl = RepositoryUrlNormalizer.Normalize(urlElement.GetString());
             }
 
             logger.LogDebug("Found repository URL for {Name}: {Url}", package.Name, package.RepositoryUrl);
