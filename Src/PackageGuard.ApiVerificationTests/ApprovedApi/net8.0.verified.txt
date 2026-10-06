@@ -30,6 +30,7 @@ namespace PackageGuard.Core
         public ProjectAnalyzer(PackageGuard.Core.CSharp.LicenseFetcher licenseFetcher, PackageGuard.Core.Risk.RiskEvaluator? riskEvaluator = null) { }
         public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
         public System.Action<string, NuGet.ProjectModel.LockFile>? OnProjectLockFileLoaded { get; set; }
+        public System.Action<int, int>? OnRiskEnrichmentProgress { get; set; }
         public System.Threading.Tasks.Task<PackageGuard.Core.Policy.PolicyViolation[]> ExecuteAnalysis(string projectPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.Policy.GetPolicyByProject getPolicyByProject) { }
         public System.Threading.Tasks.Task<PackageGuard.Core.AnalysisResult> ExecuteAnalysisWithRisk(string projectPath, PackageGuard.Core.AnalyzerSettings settings, PackageGuard.Core.Policy.GetPolicyByProject getPolicyByProject, System.Func<PackageGuard.Core.Package.PackageInfo[], PackageGuard.Core.Package.PackageInfo[]>? selectPackagesForRiskScoring = null) { }
     }

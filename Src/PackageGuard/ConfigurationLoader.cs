@@ -31,7 +31,7 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
 
         foreach (var configPath in configPaths)
         {
-            logger.LogInformation("Appending the policies from {Path}", ChainablePath.From(configPath));
+            logger.LogDebug("Appending the policies from {Path}", ChainablePath.From(configPath));
 
             var configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())

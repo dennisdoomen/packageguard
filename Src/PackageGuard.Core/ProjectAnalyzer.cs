@@ -27,6 +27,13 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
     public Action<string, LockFile>? OnProjectLockFileLoaded { get; set; }
 
     /// <summary>
+    /// Gets or sets an optional callback invoked during risk enrichment with the number of packages enriched so far and
+    /// the total, first with zero completed. When set, the periodic progress log lines are not written, so the caller
+    /// can show its own progress display instead. It can be called from multiple threads.
+    /// </summary>
+    public Action<int, int>? OnRiskEnrichmentProgress { get; set; }
+
+    /// <summary>
     /// Analyzes the project at <paramref name="projectPath"/> against the configured policies and returns any violations found.
     /// </summary>
     public async Task<PolicyViolation[]> ExecuteAnalysis(string projectPath, AnalyzerSettings settings,
@@ -66,7 +73,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
 
         PackageInfo[] allPackages = packages.GetAllUsedPackages();
 
-        var riskPipeline = new RiskAnalysisPipeline(Logger, getPolicyByProject, riskEvaluator);
+        var riskPipeline = new RiskAnalysisPipeline(Logger, getPolicyByProject, riskEvaluator, OnRiskEnrichmentProgress);
         if (settings.ReportRisk || riskPipeline.IsRequiredByPolicy(allPackages))
         {
             if (!settings.ReportRisk)
