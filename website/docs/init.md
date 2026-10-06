@@ -95,7 +95,7 @@ questions above.
   question and leaves them out.
 - `--overwrite` - overwrite a configuration file that already exists at that path. Without it, `init` refuses to
   run rather than silently replacing your policy.
-- `--npm`, `--npm-exe-path`, `--nuget`, `-i`/`-f`/`-s` - the same project-discovery and restore options
+- `--npm`, `--npm-path`, `--npm-exe-path`, `--nuget`, `-i`/`-f`/`-s` - the same project-discovery and restore options
   `analyze` supports, since `init` scans the repository the same way.
 
 The generated file is a normal [configuration](./configuration.md) file - a `settings.allow.licenses` list

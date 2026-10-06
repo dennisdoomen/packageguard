@@ -17,6 +17,7 @@ namespace PackageGuard.Core
         public bool InteractiveRestore { get; init; }
         public string? NpmExePath { get; init; }
         public PackageGuard.Core.Npm.NpmPackageManager? NpmPackageManager { get; set; }
+        public string? NpmProjectPath { get; init; }
         public bool RefreshRiskCache { get; init; }
         public bool ReportRisk { get; init; }
         public System.TimeSpan RiskCacheMaxAge { get; init; }

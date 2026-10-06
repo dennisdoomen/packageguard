@@ -14,10 +14,16 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
     {
         List<PolicyViolation> violations = new();
 
-        projectOrSolutionPath = GetDirectoryIfDotNetFile(projectOrSolutionPath);
+        string target = string.IsNullOrWhiteSpace(settings.NpmProjectPath)
+            ? GetDirectoryIfDotNetFile(projectOrSolutionPath)
+            : settings.NpmProjectPath;
 
-        // Based on the settings, files on disk or the environment, determine which package manager to use
-        DetectPackageManager(projectOrSolutionPath, settings);
+        // Based on the settings, files on disk or the environment, determine which package manager to use. When the
+        // target is a lock file, its name decides, even if the directory also contains files of another package manager.
+        bool isPackageJson = Path.GetFileName(target).Equals("package.json", StringComparison.OrdinalIgnoreCase);
+        DetectPackageManager(isPackageJson ? GetDirectoryIfNpmFile(target) : target, settings);
+
+        projectOrSolutionPath = GetDirectoryIfNpmFile(target);
 
         if (settings.NpmPackageManager == NpmPackageManager.None)
         {
@@ -65,6 +71,18 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
                             extension.Equals(".csproj", StringComparison.OrdinalIgnoreCase);
 
         return isDotNetFile ? Path.GetDirectoryName(Path.GetFullPath(path))! : path;
+    }
+
+    /// <summary>
+    /// When the explicit npm path points to a package.json or lock file, use its directory so the package manager is detected from the files next to it.
+    /// </summary>
+    private static string GetDirectoryIfNpmFile(string path)
+    {
+        string[] lockFileNames = ["package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml"];
+
+        return lockFileNames.Contains(Path.GetFileName(path), StringComparer.OrdinalIgnoreCase)
+            ? Path.GetDirectoryName(Path.GetFullPath(path))!
+            : path;
     }
 
     private async Task CollectPackageMetadataFrom(ChainablePath lockFile, AnalyzerSettings settings,

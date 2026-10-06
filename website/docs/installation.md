@@ -56,6 +56,8 @@ OPTIONS:
         --npm                               Explicitly specify the package manager to use (npm, yarn, pnpm), or None
                                             to disable NPM scanning entirely. If not specified, it will detect it
                                             automatically
+        --npm-path                          The directory, package.json or lock file of the npm, yarn or pnpm project,
+                                            in case it is not in the same directory as the solution or project file
         --npm-exe-path                      The path to the npm, yarn or pnpm executable. If not specified, the system
                                             PATH is used
         --report-risk                       Show a colored risk summary in the console and generate detailed HTML/SARIF
