@@ -12,6 +12,7 @@ using Pathy;
 namespace PackageGuard.Specs;
 
 [TestClass]
+[DoNotParallelize]
 public class ConfigurationLoaderSpecs
 {
     private ChainablePath tempDir;
