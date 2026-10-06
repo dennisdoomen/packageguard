@@ -9,6 +9,7 @@ using PackageGuard.Core.GitHub;
 using PackageGuard.Core.Package;
 using PackageGuard.Core.Risk;
 using PackageGuard.Core.Risk.Enrichment;
+using PackageGuard.Specs.Common;
 
 namespace PackageGuard.Specs;
 
@@ -102,7 +103,7 @@ public class ParallelPackageRiskEnricherSpecs
 
         await enricher.EnrichAsync(package);
 
-        SkipWhenGitHubRefusedToAnswer(client);
+        LiveGitHub.SkipWhenRefusedToAnswer(client);
 
         package.HasGitHubRiskData.Should().BeTrue();
         package.ContributorCount.Should().BeGreaterThan(0);
@@ -168,26 +169,9 @@ public class ParallelPackageRiskEnricherSpecs
         package.HasOsvRiskData.Should().BeTrue();
         package.HasValidatedLicenseUrl.Should().BeTrue();
 
-        SkipWhenGitHubRefusedToAnswer(GitHubApi.GetOrCreateClient(DiagnosticLogger, GitHubApiKey));
+        LiveGitHub.SkipWhenRefusedToAnswer(GitHubApi.GetOrCreateClient(DiagnosticLogger, GitHubApiKey));
 
         package.HasGitHubRiskData.Should().BeTrue();
-    }
-
-    /// <summary>
-    /// Reports the test as inconclusive when GitHub stopped answering because the rate limit budget ran out.
-    /// </summary>
-    /// <remarks>
-    /// These tests talk to the live API. Runners share an IP, so an unauthenticated run competes for 60 requests an
-    /// hour with everything else on that address. Asserting on signals GitHub declined to hand over would report a
-    /// spent budget as a defect in the code under test.
-    /// </remarks>
-    private static void SkipWhenGitHubRefusedToAnswer(GitHubApiClient client)
-    {
-        if (client.IsExhausted)
-        {
-            Assert.Inconclusive("Skipped because the GitHub API rate limit is exhausted. Set GITHUB_API_KEY to a " +
-                "personal access token to raise the limit from 60 to 5000 requests per hour.");
-        }
     }
 
     private sealed class FakeRiskEnricher(Func<PackageInfo, bool> hasCachedData) : IEnrichPackageRisk

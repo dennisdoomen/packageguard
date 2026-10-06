@@ -74,6 +74,24 @@ public class NpmRegistryMetadataFetcherSpecs
     }
 
     [TestMethod]
+    public async Task Builds_a_browsable_license_url_from_an_ssh_repository()
+    {
+        // Arrange
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() => ScriptedResponse.Json(
+            """{"name":"source-map","license":"BSD-3-Clause","repository":{"type":"git","url":"git+ssh://git@github.com/mozilla/source-map.git"},"dist-tags":{"latest":"0.6.1"},"versions":{"0.6.1":{}}}"""));
+
+        var fetcher = new NpmRegistryMetadataFetcher(NullLogger.Instance, new HttpClient(handler));
+        PackageInfo package = CreatePackage("0.6.1", "source-map");
+
+        // Act
+        await fetcher.FetchMetadataAsync(package);
+
+        // Assert
+        package.RepositoryUrl.Should().Be("https://github.com/mozilla/source-map");
+        package.LicenseUrl.Should().Be("https://github.com/mozilla/source-map/blob/master/LICENSE");
+    }
+
+    [TestMethod]
     public async Task Resolves_the_download_counts_of_several_packages_in_one_request()
     {
         // Arrange

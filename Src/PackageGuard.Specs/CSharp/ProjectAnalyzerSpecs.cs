@@ -9,6 +9,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
 using PackageGuard.Core.CSharp;
 using PackageGuard.Core.Policy;
+using PackageGuard.Specs.Common;
 using Pathy;
 
 namespace PackageGuard.Specs.CSharp;
@@ -169,6 +170,8 @@ public class ProjectAnalyzerSpecs
                 Licenses = ["mit"]
             }
         });
+
+        LiveGitHub.SkipWhenRefusedToAnswer(Environment.GetEnvironmentVariable("GITHUB_API_KEY"));
 
         // Assert
         result.Violations.Should().BeEmpty();
