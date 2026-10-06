@@ -11,7 +11,7 @@ namespace PackageGuard.Core.Risk;
 /// risk-based policy violations. Construct a fresh instance per run.
 /// </summary>
 internal sealed class RiskAnalysisPipeline(ILogger logger, GetPolicyByProject getPolicyByProject,
-    RiskEvaluator? riskEvaluator = null)
+    RiskEvaluator? riskEvaluator = null, Action<int, int>? onEnrichmentProgress = null)
 {
     /// <summary>
     /// Determines whether any policy applicable to <paramref name="allPackages"/> defines risk-based
@@ -59,7 +59,7 @@ internal sealed class RiskAnalysisPipeline(ILogger logger, GetPolicyByProject ge
             enrichmentSet.Length);
 
         var enricher = new ParallelPackageRiskEnricher(logger, settings.GitHubApiKey);
-        await enricher.EnrichAsync(enrichmentSet, logger);
+        await enricher.EnrichAsync(enrichmentSet, logger, onEnrichmentProgress);
 
         IReadOnlyDictionary<string, PackageInfo> packagesByKey = packages.CreatePackagesByKey();
         var transitiveVulnEnricher = new TransitiveVulnerabilityCountEnricher(packagesByKey);

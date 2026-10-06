@@ -18,6 +18,8 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
             ? GetDirectoryIfDotNetFile(projectOrSolutionPath)
             : settings.NpmProjectPath;
 
+        logger.LogHeader($"Getting metadata for NPM packages in {GetDirectoryIfNpmFile(target)}");
+
         // Based on the settings, files on disk or the environment, determine which package manager to use. When the
         // target is a lock file, its name decides, even if the directory also contains files of another package manager.
         bool isPackageJson = Path.GetFileName(target).Equals("package.json", StringComparison.OrdinalIgnoreCase);

@@ -64,19 +64,37 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         }
 
         // Write risk reports before reporting violations so they are always generated when requested
+        RiskReportPaths? reportPaths = null;
         if (settings.ReportRisk && packages.Length > 0)
         {
-            await WriteRiskReportsAsync(logger, settings, packages);
+            reportPaths = await WriteRiskReportsAsync(logger, settings, packages);
         }
 
-        return ReportViolations(logger, violations, settings);
+        int exitCode = ReportViolations(logger, violations, settings);
+
+        if (reportPaths is not null)
+        {
+            AnsiConsole.MarkupLine("Detailed risk reports:");
+            AnsiConsole.MarkupLine($"HTML: [blue]{Markup.Escape(reportPaths.HtmlPath)}[/]");
+            AnsiConsole.MarkupLine($"SARIF: [blue]{Markup.Escape(reportPaths.SarifPath)}[/]");
+            AnsiConsole.MarkupLine("");
+        }
+
+        return exitCode;
     }
 
     private static ProjectAnalyzer BuildAnalyzer(ILogger logger, AnalyzeCommandSettings settings)
     {
         var licenseFetcher = new LicenseFetcher(logger, settings.GitHubApiKey);
         var riskEvaluator = new RiskEvaluator(logger);
-        return new ProjectAnalyzer(licenseFetcher, riskEvaluator) { Logger = logger };
+        var analyzer = new ProjectAnalyzer(licenseFetcher, riskEvaluator) { Logger = logger };
+
+        if (EnrichmentProgressDisplay.IsSupported(settings.Verbose))
+        {
+            analyzer.OnRiskEnrichmentProgress = new EnrichmentProgressDisplay().Report;
+        }
+
+        return analyzer;
     }
 
     private static async Task<(PolicyViolation[] violations, PackageInfo[] packages)> RunAnalysisAsync(
@@ -96,7 +114,7 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         return (violations, []);
     }
 
-    private static async Task WriteRiskReportsAsync(ILogger logger, AnalyzeCommandSettings settings, PackageInfo[] packages)
+    private static async Task<RiskReportPaths> WriteRiskReportsAsync(ILogger logger, AnalyzeCommandSettings settings, PackageInfo[] packages)
     {
         logger.LogHeader("Writing risk reports");
         logger.LogInformation("Writing detailed HTML and SARIF risk reports for {PackageCount} packages.", packages.Length);
@@ -115,10 +133,8 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         }
 
         AnsiConsole.MarkupLine("");
-        AnsiConsole.MarkupLine("Detailed risk reports:");
-        AnsiConsole.MarkupLine($"HTML: [blue]{Markup.Escape(reportPaths.HtmlPath)}[/]");
-        AnsiConsole.MarkupLine($"SARIF: [blue]{Markup.Escape(reportPaths.SarifPath)}[/]");
-        AnsiConsole.MarkupLine("");
+
+        return reportPaths;
     }
 
     private static int ReportViolations(ILogger logger, PolicyViolation[] violations, AnalyzeCommandSettings settings)

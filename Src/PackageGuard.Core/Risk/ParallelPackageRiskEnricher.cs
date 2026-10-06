@@ -50,13 +50,18 @@ internal sealed class ParallelPackageRiskEnricher
     /// <param name="packages">The packages to enrich.</param>
     /// <param name="logger">When specified, reports progress at a handful of points during enrichment, since
     /// this step makes many network calls and can otherwise look stuck for a while.</param>
-    public async Task EnrichAsync(IEnumerable<PackageInfo> packages, ILogger? logger = null)
+    /// <param name="onProgress">When specified, receives the number of completed packages and the total, first with
+    /// zero completed and then after every package, and replaces the periodic log lines.</param>
+    public async Task EnrichAsync(IEnumerable<PackageInfo> packages, ILogger? logger = null,
+        Action<int, int>? onProgress = null)
     {
         PackageInfo[] packageArray = packages as PackageInfo[] ?? packages.ToArray();
         if (packageArray.Length == 0)
         {
             return;
         }
+
+        onProgress?.Invoke(0, packageArray.Length);
 
         await PrimeAsync(packageArray);
 
@@ -81,7 +86,11 @@ internal sealed class ParallelPackageRiskEnricher
                 }
 
                 int completed = Interlocked.Increment(ref completedCount);
-                if (completed % progressInterval == 0 || completed == packageArray.Length)
+                if (onProgress is not null)
+                {
+                    onProgress(completed, packageArray.Length);
+                }
+                else if (completed % progressInterval == 0 || completed == packageArray.Length)
                 {
                     logger?.LogInformation("Enriched {Completed}/{Total} packages", completed, packageArray.Length);
                 }
