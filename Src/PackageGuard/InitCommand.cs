@@ -22,7 +22,7 @@ public sealed class InitCommand(ILogger logger) : AsyncCommand<InitCommandSettin
     private const int SuccessExitCode = 0;
     private const int RefusedExitCode = 1;
 
-    protected override async Task<int> ExecuteAsync(CommandContext context, InitCommandSettings settings, CancellationToken _)
+    public override async Task<int> ExecuteAsync(CommandContext context, InitCommandSettings settings, CancellationToken _)
     {
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "Unknown";
         logger.LogHeader($"PackageGuard v{version}");
