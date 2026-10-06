@@ -8,7 +8,8 @@
                 "BSD-2-Clause"
             ],
             "Packages": [
-                "FluentAssertions"
+                "FluentAssertions",
+                "Microsoft.Testing.Extensions.CodeCoverage"
             ]
         },
         "Deny": {
