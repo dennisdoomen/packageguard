@@ -8,7 +8,7 @@ namespace PackageGuard;
 /// </summary>
 internal sealed class EnrichmentProgressDisplay
 {
-    private readonly object syncRoot = new();
+    private readonly Lock syncRoot = new();
     private Task? display;
     private ProgressTask? task;
 
