@@ -84,6 +84,11 @@ public class ExplainCommandSettings : CommandSettings
     public NpmPackageManager? NpmPackageManager { get; set; }
 
     [Description(
+        "The directory, package.json or lock file of the npm, yarn or pnpm project, in case it is not in the same directory as the solution or project file.")]
+    [CommandOption("--npm-path|--npmpath")]
+    public string? NpmProjectPath { get; set; }
+
+    [Description(
         "The path to the npm, yarn or pnpm executable. If not specified, the system PATH is used.")]
     [CommandOption("--npm-exe-path|--npmexepath")]
     public string? NpmExePath { get; set; }
@@ -108,6 +113,7 @@ public class ExplainCommandSettings : CommandSettings
             NpmPackageManager = NpmPackageManager,
             UseCaching = UseCaching,
             NpmExePath = NpmExePath,
+            NpmProjectPath = NpmProjectPath,
             ScanNuGet = ScanNuGet,
             ReportRisk = true,
             GitHubApiKey = GitHubApiKey,

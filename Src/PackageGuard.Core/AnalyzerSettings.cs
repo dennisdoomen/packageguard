@@ -61,6 +61,12 @@ public class AnalyzerSettings
     public string? NpmExePath { get; init; }
 
     /// <summary>
+    /// An optional directory, <c>package.json</c> file or lock file that tells where to find the npm project, for
+    /// when it doesn't live next to the solution or project file that is being analyzed.
+    /// </summary>
+    public string? NpmProjectPath { get; init; }
+
+    /// <summary>
     /// The NPM package manager to use.
     /// </summary>
     public NpmPackageManager? NpmPackageManager { get; set; }
