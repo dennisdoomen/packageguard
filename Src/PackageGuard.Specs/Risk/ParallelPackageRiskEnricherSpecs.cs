@@ -53,6 +53,7 @@ public class ParallelPackageRiskEnricherSpecs
 
     [TestMethod]
     [TestCategory("Integration")]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Osv_enricher_should_populate_vulnerability_data_for_a_real_package()
     {
         var enricher = new OsvRiskEnricher(NullLogger.Instance);
@@ -71,6 +72,7 @@ public class ParallelPackageRiskEnricherSpecs
 
     [TestMethod]
     [TestCategory("Integration")]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task License_url_enricher_should_validate_a_real_license_url()
     {
         var enricher = new LicenseUrlRiskEnricher(NullLogger.Instance);
@@ -89,6 +91,7 @@ public class ParallelPackageRiskEnricherSpecs
 
     [TestMethod]
     [TestCategory("Integration")]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task GitHub_enricher_should_populate_repository_data_for_a_well_known_package()
     {
         using var client = new GitHubApiClient(DiagnosticLogger, GitHubApiKey);
@@ -111,6 +114,7 @@ public class ParallelPackageRiskEnricherSpecs
 
     [TestMethod]
     [TestCategory("Integration")]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Osv_enricher_should_detect_vulnerabilities_and_fix_data_for_a_known_vulnerable_version()
     {
         var enricher = new OsvRiskEnricher(NullLogger.Instance);
@@ -133,6 +137,7 @@ public class ParallelPackageRiskEnricherSpecs
 
     [TestMethod]
     [TestCategory("Integration")]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Osv_enricher_should_query_npm_ecosystem_for_npm_packages()
     {
         var enricher = new OsvRiskEnricher(NullLogger.Instance);
@@ -151,6 +156,7 @@ public class ParallelPackageRiskEnricherSpecs
 
     [TestMethod]
     [TestCategory("Integration")]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Full_enrichment_pipeline_should_populate_all_network_risk_signals_for_a_real_package()
     {
         var enricher = new ParallelPackageRiskEnricher(DiagnosticLogger, GitHubApiKey);

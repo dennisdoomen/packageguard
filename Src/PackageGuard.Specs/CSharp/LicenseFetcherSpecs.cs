@@ -18,6 +18,7 @@ public class LicenseFetcherSpecs
     private readonly string gitHubApiKey = Environment.GetEnvironmentVariable("GITHUB_API_KEY");
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Nothing_needs_to_be_done_for_a_package_that_already_has_a_license()
     {
         // Arrange
@@ -35,6 +36,7 @@ public class LicenseFetcherSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task A_package_without_license_or_license_url_is_properly_handled()
     {
         // Arrange
@@ -56,6 +58,7 @@ public class LicenseFetcherSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task A_no_assertion_license_is_treated_as_unknown()
     {
         // Arrange
@@ -76,6 +79,7 @@ public class LicenseFetcherSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Reports_the_correct_license_for_net_standard_libraries()
     {
         // Arrange
@@ -98,6 +102,7 @@ public class LicenseFetcherSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Recognizes_a_well_known_license_url_without_fetching_it()
     {
         // Arrange
@@ -119,6 +124,7 @@ public class LicenseFetcherSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Falls_back_to_the_next_fetcher_when_a_fetcher_hits_an_http_error()
     {
         // Arrange

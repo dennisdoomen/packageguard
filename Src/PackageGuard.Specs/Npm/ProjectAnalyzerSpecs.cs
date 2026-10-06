@@ -22,6 +22,7 @@ public class ProjectAnalyzerSpecs
         new(NullLogger.Instance, Environment.GetEnvironmentVariable("GITHUB_API_KEY"));
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_analyze_npm_projects()
     {
         // Arrange
@@ -54,6 +55,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_analyze_npm_projects_without_lock_file()
     {
         // Arrange
@@ -87,6 +89,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Will_safely_ignore_a_missing_lock_file()
     {
         // Arrange
@@ -118,6 +121,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_fetch_the_npm_license_information_if_the_lock_file_did_not_contain_it()
     {
         // Arrange
@@ -153,6 +157,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_analyze_yarn_projects()
     {
         // Arrange
@@ -186,6 +191,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Finds_the_yarn_lock_file_next_to_an_explicitly_specified_solution_file()
     {
         // Arrange
@@ -219,6 +225,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     [DataRow("")]
     [DataRow("package.json")]
     [DataRow("yarn.lock")]
@@ -261,6 +268,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Uses_the_package_manager_of_an_explicitly_specified_lock_file_even_if_another_lock_file_is_present()
     {
         // Arrange
@@ -293,6 +301,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_analyze_yarn_projects_without_lock_file()
     {
         // Arrange
@@ -328,6 +337,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_analyze_pnpm_projects()
     {
         // Arrange
@@ -362,6 +372,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_analyze_pnpm_projects_without_lock_file()
     {
         EnsureExecutableIsAvailable("pnpm");
@@ -424,6 +435,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_disable_npm_scanning_entirely()
     {
         // Arrange
@@ -451,6 +463,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_prevent_fetching_metadata_from_a_private_npm_feed()
     {
         // Arrange

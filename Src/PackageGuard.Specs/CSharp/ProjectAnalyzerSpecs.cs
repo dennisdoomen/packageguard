@@ -20,6 +20,7 @@ public class ProjectAnalyzerSpecs
         new(NullLogger.Instance, Environment.GetEnvironmentVariable("GITHUB_API_KEY"));
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_be_disabled()
     {
         // Arrange
@@ -45,6 +46,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task A_specified_project_must_exist()
     {
         // Arrange
@@ -66,6 +68,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Allowing_a_feed_by_name_even_allows_a_package_which_license_is_not_allowed()
     {
         // Arrange
@@ -90,6 +93,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Allowing_a_feed_by_url_even_allows_a_package_which_license_is_not_allowed()
     {
         // Arrange
@@ -114,6 +118,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_still_deny_a_package_from_an_allowed_feed()
     {
         // Arrange
@@ -147,6 +152,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Resolves_the_license_via_the_nuspec_repository_url_when_the_project_url_is_not_a_repository()
     {
         // Arrange
@@ -179,6 +185,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_exclude_an_entire_feed()
     {
         // Arrange

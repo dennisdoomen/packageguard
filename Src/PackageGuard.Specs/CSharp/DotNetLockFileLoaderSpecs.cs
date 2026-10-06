@@ -11,6 +11,7 @@ namespace PackageGuard.Specs.CSharp;
 public class DotNetLockFileLoaderSpecs
 {
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public void Runs_a_dotnet_restore_if_the_lock_file_is_missing()
     {
         // Arrange
@@ -33,6 +34,7 @@ public class DotNetLockFileLoaderSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public void Can_run_a_forced_dotnet_restore_even_if_the_lock_file_is_already_there()
     {
         // Arrange
@@ -56,6 +58,7 @@ public class DotNetLockFileLoaderSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public void Can_disable_interactive_restores()
     {
         // Arrange

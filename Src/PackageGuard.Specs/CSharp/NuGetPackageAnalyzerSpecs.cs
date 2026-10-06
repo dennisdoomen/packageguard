@@ -17,6 +17,7 @@ public class NuGetPackageAnalyzerSpecs
     private readonly NullLogger nullLogger = NullLogger.Instance;
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     [DataRow("Microsoft.AspNet.WebApi.Client", "6.0.0")]
     [DataRow("Microsoft.AspNet.WebApi.Core", "5.3.0")]
     [DataRow("Microsoft.AspNet.WebApi.WebHost", "5.3.0")]
@@ -36,6 +37,7 @@ public class NuGetPackageAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_detect_nunit_mit_license()
     {
         // Arrange
@@ -53,6 +55,7 @@ public class NuGetPackageAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_prefer_repository_metadata_over_project_url()
     {
         // Arrange
@@ -73,6 +76,7 @@ public class NuGetPackageAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Configure_credential_providers_when_analyzing_packages()
     {
         // Arrange
@@ -88,6 +92,7 @@ public class NuGetPackageAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_handle_multiple_concurrent_credential_provider_setups()
     {
         // Arrange

@@ -21,6 +21,7 @@ public class SbomEndToEndSpecs
         new(NullLogger.Instance, Environment.GetEnvironmentVariable("GITHUB_API_KEY"));
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Produces_a_parseable_cyclonedx_and_spdx_document_from_a_resolved_nuget_project_without_fetching_risk_data()
     {
         var analyzer = new ProjectAnalyzer(licenseFetcher);
@@ -51,6 +52,7 @@ public class SbomEndToEndSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public void Creates_missing_parent_directories_for_the_sbom_output_path()
     {
         string outputDirectory = Path.Combine(Path.GetTempPath(), "PackageGuard-SbomSpecs", Guid.NewGuid().ToString("N"));

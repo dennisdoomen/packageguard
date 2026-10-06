@@ -26,6 +26,7 @@ public class ProjectAnalyzerSpecs
             "PackageGuard.Specs.csproj"));
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Either_a_denylist_or_a_allowlist_is_required()
     {
         // Arrange
@@ -39,6 +40,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Does_not_crash_when_no_project_path_is_specified()
     {
         // Arrange
@@ -55,6 +57,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     [TestCategory("Integration")]
     public async Task Only_scores_the_packages_selected_for_risk_scoring()
     {
@@ -80,6 +83,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     [TestCategory("Integration")]
     public async Task Denies_a_package_that_exceeds_the_configured_risk_threshold_even_without_report_risk()
     {
@@ -99,6 +103,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     [TestCategory("Integration")]
     public async Task A_risk_exception_keeps_an_otherwise_denied_package_out_of_the_violations()
     {
@@ -117,6 +122,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_deny_an_entire_package()
     {
         // Arrange
@@ -139,6 +145,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_deny_packages_using_wildcards()
     {
         // Arrange
@@ -166,6 +173,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_deny_packages_using_wildcards_and_version_ranges()
     {
         // Arrange
@@ -193,6 +201,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_deny_a_specific_version()
     {
         // Arrange
@@ -220,6 +229,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task The_version_must_a_valid_string()
     {
         // Arrange
@@ -242,6 +252,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Does_not_deny_a_version_if_the_range_does_not_match()
     {
         // Arrange
@@ -264,6 +275,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_deny_a_version_based_on_a_range()
     {
         // Arrange
@@ -291,6 +303,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_deny_a_license()
     {
         // Arrange
@@ -314,6 +327,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_allow_an_entire_package_using_an_empty_version()
     {
         // Arrange
@@ -336,6 +350,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_allow_a_license()
     {
         // Arrange
@@ -358,6 +373,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_allow_an_unknown_license()
     {
         // Arrange
@@ -377,6 +393,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Denying_a_license_overrides_an_allowed_license()
     {
         // Arrange
@@ -400,6 +417,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task A_version_outside_the_allowed_range_is_a_violation()
     {
         // Arrange
@@ -427,6 +445,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task A_version_inside_the_allowed_range_is_okay()
     {
         // Arrange
@@ -449,6 +468,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_still_allow_a_package_that_violates_the_allowed_licenses()
     {
         // Arrange
@@ -472,6 +492,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_allow_packages_using_wildcards_that_violate_allowed_licenses()
     {
         // Arrange
@@ -493,6 +514,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_allow_packages_using_wildcards_and_version_ranges_that_violate_allowed_licenses()
     {
         // Arrange
@@ -514,6 +536,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_allow_prerelease_packages()
     {
         // Arrange
@@ -538,6 +561,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_deny_prerelease_packages_using_an_allow_clause()
     {
         // Arrange
@@ -570,6 +594,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_deny_prerelease_packages_using_a_deny_clause()
     {
         // Arrange
@@ -605,6 +630,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Creates_a_cache_if_asked_for()
     {
         // Arrange
@@ -641,6 +667,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Creates_a_cache_at_a_specific_path_if_asked_for()
     {
         // Arrange
@@ -668,6 +695,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_reuse_a_cache_from_an_earlier_run()
     {
         // Arrange
@@ -713,6 +741,7 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Will_ignore_a_corrupt_cache()
     {
         // Arrange

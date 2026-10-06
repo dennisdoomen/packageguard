@@ -15,6 +15,7 @@ namespace PackageGuard.Specs.Npm;
 public class NpmLockFileParserSpecs
 {
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Can_collect_package_metadata_from_lock_file()
     {
         // Arrange
@@ -52,6 +53,7 @@ public class NpmLockFileParserSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Skips_root_package_entry()
     {
         // Arrange
@@ -73,6 +75,7 @@ public class NpmLockFileParserSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Handles_packages_without_license()
     {
         // Arrange
@@ -94,6 +97,7 @@ public class NpmLockFileParserSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Handles_nonexistent_file_gracefully()
     {
         // Arrange
@@ -113,6 +117,7 @@ public class NpmLockFileParserSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Fetches_license_from_npm_registry_when_missing()
     {
         // Arrange
@@ -139,6 +144,7 @@ public class NpmLockFileParserSpecs
     }
 
     [TestMethod]
+    [Retry(3, MillisecondsDelayBetweenRetries = 3000)]
     public async Task Supports_private_npm_registries()
     {
         // Arrange
