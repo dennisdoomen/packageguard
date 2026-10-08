@@ -16,6 +16,7 @@ namespace PackageGuard.Core.CSharp;
 internal sealed class ResolvedTarget
 {
     private readonly LockFileTarget target;
+    private readonly Dictionary<string, HashSet<string>> reachableByRoot = new(StringComparer.OrdinalIgnoreCase);
 
     public ResolvedTarget(LockFile lockFile, LockFileTarget target)
     {
@@ -79,10 +80,39 @@ internal sealed class ResolvedTarget
         Libraries.TryGetValue(name, out LockFileTargetLibrary? library) && !IsPackage(library);
 
     /// <summary>
+    /// Finds the direct dependencies of this project that already provide the named package.
+    /// </summary>
+    /// <returns>
+    /// The providing projects first, then the providing packages, or an empty collection when the
+    /// reference is the only thing bringing the package in.
+    /// </returns>
+    public IReadOnlyCollection<string> FindProvidersOf(string packageName)
+    {
+        return
+        [
+            .. ProviderRoots
+                .Where(root => !string.Equals(root, packageName, StringComparison.OrdinalIgnoreCase))
+                .Where(root => GetReachablePackages(root).Contains(packageName))
+                // Projects first: removing a reference a sibling project already provides is the clearer case.
+                .OrderByDescending(IsProject)
+                .ThenBy(root => root, StringComparer.OrdinalIgnoreCase)
+        ];
+    }
+
+    /// <summary>
     /// Walks the resolved graph from the named dependency and returns everything reachable from it.
     /// </summary>
-    public HashSet<string> GetReachablePackages(string root)
+    /// <remarks>
+    /// Each root is walked at most once. The reachable set of a provider never depends on which reference
+    /// is being checked against it, so the result is cached for the lifetime of this target.
+    /// </remarks>
+    private HashSet<string> GetReachablePackages(string root)
     {
+        if (reachableByRoot.TryGetValue(root, out HashSet<string>? cached))
+        {
+            return cached;
+        }
+
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var pending = new Queue<string>();
         pending.Enqueue(root);
@@ -99,6 +129,8 @@ internal sealed class ResolvedTarget
                 pending.Enqueue(dependency.Id);
             }
         }
+
+        reachableByRoot[root] = visited;
 
         return visited;
     }

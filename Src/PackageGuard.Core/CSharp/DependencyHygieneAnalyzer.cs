@@ -61,9 +61,6 @@ public sealed class DependencyHygieneAnalyzer
 
     private IEnumerable<DependencyFinding> FindRedundantReferences(ResolvedTarget target)
     {
-        // Every provider's reachable set is independent of the reference being checked, so compute it once.
-        var reachableByRoot = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
-
         foreach (LibraryDependency candidate in target.RemovableDirectPackages)
         {
             if (IsExcluded(candidate.Name) || !target.Libraries.ContainsKey(candidate.Name))
@@ -71,40 +68,16 @@ public sealed class DependencyHygieneAnalyzer
                 continue;
             }
 
-            string[] providers = FindProviders(target, candidate.Name, reachableByRoot);
-            if (providers.Length == 0)
+            IReadOnlyCollection<string> providers = target.FindProvidersOf(candidate.Name);
+            if (providers.Count > 0)
             {
-                continue;
-            }
-
-            yield return CreateRedundancyFinding(target, candidate, providers);
-        }
-    }
-
-    private static string[] FindProviders(ResolvedTarget target, string packageName,
-        Dictionary<string, HashSet<string>> reachableByRoot)
-    {
-        var providers = new List<string>();
-
-        foreach (string root in target.ProviderRoots.Where(x => !NameEquals(x, packageName)))
-        {
-            if (!reachableByRoot.TryGetValue(root, out HashSet<string>? reachable))
-            {
-                reachableByRoot[root] = reachable = target.GetReachablePackages(root);
-            }
-
-            if (reachable.Contains(packageName))
-            {
-                providers.Add(root);
+                yield return CreateRedundancyFinding(target, candidate, providers);
             }
         }
-
-        // Report the projects first, because removing a reference a sibling project provides is the clearer case.
-        return [.. providers.OrderByDescending(target.IsProject).ThenBy(x => x, StringComparer.OrdinalIgnoreCase)];
     }
 
     private static DependencyFinding CreateRedundancyFinding(ResolvedTarget target, LibraryDependency candidate,
-        string[] providers)
+        IReadOnlyCollection<string> providers)
     {
         bool viaProject = providers.Any(target.IsProject);
         string resolvedVersion = target.Libraries[candidate.Name].Version?.ToNormalizedString() ?? "";
@@ -137,62 +110,59 @@ public sealed class DependencyHygieneAnalyzer
 
     private IEnumerable<DependencyFinding> FindVersionConflicts(IReadOnlyCollection<ResolvedTarget> targets)
     {
-        // Grouped per target framework, so a solution that legitimately resolves differently per framework
-        // is not reported as a conflict.
-        var versionsPerPackage = new Dictionary<string, SortedDictionary<string, SortedSet<string>>>(
-            StringComparer.OrdinalIgnoreCase);
-
-        foreach (IGrouping<string, ResolvedTarget> group in targets.GroupBy(x => x.TargetFramework,
-            StringComparer.OrdinalIgnoreCase))
-        {
-            MergeConflictsWithin(group, versionsPerPackage);
-        }
-
-        return versionsPerPackage.Select(CreateConflictFinding).ToArray();
+        // Grouped per target framework first, so a solution that legitimately resolves differently per
+        // framework is not reported as a conflict.
+        return targets
+            .GroupBy(target => target.TargetFramework, StringComparer.OrdinalIgnoreCase)
+            .SelectMany(FindConflictsWithin)
+            .GroupBy(resolved => resolved.Package, StringComparer.OrdinalIgnoreCase)
+            .Select(CreateConflictFinding);
     }
 
-    private void MergeConflictsWithin(IEnumerable<ResolvedTarget> targetsOfOneFramework,
-        Dictionary<string, SortedDictionary<string, SortedSet<string>>> accumulator)
+    private IEnumerable<ResolvedPackage> FindConflictsWithin(IEnumerable<ResolvedTarget> targetsOfOneFramework)
     {
-        var withinFramework = new Dictionary<string, SortedDictionary<string, SortedSet<string>>>(
-            StringComparer.OrdinalIgnoreCase);
-
-        foreach (ResolvedTarget target in targetsOfOneFramework)
-        {
-            foreach (LockFileTargetLibrary library in target.PackageLibraries.Where(x => !IsExcluded(x.Name!)))
-            {
-                SortedDictionary<string, SortedSet<string>> versions = withinFramework.GetOrAdd(library.Name!);
-                versions.GetOrAdd(library.Version!.ToNormalizedString()).Add(target.ProjectName);
-            }
-        }
-
-        foreach (KeyValuePair<string, SortedDictionary<string, SortedSet<string>>> pair in withinFramework
-            .Where(x => x.Value.Count > 1))
-        {
-            SortedDictionary<string, SortedSet<string>> merged = accumulator.GetOrAdd(pair.Key);
-            foreach (KeyValuePair<string, SortedSet<string>> version in pair.Value)
-            {
-                merged.GetOrAdd(version.Key).UnionWith(version.Value);
-            }
-        }
+        return targetsOfOneFramework
+            .SelectMany(target => target.PackageLibraries
+                .Where(library => !IsExcluded(library.Name!))
+                .Select(library => new ResolvedPackage(library.Name!, library.Version!.ToNormalizedString(),
+                    target.ProjectName)))
+            .GroupBy(resolved => resolved.Package, StringComparer.OrdinalIgnoreCase)
+            .Where(HasMoreThanOneVersion)
+            .SelectMany(group => group);
     }
 
-    private static DependencyFinding CreateConflictFinding(
-        KeyValuePair<string, SortedDictionary<string, SortedSet<string>>> conflict)
-    {
-        string[] versions = [.. conflict.Value.Keys.OrderByDescending(ParseOrZero)];
+    private static bool HasMoreThanOneVersion(IEnumerable<ResolvedPackage> resolved) =>
+        resolved.Select(x => x.Version).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 1;
 
-        string detail = string.Join("; ",
-            versions.Select(version => $"{version} ({string.Join(", ", conflict.Value[version])})"));
+    private static DependencyFinding CreateConflictFinding(IGrouping<string, ResolvedPackage> conflict)
+    {
+        IGrouping<string, ResolvedPackage>[] byVersion =
+        [
+            .. conflict
+                .GroupBy(resolved => resolved.Version, StringComparer.OrdinalIgnoreCase)
+                .OrderByDescending(group => ParseOrZero(group.Key))
+        ];
+
+        string detail = string.Join("; ", byVersion.Select(DescribeVersion));
 
         return new DependencyFinding
         {
             Kind = DependencyFindingKind.VersionConflict,
             PackageId = conflict.Key,
-            ResolvedVersion = versions[0],
-            Providers = versions,
+            ResolvedVersion = byVersion[0].Key,
+            Providers = [.. byVersion.Select(group => group.Key)],
             Description = $"{conflict.Key} resolves to multiple versions: {detail}."
         };
+    }
+
+    private static string DescribeVersion(IGrouping<string, ResolvedPackage> version)
+    {
+        IOrderedEnumerable<string> projects = version
+            .Select(resolved => resolved.Project)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(project => project, StringComparer.OrdinalIgnoreCase);
+
+        return $"{version.Key} ({string.Join(", ", projects)})";
     }
 
     private bool IsExcluded(string packageName) =>
@@ -206,4 +176,9 @@ public sealed class DependencyHygieneAnalyzer
 
     private static string Normalize(VersionRange? range) =>
         range?.MinVersion?.ToNormalizedString() ?? range?.OriginalString ?? "";
+
+    /// <summary>
+    /// One package, at the version a single project resolved it to.
+    /// </summary>
+    private sealed record ResolvedPackage(string Package, string Version, string Project);
 }
