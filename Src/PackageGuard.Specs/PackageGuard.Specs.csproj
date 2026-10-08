@@ -21,7 +21,7 @@
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="MSTest" Version="4.5.1" />
+      <PackageReference Include="MSTest" Version="4.4.1" />
       <PackageReference Include="Pathy" Version="1.10.0">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
