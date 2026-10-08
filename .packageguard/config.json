@@ -222,6 +222,10 @@
             {
                 "Package": "Microsoft.IdentityModel.Abstractions",
                 "Reason": "Transitive dependency of the Azure SDK packages, which are already excepted above. Its operational risk score (8.5) drifted just over the MaxOperationalRisk limit of 8 as release-cadence signals aged, without any actual concern."
+            },
+            {
+                "Package": "SimpleInfoName",
+                "Reason": "Test-only transitive dependency of Verify (PackageGuard.ApiVerificationTests), never shipped. Its operational risk score (9.3) is over the MaxOperationalRisk limit of 8 because of release-cadence signals, without any actual concern."
             }
         ]
     }

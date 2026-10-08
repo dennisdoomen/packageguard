@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/Files/">
+    <File Path="README.md" />
+    <File Path="Samples/config.json" />
+  </Folder>
+  <Project Path="build/_build.csproj">
+    <Build Project="false" />
+  </Project>
+  <Project Path="Src/PackageGuard.ApiVerificationTests/PackageGuard.ApiVerificationTests.csproj" />
+  <Project Path="Src/PackageGuard.Core/PackageGuard.Core.csproj" />
+  <Project Path="Src/PackageGuard.Specs/PackageGuard.Specs.csproj" />
+  <Project Path="Src/PackageGuard/PackageGuard.csproj" />
+</Solution>

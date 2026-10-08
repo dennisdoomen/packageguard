@@ -73,7 +73,7 @@ public class AnalyzeCommandSettingsSpecs
     {
         public static AnalyzeCommandSettings LastSettings { get; set; }
 
-        protected override int Execute(CommandContext context, AnalyzeCommandSettings settings, CancellationToken cancellationToken)
+        public override int Execute(CommandContext context, AnalyzeCommandSettings settings, CancellationToken cancellationToken)
         {
             LastSettings = settings;
             return 0;
