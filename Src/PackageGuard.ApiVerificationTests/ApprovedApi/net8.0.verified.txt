@@ -48,6 +48,32 @@ namespace PackageGuard.Core.CSharp
         public System.Func<string[], string>? SelectSolution { get; set; }
         public System.Collections.Generic.List<string> FindProjects(string path) { }
     }
+    public sealed class DependencyFinding
+    {
+        public DependencyFinding() { }
+        public string DeclaredVersion { get; init; }
+        public string Description { get; init; }
+        public PackageGuard.Core.CSharp.DependencyFindingKind Kind { get; init; }
+        public string PackageId { get; init; }
+        public string Project { get; init; }
+        public System.Collections.Generic.IReadOnlyCollection<string> Providers { get; init; }
+        public string ResolvedVersion { get; init; }
+        public bool SafeToRemove { get; init; }
+        public string TargetFramework { get; init; }
+        public string WouldResolveTo { get; init; }
+    }
+    public enum DependencyFindingKind
+    {
+        RedundantViaProject = 0,
+        RedundantViaPackage = 1,
+        VersionConflict = 2,
+    }
+    public sealed class DependencyHygieneAnalyzer
+    {
+        public DependencyHygieneAnalyzer() { }
+        public System.Collections.Generic.IReadOnlyCollection<string> ExcludedPackageIds { get; set; }
+        public System.Collections.Generic.IReadOnlyCollection<PackageGuard.Core.CSharp.DependencyFinding> Analyze(System.Collections.Generic.IReadOnlyCollection<NuGet.ProjectModel.LockFile> lockFiles) { }
+    }
     public class DotNetLockFileLoader
     {
         public DotNetLockFileLoader() { }
