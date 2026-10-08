@@ -51,6 +51,7 @@ namespace PackageGuard.Core.CSharp
     public sealed class DependencyFinding
     {
         public DependencyFinding() { }
+        public System.Collections.Generic.IReadOnlyCollection<string> ConflictingVersions { get; init; }
         public string DeclaredVersion { get; init; }
         public string Description { get; init; }
         public PackageGuard.Core.CSharp.DependencyFindingKind Kind { get; init; }

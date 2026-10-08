@@ -49,7 +49,7 @@ public sealed class DependencyFinding
 
     /// <summary>
     /// Gets the version NuGet resolved for the package. For a version conflict this is the highest
-    /// of the conflicting versions.
+    /// of <see cref="ConflictingVersions" />.
     /// </summary>
     public string ResolvedVersion { get; init; } = "";
 
@@ -71,10 +71,15 @@ public sealed class DependencyFinding
     public string WouldResolveTo { get; init; } = "";
 
     /// <summary>
-    /// Gets the projects or packages that already provide this package. For a version conflict this holds
-    /// the conflicting versions instead.
+    /// Gets the projects or packages that already provide this package. Only set on a redundancy finding.
     /// </summary>
     public IReadOnlyCollection<string> Providers { get; init; } = [];
+
+    /// <summary>
+    /// Gets the versions the package resolves to, highest first. Only set on a
+    /// <see cref="DependencyFindingKind.VersionConflict" />.
+    /// </summary>
+    public IReadOnlyCollection<string> ConflictingVersions { get; init; } = [];
 
     /// <summary>
     /// Gets a sentence describing the finding, suitable for showing to a user.

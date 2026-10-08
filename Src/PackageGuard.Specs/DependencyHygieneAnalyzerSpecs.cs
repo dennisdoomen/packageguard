@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NuGet.ProjectModel;
 using PackageGuard.Core.CSharp;
 
 namespace PackageGuard.Specs;
@@ -121,7 +122,8 @@ public class DependencyHygieneAnalyzerSpecs
 
         conflict.PackageId.Should().Be("Serilog");
         conflict.ResolvedVersion.Should().Be("3.1.1", "the highest conflicting version is reported first");
-        conflict.Providers.Should().Equal("3.1.1", "2.12.0");
+        conflict.ConflictingVersions.Should().Equal("3.1.1", "2.12.0");
+        conflict.Providers.Should().BeEmpty("providers only apply to a redundancy");
     }
 
     [TestMethod]
@@ -157,6 +159,20 @@ public class DependencyHygieneAnalyzerSpecs
 
         // Assert
         findings.Should().BeEmpty("the exclusion is not case sensitive");
+    }
+
+    [TestMethod]
+    public void Ignores_a_lock_file_that_has_no_project_section()
+    {
+        // Arrange
+        // Restore output without a project section declares no direct dependencies, so there is nothing to check.
+        var incomplete = new LockFile();
+
+        // Act
+        IReadOnlyCollection<DependencyFinding> findings = new DependencyHygieneAnalyzer().Analyze([incomplete]);
+
+        // Assert
+        findings.Should().BeEmpty();
     }
 
     [TestMethod]

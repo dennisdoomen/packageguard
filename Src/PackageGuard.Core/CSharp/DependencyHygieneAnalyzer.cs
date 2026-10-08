@@ -1,4 +1,3 @@
-using NuGet.Frameworks;
 using NuGet.LibraryModel;
 using NuGet.ProjectModel;
 using NuGet.Versioning;
@@ -52,6 +51,12 @@ public sealed class DependencyHygieneAnalyzer
 
     private static IEnumerable<ResolvedTarget> GetResolvedTargets(LockFile lockFile)
     {
+        // A lock file without a project section declares no direct dependencies, so there is nothing to check.
+        if (lockFile.PackageSpec is null)
+        {
+            yield break;
+        }
+
         // Runtime-specific targets repeat the framework graph per RID, which would report every finding twice.
         foreach (LockFileTarget target in lockFile.Targets.Where(x => string.IsNullOrEmpty(x.RuntimeIdentifier)))
         {
@@ -150,7 +155,7 @@ public sealed class DependencyHygieneAnalyzer
             Kind = DependencyFindingKind.VersionConflict,
             PackageId = conflict.Key,
             ResolvedVersion = byVersion[0].Key,
-            Providers = [.. byVersion.Select(group => group.Key)],
+            ConflictingVersions = [.. byVersion.Select(group => group.Key)],
             Description = $"{conflict.Key} resolves to multiple versions: {detail}."
         };
     }
@@ -167,9 +172,6 @@ public sealed class DependencyHygieneAnalyzer
 
     private bool IsExcluded(string packageName) =>
         ExcludedPackageIds.Contains(packageName, StringComparer.OrdinalIgnoreCase);
-
-    private static bool NameEquals(string left, string right) =>
-        string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
 
     private static NuGetVersion ParseOrZero(string version) =>
         NuGetVersion.TryParse(version, out NuGetVersion? parsed) ? parsed : new NuGetVersion(0, 0, 0);
