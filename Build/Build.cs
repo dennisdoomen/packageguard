@@ -104,7 +104,7 @@ class Build : FalloutBuild
         .DependsOn(Compile)
         .Executes(() =>
         {
-            InspectCode($"PackageGuard.slnx -o={ArtifactsDirectory / "CodeIssues.sarif"} --no-build --dotnetcoresdk=10.0.100");
+            InspectCode($"PackageGuard.slnx -o={ArtifactsDirectory / "CodeIssues.sarif"} --no-build --dotnetcoresdk=10.0.401");
         });
 
     Target RunTests => _ => _
