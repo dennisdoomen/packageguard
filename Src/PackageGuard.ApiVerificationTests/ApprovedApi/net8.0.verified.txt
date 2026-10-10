@@ -89,6 +89,15 @@ namespace PackageGuard.Core.CSharp
         public LicenseFetcher(Microsoft.Extensions.Logging.ILogger logger, string? gitHubApiKey = null) { }
         public System.Threading.Tasks.Task AmendWithMissingLicenseInformation(PackageGuard.Core.Package.PackageInfo package) { }
     }
+    public class LockFileCollector
+    {
+        public LockFileCollector() { }
+        public bool ForceRestore { get; set; }
+        public bool InteractiveRestore { get; set; }
+        public Microsoft.Extensions.Logging.ILogger Logger { get; set; }
+        public bool SkipRestore { get; set; }
+        public System.Collections.Generic.IReadOnlyCollection<NuGet.ProjectModel.LockFile> Collect(string projectOrSolutionPath) { }
+    }
     public class NuGetPackageAnalyzer
     {
         public NuGetPackageAnalyzer(Microsoft.Extensions.Logging.ILogger logger, PackageGuard.Core.CSharp.LicenseFetcher licenseFetcher) { }
