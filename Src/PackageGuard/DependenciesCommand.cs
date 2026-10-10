@@ -11,12 +11,12 @@ namespace PackageGuard;
 /// NuGet projects. It works offline: no package metadata is fetched and no policy is evaluated.
 /// </summary>
 [UsedImplicitly]
-public sealed class DependenciesCommand(ILogger logger) : Command<DependenciesCommandSettings>
+public sealed class DependenciesCommand(ILogger logger) : AsyncCommand<DependenciesCommandSettings>
 {
     private const int SuccessExitCode = 0;
     private const int FindingsExitCode = 1;
 
-    public override int Execute(CommandContext context, DependenciesCommandSettings settings, CancellationToken _)
+    protected override Task<int> ExecuteAsync(CommandContext context, DependenciesCommandSettings settings, CancellationToken _)
     {
         if (settings.Verbose)
         {
@@ -43,7 +43,8 @@ public sealed class DependenciesCommand(ILogger logger) : Command<DependenciesCo
 
         Report(findings);
 
-        return settings.Severity == DependencySeverity.Error && findings.Length > 0 ? FindingsExitCode : SuccessExitCode;
+        bool fail = settings.Severity == DependencySeverity.Error && findings.Length > 0;
+        return Task.FromResult(fail ? FindingsExitCode : SuccessExitCode);
     }
 
     private static void Report(DependencyFinding[] findings)
