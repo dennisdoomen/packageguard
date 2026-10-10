@@ -37,6 +37,7 @@
 - [Configuration](https://packageguard.org/docs/configuration) - define your allow- and deny-lists
 - [Usage](https://packageguard.org/docs/usage) - run a scan and read the results
 - [Explaining a package](https://packageguard.org/docs/explain) - see why a specific package is present and how it was evaluated
+- [Redundant references and version conflicts](https://packageguard.org/docs/dependencies) - find package references you do not need
 - [Risk Metrics](https://packageguard.org/docs/risk-metrics) - score packages on legal, security and operational risk
 - [Software Bill of Materials](https://packageguard.org/docs/sbom) - emit the dependency graph as CycloneDX or SPDX
 - [Caching and Rate Limits](https://packageguard.org/docs/caching-and-rate-limits) - make repeated scans fast and avoid GitHub throttling
@@ -55,6 +56,7 @@ At a glance, PackageGuard can:
 - Enforce **allow- and deny-lists** for open-source licenses, specific packages, and package versions, discovered **hierarchically** across solution-, project- and repository-level configuration files
 - Resolve **licenses** from NuGet/npm metadata, GitHub repositories, and downloaded license text through a chain of fetchers, falling back gracefully when a source doesn't have an answer
 - **Explain** a single package on demand (`packageguard explain <package>`, with fuzzy name matching) - its dependency path, how its version was resolved, the exact policy rule and configuration file that allowed or denied it, and its risk breakdown
+- Find **redundant package references** and **version conflicts** across projects (`packageguard dependencies`), offline and without touching your policy
 - Score every package's **risk** across three dimensions - Legal, Security and Operational - via `--report-risk`, weighing signals such as license compatibility, known vulnerabilities (OSV), maintainer activity, package signing, release cadence, and dozens more
 - **Gate policies on that risk data**, not just package identity: deny packages by overall or per-dimension risk score, OSV severity, unsigned/deprecated/repository-less status, or minimum package age per ecosystem, with documented, expiring exceptions for accepted-risk packages and a `warn`-only mode (`--treat-deny-as-warning`) for phasing in new rules
 - Back every risk score with **evidence, not just a number**: each package card in the HTML report has a dedicated Evidence section with collapsible, collapsed-by-default panels naming the exact packages, versions, GHSA/OSV vulnerability ids and release dates behind its rationale, so you can see *why* a package scored the way it did without digging through logs
