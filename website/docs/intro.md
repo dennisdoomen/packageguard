@@ -28,6 +28,10 @@ The HTML risk report that `--report-risk` generates, here for PackageGuard itsel
 
 ![HTML risk report of PackageGuard](/img/risk-report.png)
 
+Every package gets its own details, with the legal, security and operational rationale behind its score:
+
+![Package details in the HTML risk report](/img/risk-report-package.png)
+
 Here is the `dependencies` command run on PackageGuard itself:
 
 ![Console output of the dependencies command](/img/dependencies-output.png)

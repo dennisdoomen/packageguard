@@ -155,6 +155,10 @@ C:\Users\<you>\AppData\Local\Temp\PackageGuard\reports\mockly-risk-report-202603
 The HTML report is intended for humans. The SARIF report is intended for CI systems such as GitHub Actions so you can upload the findings as code-scanning results or attach the file as a build artifact next to the HTML output.
 ```
 
+The details of a single package look like this:
+
+![Package details in the HTML risk report](/img/risk-report-package.png)
+
 Example HTML report sections:
 
 - Project path and generation timestamp
