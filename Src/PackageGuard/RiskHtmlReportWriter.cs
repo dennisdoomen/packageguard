@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
-using PackageGuard.Core;
+using PackageGuard.Core.CSharp;
 using PackageGuard.Core.Package;
 using PackageGuard.Core.Risk.Scoring;
 using Pathy;
@@ -31,11 +31,12 @@ internal static class RiskHtmlReportWriter
     public static async Task<RiskReportPaths> WriteAsync(
         string projectPath,
         IEnumerable<PackageInfo> packages,
-        string? reportOutputPath = null)
+        string? reportOutputPath = null,
+        IReadOnlyCollection<DependencyFinding>? dependencyFindings = null)
     {
         PackageInfo[] orderedPackages = packages.OrderByDescending(package => package.RiskScore).ToArray();
         RiskReportPaths reportPaths = GetReportPaths(projectPath, reportOutputPath);
-        string html = BuildHtml(projectPath, orderedPackages);
+        string html = BuildHtml(projectPath, orderedPackages, dependencyFindings ?? []);
         string sarif = RiskSarifReportWriter.BuildSarif(projectPath, orderedPackages);
 
         await File.WriteAllTextAsync(reportPaths.HtmlPath, html, Utf8WithoutBom);
@@ -147,7 +148,7 @@ internal static class RiskHtmlReportWriter
     /// Builds the complete self-contained HTML string for the risk report, including styles, summary table,
     /// and per-package detail sections.
     /// </summary>
-    private static string BuildHtml(string projectPath, PackageInfo[] packages)
+    private static string BuildHtml(string projectPath, PackageInfo[] packages, IReadOnlyCollection<DependencyFinding> dependencyFindings)
     {
         var builder = new StringBuilder();
         string generatedAt = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture);
@@ -165,6 +166,7 @@ internal static class RiskHtmlReportWriter
         AppendReportHeader(builder, new ReportHeaderContext(
             projectPath, generatedAt, overallZone, packages.Length, lowRiskCount, mediumRiskCount, highRiskCount));
         AppendPackageSummaryTable(builder, packages);
+        AppendDependencyHygieneSection(builder, dependencyFindings);
         AppendPackageDetailSections(builder, packages);
 
         builder.AppendLine("</main>");
@@ -315,6 +317,65 @@ internal static class RiskHtmlReportWriter
 
         builder.AppendLine("      </tbody>");
         builder.AppendLine("    </table>");
+        builder.AppendLine("  </section>");
+    }
+
+    /// <summary>
+    /// Appends the dependency hygiene findings. They are reported next to the risk data, but are not scored, so they
+    /// never affect the risk zones or the overall report status.
+    /// </summary>
+    private static void AppendDependencyHygieneSection(StringBuilder builder, IReadOnlyCollection<DependencyFinding> findings)
+    {
+        if (findings.Count == 0)
+        {
+            return;
+        }
+
+        DependencyFinding[] redundancies = findings.Where(f => f.Kind != DependencyFindingKind.VersionConflict).ToArray();
+        DependencyFinding[] conflicts = findings.Where(f => f.Kind == DependencyFindingKind.VersionConflict).ToArray();
+
+        builder.AppendLine("  <section class=\"card\" id=\"dependency-hygiene\">");
+        builder.AppendLine("    <h2>Dependency Hygiene</h2>");
+        builder.AppendLine(
+            "    <p class=\"meta\">Based on the restore graph, not on your source code, and not part of the risk score. A package can be redundant here and still be used directly in code.</p>");
+
+        if (redundancies.Length > 0)
+        {
+            builder.AppendLine($"    <h3>Redundant package references ({redundancies.Length.ToString(CultureInfo.InvariantCulture)})</h3>");
+            builder.AppendLine("    <table class=\"summary-table\">");
+            builder.AppendLine(
+                "      <thead><tr><th>Project</th><th>Framework</th><th>Package</th><th>Already provided by</th><th>Removing it</th></tr></thead>");
+            builder.AppendLine("      <tbody>");
+            foreach (DependencyFinding finding in redundancies)
+            {
+                string effect = finding.SafeToRemove
+                    ? "Keeps the resolved version"
+                    : $"Lowers {finding.ResolvedVersion} to {finding.WouldResolveTo}";
+
+                builder.AppendLine(
+                    $"        <tr><td>{Encode(finding.Project)}</td><td>{Encode(finding.TargetFramework)}</td><td>{Encode(finding.PackageId)} {Encode(finding.ResolvedVersion)}</td><td>{Encode(string.Join(", ", finding.Providers))}</td><td>{Encode(effect)}</td></tr>");
+            }
+
+            builder.AppendLine("      </tbody>");
+            builder.AppendLine("    </table>");
+        }
+
+        if (conflicts.Length > 0)
+        {
+            builder.AppendLine($"    <h3>Version conflicts ({conflicts.Length.ToString(CultureInfo.InvariantCulture)})</h3>");
+            builder.AppendLine("    <table class=\"summary-table\">");
+            builder.AppendLine("      <thead><tr><th>Package</th><th>Resolved versions</th></tr></thead>");
+            builder.AppendLine("      <tbody>");
+            foreach (DependencyFinding finding in conflicts)
+            {
+                builder.AppendLine(
+                    $"        <tr><td>{Encode(finding.PackageId)}</td><td>{Encode(finding.Description)}</td></tr>");
+            }
+
+            builder.AppendLine("      </tbody>");
+            builder.AppendLine("    </table>");
+        }
+
         builder.AppendLine("  </section>");
     }
 

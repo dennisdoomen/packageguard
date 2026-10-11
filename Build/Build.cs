@@ -191,6 +191,19 @@ class Build : FalloutBuild
                 .AddApplicationArguments($"--sbom-output={sbomFile}"));
 
             Assert.FileExists(sbomFile, $"Expected PackageGuard to generate an SBOM at {sbomFile}");
+
+            // Informational only: it runs the command end to end, but without --severity error it never fails the build.
+            // Several findings are expected, since a package can be redundant in the restore graph and still be used in code.
+            Information("Running PackageGuard to find redundant package references and version conflicts");
+            DotNetRun(s => s
+                .SetProjectFile(project)
+                .SetFramework("net10.0")
+                .SetConfiguration(Configuration)
+                .AddApplicationArguments("dependencies")
+                .AddApplicationArguments($"--path={RootDirectory}")
+                .AddApplicationArguments("--skip-restore")
+                .EnableNoBuild()
+                .EnableNoRestore());
         });
 
     Target CodeCoverage => _ => _

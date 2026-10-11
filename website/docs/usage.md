@@ -22,6 +22,7 @@ The exit code indicates either 0 for success or 1 for failure.
 
 - [Getting started with `init`](./init.md) - scaffold a configuration from the licenses you actually use
 - [Explaining a package](./explain.md) - see why a specific package is present and how it was evaluated
+- [Redundant references and version conflicts](./dependencies.md) - find package references you do not need
 - [Risk Metrics](./risk-metrics.md) - score every package on legal, security and operational risk
 - [Software Bill of Materials](./sbom.md) - emit the dependency graph as CycloneDX or SPDX
 - [Caching and rate limits](./caching-and-rate-limits.md) - make repeated scans fast and avoid GitHub throttling
