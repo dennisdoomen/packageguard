@@ -20,6 +20,10 @@ The command works offline. It only reads the restore output of your projects, so
 licenses, does not use the cache, and does not read your policy configuration. It only runs `dotnet restore` when a
 project's `project.assets.json` is missing or out of date. NuGet projects only.
 
+Running it on PackageGuard itself gives output like this:
+
+![Console output of the dependencies command](/img/dependencies-output.png)
+
 ## Options
 
 | Option | Description |
