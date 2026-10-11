@@ -166,25 +166,6 @@ internal sealed class PackageAdoptionRiskFactor : IEvaluateRiskFactor
             rationale.Add(RiskEvaluationHelpers.CreateRationale("Repository ownership or rename churn was detected", 0.5));
         }
 
-        if (package.HasVerifiedReleaseSignature is false)
-        {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Verified release signature signal was not detected", 0.25));
-        }
-
-        if (package.HasVerifiedPublisher is false)
-        {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                "No trusted NuGet package signature or organization-owned repository was detected", 0.25));
-        }
-
-        if (package.HasReproducibleBuildSignal is false)
-        {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("No reproducible-build signal was detected", 0.25));
-        }
-
         return risk;
     }
 }
