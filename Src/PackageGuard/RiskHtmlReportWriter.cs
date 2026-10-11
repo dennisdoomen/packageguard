@@ -155,6 +155,7 @@ internal static class RiskHtmlReportWriter
         int lowRiskCount = packages.Count(package => GetRiskZone(package.RiskScore) == "Low");
         int mediumRiskCount = packages.Count(package => GetRiskZone(package.RiskScore) == "Medium");
         int highRiskCount = packages.Count(package => GetRiskZone(package.RiskScore) == "High");
+        int vulnerabilityCount = packages.Sum(package => package.VulnerabilityCount);
         string overallZone = packages.Select(package => package.RiskScore).DefaultIfEmpty(0).Max() switch
         {
             >= 60 => "High",
@@ -164,7 +165,8 @@ internal static class RiskHtmlReportWriter
 
         AppendHtmlHead(builder, projectPath);
         AppendReportHeader(builder, new ReportHeaderContext(
-            projectPath, generatedAt, overallZone, packages.Length, lowRiskCount, mediumRiskCount, highRiskCount));
+            projectPath, generatedAt, overallZone, packages.Length, lowRiskCount, mediumRiskCount, highRiskCount, vulnerabilityCount,
+            packages.Length > 0 ? CreatePackageAnchor(packages[0]) : null, dependencyFindings.Count > 0));
         AppendPackageSummaryTable(builder, packages);
         AppendDependencyHygieneSection(builder, dependencyFindings);
         AppendPackageDetailSections(builder, packages);
@@ -186,7 +188,7 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine("  <style>");
         builder.AppendLine(
             "    body { font-family: Segoe UI, Arial, sans-serif; margin: 0; background: #f8fafc; color: #0f172a; }");
-        builder.AppendLine("    main { max-width: 1280px; margin: 0 auto; padding: 24px; }");
+        builder.AppendLine("    main { max-width: 1920px; margin: 0 auto; padding: 24px; }");
         builder.AppendLine("    h1, h2, h3 { margin-top: 0; }");
         builder.AppendLine("    a { color: #1d4ed8; }");
         builder.AppendLine(
@@ -203,6 +205,8 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine("    .risk-medium { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }");
         builder.AppendLine("    .risk-high { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }");
         builder.AppendLine(
+            "    .vuln-pill { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; }");
+        builder.AppendLine(
             "    .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 16px; }");
         builder.AppendLine(
             "    .status-card { border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px; background: #f8fafc; }");
@@ -210,10 +214,21 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine(
             "    .dimension-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px; }");
         builder.AppendLine(
-            "    .dimension-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; }");
-        builder.AppendLine("    .rationale-list, .detail-list { margin: 12px 0 0; padding-left: 20px; }");
-        builder.AppendLine("    .detail-list { list-style: none; padding-left: 0; }");
-        builder.AppendLine("    .detail-list li { padding: 4px 0; }");
+            "    .anchor-link { margin-left: 10px; text-decoration: none; color: #94a3b8; opacity: 0; transition: opacity 0.15s; }");
+        builder.AppendLine("    h2:hover .anchor-link, .anchor-link:focus { opacity: 1; }");
+        builder.AppendLine("    .jump-links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 0; }");
+        builder.AppendLine("    .card table + h3 { margin-top: 24px; }");
+        builder.AppendLine("    .rationale-list { margin: 12px 0 0; padding-left: 20px; }");
+        builder.AppendLine(
+            "    .evidence-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; }");
+        builder.AppendLine(
+            "    .evidence-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; }");
+        builder.AppendLine(
+            "    .evidence-card h4 { margin: 0 0 10px; font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase; color: #64748b; }");
+        builder.AppendLine(
+            "    .evidence-list { display: grid; grid-template-columns: minmax(140px, 35%) 1fr; gap: 6px 16px; margin: 0; }");
+        builder.AppendLine("    .evidence-list dt { color: #475569; font-weight: 600; }");
+        builder.AppendLine("    .evidence-list dd { margin: 0; overflow-wrap: anywhere; }");
         builder.AppendLine("    .detail-toggle { display: inline; margin-left: 6px; }");
         builder.AppendLine("    .detail-toggle summary { display: inline; cursor: pointer; color: #1d4ed8; }");
         builder.AppendLine(
@@ -224,7 +239,7 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine("    .meta { color: #64748b; }");
         builder.AppendLine("    code { font-family: Cascadia Code, Consolas, monospace; }");
         builder.AppendLine(
-            "    @media print { body { background: #ffffff; } main { padding: 0; } .card { box-shadow: none; break-inside: avoid; } a { color: inherit; text-decoration: none; } }");
+            "    @media print { body { background: #ffffff; } main { padding: 0; } .anchor-link { display: none; } .card { box-shadow: none; break-inside: avoid; } a { color: inherit; text-decoration: none; } }");
         builder.AppendLine("  </style>");
         builder.AppendLine("</head>");
         builder.AppendLine("<body>");
@@ -238,7 +253,10 @@ internal static class RiskHtmlReportWriter
         int PackageCount,
         int LowRiskCount,
         int MediumRiskCount,
-        int HighRiskCount);
+        int HighRiskCount,
+        int VulnerabilityCount,
+        string? FirstPackageAnchor,
+        bool HasDependencyFindings);
 
     private static void AppendReportHeader(StringBuilder builder, ReportHeaderContext ctx)
     {
@@ -249,61 +267,68 @@ internal static class RiskHtmlReportWriter
         int lowRiskCount = ctx.LowRiskCount;
         int mediumRiskCount = ctx.MediumRiskCount;
         int highRiskCount = ctx.HighRiskCount;
+        int vulnerabilityCount = ctx.VulnerabilityCount;
+        string? firstPackageAnchor = ctx.FirstPackageAnchor;
+        bool hasDependencyFindings = ctx.HasDependencyFindings;
         builder.AppendLine("  <section class=\"card\" id=\"top\">");
         builder.AppendLine("    <h1>PackageGuard Risk Report</h1>");
         builder.AppendLine($"    <p><span class=\"label\">Project:</span> <code>{Encode(projectPath)}</code></p>");
         builder.AppendLine($"    <p class=\"meta\">Generated at {Encode(generatedAt)}</p>");
-        builder.AppendLine(
-            "    <p class=\"meta\">Static, self-contained HTML. No scripts, no external assets, and safe to publish as a build artifact.</p>");
+        builder.AppendLine("    <nav class=\"jump-links\">");
+        builder.AppendLine("      <span class=\"label\">Jump to:</span>");
+        builder.AppendLine("      <a href=\"#summary\">Summary</a>");
+        if (hasDependencyFindings)
+        {
+            builder.AppendLine("      <a href=\"#dependency-hygiene\">Dependency Hygiene</a>");
+        }
+
+        if (firstPackageAnchor is not null)
+        {
+            builder.AppendLine($"      <a href=\"#{firstPackageAnchor}\">Package details</a>");
+        }
+
+        builder.AppendLine("    </nav>");
         builder.AppendLine("    <div class=\"status-grid\">");
         builder.AppendLine(
             $"      <section class=\"status-card\"><p class=\"status-value\">{packageCount}</p><p class=\"meta\">Packages analyzed</p></section>");
         builder.AppendLine(
+            $"      <section class=\"status-card\"><p class=\"status-value\">{BuildVulnerabilityPill(vulnerabilityCount)}</p><p class=\"meta\">Known vulnerabilities</p></section>");
+        builder.AppendLine(
             $"      <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill(overallZone)}</p><p class=\"meta\">Overall report status</p></section>");
         builder.AppendLine(
-            $"      <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill("Low", lowRiskCount.ToString(CultureInfo.InvariantCulture))}</p><p class=\"meta\">Low-risk packages</p></section>");
+            $"      <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill("Low", lowRiskCount.ToString(CultureInfo.InvariantCulture), showZoneLabel: false)}</p><p class=\"meta\">Packages with a score below 30</p></section>");
         builder.AppendLine(
-            $"      <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill("Medium", mediumRiskCount.ToString(CultureInfo.InvariantCulture))}</p><p class=\"meta\">Medium-risk packages</p></section>");
+            $"      <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill("Medium", mediumRiskCount.ToString(CultureInfo.InvariantCulture), showZoneLabel: false)}</p><p class=\"meta\">Packages with a score from 30 to 59.9</p></section>");
         builder.AppendLine(
-            $"      <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill("High", highRiskCount.ToString(CultureInfo.InvariantCulture))}</p><p class=\"meta\">High-risk packages</p></section>");
+            $"      <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill("High", highRiskCount.ToString(CultureInfo.InvariantCulture), showZoneLabel: false)}</p><p class=\"meta\">Packages with a score of 60 or above</p></section>");
         builder.AppendLine("    </div>");
-        builder.AppendLine("  </section>");
-        builder.AppendLine("  <section class=\"card\">");
-        builder.AppendLine("    <h2>Status Check Summary</h2>");
-        builder.AppendLine(
-            "    <p class=\"meta\">This section is intended to be readable as the first screen in Azure DevOps artifacts or from a linked GitHub status check.</p>");
-        builder.AppendLine("    <table class=\"summary-table\">");
-        builder.AppendLine("      <thead><tr><th>Severity</th><th>Count</th><th>Meaning</th></tr></thead>");
-        builder.AppendLine("      <tbody>");
-        builder.AppendLine(
-            $"        <tr class=\"summary-low\"><td>{BuildZonePill("Low")}</td><td>{lowRiskCount.ToString(CultureInfo.InvariantCulture)}</td><td>Package score below 30</td></tr>");
-        builder.AppendLine(
-            $"        <tr class=\"summary-medium\"><td>{BuildZonePill("Medium")}</td><td>{mediumRiskCount.ToString(CultureInfo.InvariantCulture)}</td><td>Package score from 30 to 59.9</td></tr>");
-        builder.AppendLine(
-            $"        <tr class=\"summary-high\"><td>{BuildZonePill("High")}</td><td>{highRiskCount.ToString(CultureInfo.InvariantCulture)}</td><td>Package score 60 or above</td></tr>");
-        builder.AppendLine("      </tbody>");
-        builder.AppendLine("    </table>");
         builder.AppendLine("  </section>");
     }
 
     private static void AppendPackageSummaryTable(StringBuilder builder, PackageInfo[] packages)
     {
-        builder.AppendLine("  <section class=\"card\">");
-        builder.AppendLine("    <h2>Package Summary</h2>");
+        builder.AppendLine("  <section class=\"card\" id=\"summary\">");
+        builder.AppendLine("    <h2>Summary</h2>");
         builder.AppendLine("    <table class=\"summary-table\">");
         builder.AppendLine(
-            "      <thead><tr><th>Package</th><th>Version</th><th>Overall risk</th><th>Legal</th><th>Security</th><th>Operational</th></tr></thead>");
+            "      <thead><tr><th>Package</th><th>Version</th><th>Overall risk</th><th>Legal</th><th>Security</th><th>Operational</th><th>Vulnerabilities</th></tr></thead>");
         builder.AppendLine("      <tbody>");
 
-        foreach (PackageInfo package in packages)
+        IEnumerable<PackageInfo> summaryOrder = packages
+            .OrderByDescending(package => package.VulnerabilityCount > 0)
+            .ThenByDescending(package => package.RiskScore);
+
+        foreach (PackageInfo package in summaryOrder)
         {
             string packageAnchor = CreatePackageAnchor(package);
-            string rowClass = GetRiskZone(package.RiskScore) switch
-            {
-                "High" => "summary-high",
-                "Medium" => "summary-medium",
-                _ => "summary-low"
-            };
+            string rowClass = package.VulnerabilityCount > 0
+                ? "summary-high"
+                : GetRiskZone(package.RiskScore) switch
+                {
+                    "High" => "summary-high",
+                    "Medium" => "summary-medium",
+                    _ => "summary-low"
+                };
 
             builder.AppendLine($"        <tr class=\"{rowClass}\">");
             builder.AppendLine($"          <td><a href=\"#{packageAnchor}\">{Encode(package.Name)}</a></td>");
@@ -312,6 +337,8 @@ internal static class RiskHtmlReportWriter
             builder.AppendLine($"          <td>{BuildDimensionScorePill(package.RiskDimensions.LegalRisk)}</td>");
             builder.AppendLine($"          <td>{BuildDimensionScorePill(package.RiskDimensions.SecurityRisk)}</td>");
             builder.AppendLine($"          <td>{BuildDimensionScorePill(package.RiskDimensions.OperationalRisk)}</td>");
+            builder.AppendLine(
+                $"          <td>{(package.VulnerabilityCount > 0 ? BuildVulnerabilityPill(package.VulnerabilityCount) : "")}</td>");
             builder.AppendLine("        </tr>");
         }
 
@@ -385,9 +412,14 @@ internal static class RiskHtmlReportWriter
         {
             string packageAnchor = CreatePackageAnchor(package);
             builder.AppendLine($"  <section class=\"card\" id=\"{packageAnchor}\">");
-            builder.AppendLine($"    <h2>{Encode(package.Name)} <span class=\"meta\">{Encode(package.Version)}</span></h2>");
-            builder.AppendLine($"    <p>{BuildOverallScorePill(package.RiskScore)}</p>");
+            builder.AppendLine(
+                $"    <h2>{Encode(package.Name)} <span class=\"meta\">{Encode(package.Version)}</span><a class=\"anchor-link\" href=\"#{packageAnchor}\" aria-label=\"Link to {Encode(package.Name)} {Encode(package.Version)}\">#</a></h2>");
+            string vulnerabilityBadge = package.VulnerabilityCount > 0
+                ? $" {BuildVulnerabilityPill(package.VulnerabilityCount)} <span class=\"meta\">{(package.VulnerabilityCount == 1 ? "vulnerability" : "vulnerabilities")}</span>"
+                : "";
+            builder.AppendLine($"    <p>{BuildOverallScorePill(package.RiskScore)}{vulnerabilityBadge}</p>");
             builder.AppendLine("    <p><a href=\"#top\">Back to report summary</a></p>");
+            builder.AppendLine("    <h3>Risks</h3>");
             builder.AppendLine("    <div class=\"dimension-grid\">");
             AppendDimension(builder, package, "Legal", package.RiskDimensions.LegalRisk,
                 package.RiskDimensions.LegalRiskRationale);
@@ -397,14 +429,29 @@ internal static class RiskHtmlReportWriter
                 package.RiskDimensions.OperationalRiskRationale);
             builder.AppendLine("    </div>");
             builder.AppendLine("    <h3>Evidence</h3>");
-            builder.AppendLine("    <ul class=\"detail-list\">");
+            builder.AppendLine("    <div class=\"evidence-grid\">");
 
-            foreach (DetailEntry entry in BuildDetails(package))
+            foreach ((string title, DetailEntry[] entries) in BuildDetailGroups(package))
             {
-                AppendDetailListItem(builder, entry);
+                if (entries.Length == 0)
+                {
+                    continue;
+                }
+
+                builder.AppendLine("      <section class=\"evidence-card\">");
+                builder.AppendLine($"        <h4>{Encode(title)}</h4>");
+                builder.AppendLine("        <dl class=\"evidence-list\">");
+
+                foreach (DetailEntry entry in entries)
+                {
+                    AppendDetailListItem(builder, entry);
+                }
+
+                builder.AppendLine("        </dl>");
+                builder.AppendLine("      </section>");
             }
 
-            builder.AppendLine("    </ul>");
+            builder.AppendLine("    </div>");
             builder.AppendLine("  </section>");
         }
     }
@@ -419,8 +466,8 @@ internal static class RiskHtmlReportWriter
         double score,
         IReadOnlyCollection<string> rationale)
     {
-        builder.AppendLine("      <section class=\"dimension-card\">");
-        builder.AppendLine($"        <h3>{Encode(label)}</h3>");
+        builder.AppendLine("      <section class=\"evidence-card\">");
+        builder.AppendLine($"        <h4>{Encode(label)}</h4>");
         builder.AppendLine($"        <p>{BuildDimensionScorePill(score)}</p>");
         builder.AppendLine("        <ul class=\"rationale-list\">");
 
@@ -434,32 +481,34 @@ internal static class RiskHtmlReportWriter
     }
 
     /// <summary>
-    /// Appends an evidence list item, rendering any accompanying items as a collapsed-by-default panel so long
+    /// Appends an evidence term and description pair, rendering any accompanying items as a collapsed-by-default panel so long
     /// dependency lists don't dominate the page.
     /// </summary>
     private static void AppendDetailListItem(StringBuilder builder, DetailEntry entry)
     {
+        builder.AppendLine($"          <dt>{Encode(entry.Label)}</dt>");
+
         if (entry.Items is { Count: > 0 })
         {
-            builder.AppendLine("      <li>");
-            builder.AppendLine($"        <span class=\"label\">{Encode(entry.Label)}:</span> {Encode(entry.Value)}");
-            builder.AppendLine("        <details class=\"detail-toggle\">");
+            builder.AppendLine("          <dd>");
+            builder.AppendLine($"            {Encode(entry.Value)}");
+            builder.AppendLine("            <details class=\"detail-toggle\">");
             builder.AppendLine(
-                $"          <summary>Show {entry.Items.Count} {(entry.Items.Count == 1 ? "item" : "items")}</summary>");
-            builder.AppendLine("          <ul class=\"detail-sublist\">");
+                $"              <summary>Show {entry.Items.Count} {(entry.Items.Count == 1 ? "item" : "items")}</summary>");
+            builder.AppendLine("              <ul class=\"detail-sublist\">");
 
             foreach (string item in entry.Items)
             {
-                builder.AppendLine($"            <li>{Encode(item)}</li>");
+                builder.AppendLine($"                <li>{Encode(item)}</li>");
             }
 
-            builder.AppendLine("          </ul>");
-            builder.AppendLine("        </details>");
-            builder.AppendLine("      </li>");
+            builder.AppendLine("              </ul>");
+            builder.AppendLine("            </details>");
+            builder.AppendLine("          </dd>");
         }
         else
         {
-            builder.AppendLine($"      <li><span class=\"label\">{Encode(entry.Label)}:</span> {Encode(entry.Value)}</li>");
+            builder.AppendLine($"          <dd>{Encode(entry.Value)}</dd>");
         }
     }
 
@@ -473,29 +522,14 @@ internal static class RiskHtmlReportWriter
     }
 
     /// <summary>
-    /// Yields label/value pairs representing the key metadata fields shown in the package detail section.
+    /// Returns the evidence of a package in titled groups, each rendered as its own card in the detail section.
     /// </summary>
-    private static IEnumerable<DetailEntry> BuildDetails(PackageInfo package)
+    private static IEnumerable<(string Title, DetailEntry[] Entries)> BuildDetailGroups(PackageInfo package)
     {
-        foreach (var item in BuildIdentityDetails(package))
-        {
-            yield return item;
-        }
-
-        foreach (var item in BuildSecurityDetails(package))
-        {
-            yield return item;
-        }
-
-        foreach (var item in BuildOperationalDetails(package))
-        {
-            yield return item;
-        }
-
-        foreach (var item in BuildReleaseDetails(package))
-        {
-            yield return item;
-        }
+        yield return ("Package", BuildIdentityDetails(package).ToArray());
+        yield return ("Security", BuildSecurityDetails(package).ToArray());
+        yield return ("Maintenance", BuildOperationalDetails(package).ToArray());
+        yield return ("Releases", BuildReleaseDetails(package).ToArray());
     }
 
     private static IEnumerable<DetailEntry> BuildIdentityDetails(PackageInfo package)
@@ -1113,9 +1147,15 @@ internal static class RiskHtmlReportWriter
     }
 
     /// <summary>
+    /// Builds a pill showing a vulnerability count, styled differently from the risk score pills.
+    /// </summary>
+    private static string BuildVulnerabilityPill(int count) =>
+        $"<span class=\"score-pill vuln-pill\">{count.ToString(CultureInfo.InvariantCulture)}</span>";
+
+    /// <summary>
     /// Builds a colored zone pill HTML element showing a risk zone label and an optional value.
     /// </summary>
-    private static string BuildZonePill(string zone, string? value = null)
+    private static string BuildZonePill(string zone, string? value = null, bool showZoneLabel = true)
     {
         string cssClass = zone switch
         {
@@ -1124,7 +1164,7 @@ internal static class RiskHtmlReportWriter
             _ => "risk-low"
         };
 
-        string text = value is null ? zone : $"{zone}: {value}";
+        string text = value is null ? zone : showZoneLabel ? $"{zone}: {value}" : value;
         return $"<span class=\"score-pill {cssClass}\">{Encode(text)}</span>";
     }
 

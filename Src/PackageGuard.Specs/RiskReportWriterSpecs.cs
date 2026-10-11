@@ -115,7 +115,7 @@ internal sealed class RiskReportWriterSpecs
         html.Should().Contain("<span class=\"score-pill risk-medium\">4/10</span>");
         html.Should().Contain(@"src\Contoso.App\Contoso.App.csproj");
         html.Should().Contain(@"frontend\package.json");
-        html.Should().Contain("<span class=\"label\">Used by:</span>");
+        html.Should().Contain("<dt>Used by</dt>");
         html.Should().NotContain("<th>Used by</th>");
         html.Should()
             .Contain(
@@ -146,9 +146,9 @@ internal sealed class RiskReportWriterSpecs
                 "<a href=\"https://github.com/contoso/contoso-security/releases\" target=\"_blank\" rel=\"noreferrer noopener\">CHANGELOG or release notes are present (+0.0)</a>");
 
         html.Should().NotContain("Relevant links");
-        html.Should().NotContain("<span class=\"label\">License URL:</span>");
-        html.Should().NotContain("<span class=\"label\">Repository:</span>");
-        html.Should().NotContain("<span class=\"label\">OpenSSF Scorecard:</span>");
+        html.Should().NotContain("<dt>License URL</dt>");
+        html.Should().NotContain("<dt>Repository</dt>");
+        html.Should().NotContain("<dt>OpenSSF Scorecard</dt>");
 
         using JsonDocument sarif = JsonDocument.Parse(await File.ReadAllTextAsync(reportPaths.SarifPath));
         sarif.RootElement.GetProperty("version").GetString().Should().Be("2.1.0");
@@ -198,23 +198,23 @@ internal sealed class RiskReportWriterSpecs
 
         string html = await File.ReadAllTextAsync(reportPaths.HtmlPath);
 
-        html.Should().Contain("<span class=\"label\">Vulnerabilities:</span> 1 (max severity 8.0)");
+        html.Should().MatchRegex(Evidence("Vulnerabilities", "1 (max severity 8.0)"));
         html.Should().Contain("<summary>Show 1 item</summary>");
         html.Should().Contain("<li>GHSA-aaaa-bbbb-cccc</li>");
 
-        html.Should().Contain("<span class=\"label\">Transitive vulnerabilities:</span> 1");
+        html.Should().MatchRegex(Evidence("Transitive vulnerabilities", "1"));
         html.Should().Contain("<li>Vulnerable.Dependency 2.0.0 (GHSA-dddd-eeee-ffff)</li>");
 
-        html.Should().Contain("<span class=\"label\">Stale transitive dependencies:</span> 1");
+        html.Should().MatchRegex(Evidence("Stale transitive dependencies", "1"));
         html.Should().Contain("<li>Stale.Package 1.2.3 (last release 2020-01-01)</li>");
 
-        html.Should().Contain("<span class=\"label\">Potentially abandoned transitive dependencies:</span> 1");
+        html.Should().MatchRegex(Evidence("Potentially abandoned transitive dependencies", "1"));
         html.Should().Contain("<li>Abandoned.Package 1.2.3 (known vulnerabilities)</li>");
 
-        html.Should().Contain("<span class=\"label\">Deprecated transitive dependencies:</span> 1");
+        html.Should().MatchRegex(Evidence("Deprecated transitive dependencies", "1"));
         html.Should().Contain("<li>Deprecated.Package 3.0.0</li>");
 
-        html.Should().Contain("<span class=\"label\">Unmaintained critical transitives:</span> 1");
+        html.Should().MatchRegex(Evidence("Unmaintained critical transitives", "1"));
         html.Should().Contain("<li>Critical.Package 4.5.6 (max severity 9.0)</li>");
 
         // The detail panels must be collapsed by default (no "open" attribute on <details>).
@@ -284,9 +284,8 @@ internal sealed class RiskReportWriterSpecs
             [missingLicensePackage, customLicensePackage]);
 
         string html = await File.ReadAllTextAsync(reportPaths.HtmlPath);
-        html.Should().Contain("<span class=\"label\">License:</span> Missing or undetermined");
-        html.Should().Contain(
-            "<span class=\"label\">License:</span> Present, but not one of PackageGuard&#39;s well-known license IDs: Contoso-Internal-License");
+        html.Should().MatchRegex(Evidence("License", "Missing or undetermined"));
+        html.Should().MatchRegex(Evidence("License", "Present, but not one of PackageGuard&#39;s well-known license IDs: Contoso-Internal-License"));
     }
 
     [TestMethod]
@@ -372,6 +371,64 @@ internal sealed class RiskReportWriterSpecs
         html.Should().NotContain("<td><script>");
     }
 
+    [TestMethod]
+    public async Task Should_count_vulnerabilities_in_the_header_and_summary_table_without_showing_zero()
+    {
+        RiskReportPaths paths = await RiskHtmlReportWriter.WriteAsync(
+            Path.Combine(reportDirectory, "PackageGuard.sln"),
+            [
+                new PackageInfo { Name = "Vulnerable.One", Version = "1.0.0", RiskScore = 20, VulnerabilityCount = 2, RiskDimensions = new RiskDimensions() },
+                new PackageInfo { Name = "Vulnerable.Two", Version = "1.0.0", RiskScore = 10, VulnerabilityCount = 3, RiskDimensions = new RiskDimensions() },
+                new PackageInfo { Name = "Clean.Package", Version = "1.0.0", RiskScore = 5, RiskDimensions = new RiskDimensions() }
+            ],
+            Path.Combine(reportDirectory, Guid.NewGuid().ToString("N") + ".html"));
+
+        string html = await File.ReadAllTextAsync(paths.HtmlPath);
+
+        html.Should().Contain("<p class=\"status-value\"><span class=\"score-pill vuln-pill\">5</span></p><p class=\"meta\">Known vulnerabilities</p>");
+        html.Should().Contain("<th>Vulnerabilities</th>");
+        html.Should().Contain("<td><span class=\"score-pill vuln-pill\">2</span></td>");
+        html.Should().Contain("<td><span class=\"score-pill vuln-pill\">3</span></td>");
+        html.Should().Contain("<td></td>");
+        html.Should().NotContain("<td><span class=\"score-pill vuln-pill\">0</span></td>");
+
+        // Vulnerable packages come first, with the red row style, even when their risk score is lower.
+        html.IndexOf("Vulnerable.Two", StringComparison.Ordinal).Should().BeLessThan(html.IndexOf("Clean.Package", StringComparison.Ordinal));
+        html.Should().MatchRegex("<tr class=\"summary-high\">\\s*<td><a href=\"#package-vulnerable-one");
+    }
+
+    [TestMethod]
+    public async Task Should_not_repeat_the_header_counts_or_show_the_static_html_note()
+    {
+        string html = await WriteHtml([]);
+
+        html.Should().NotContain("Status Check Summary");
+        html.Should().NotContain("safe to publish as a build artifact");
+    }
+
+    [TestMethod]
+    public async Task Should_link_to_the_main_sections_and_show_vulnerabilities_and_risks_in_package_details()
+    {
+        RiskReportPaths paths = await RiskHtmlReportWriter.WriteAsync(
+            Path.Combine(reportDirectory, "PackageGuard.sln"),
+            [new PackageInfo { Name = "Vulnerable.One", Version = "1.0.0", RiskScore = 20, VulnerabilityCount = 2, RiskDimensions = new RiskDimensions() }],
+            Path.Combine(reportDirectory, Guid.NewGuid().ToString("N") + ".html"),
+            [new DependencyFinding { Kind = DependencyFindingKind.VersionConflict, PackageId = "A", Description = "A conflicts." }]);
+
+        string html = await File.ReadAllTextAsync(paths.HtmlPath);
+
+        html.Should().Contain("<a href=\"#summary\">Summary</a>");
+        html.Should().Contain("<a href=\"#dependency-hygiene\">Dependency Hygiene</a>");
+        html.Should().Contain("<a href=\"#package-vulnerable-one-1-0-0\">Package details</a>");
+        html.Should().Contain("<h3>Risks</h3>");
+        html.Should().Contain("<a class=\"anchor-link\" href=\"#package-vulnerable-one-1-0-0\"");
+        html.Should().Contain("<span class=\"score-pill vuln-pill\">2</span> <span class=\"meta\">vulnerabilities</span>");
+        (await WriteHtml([])).Should().NotContain("href=\"#dependency-hygiene\"");
+    }
+
+    private static string Evidence(string label, string value) =>
+        $"<dt>{System.Text.RegularExpressions.Regex.Escape(label)}</dt>\\s*<dd>\\s*{System.Text.RegularExpressions.Regex.Escape(value)}";
+
     private async Task<string> WriteHtml(IReadOnlyCollection<DependencyFinding> findings)
     {
         RiskReportPaths paths = await RiskHtmlReportWriter.WriteAsync(
@@ -384,12 +441,13 @@ internal sealed class RiskReportWriterSpecs
     }
 
     /// <summary>
-    /// The part of the report that carries the risk status, which has to be the same with or without dependency findings.
+    /// The part of the report that carries the risk status, which has to be the same with or without dependency findings (the jump links excluded).
     /// </summary>
     private static string ExtractSummary(string html)
     {
         int start = html.IndexOf("<h1>", StringComparison.Ordinal);
-        int end = html.IndexOf("<h2>Package Summary</h2>", StringComparison.Ordinal);
-        return System.Text.RegularExpressions.Regex.Replace(html[start..end], "Generated at [^<]*", "");
+        int end = html.IndexOf("<h2>Summary</h2>", StringComparison.Ordinal);
+        string summary = System.Text.RegularExpressions.Regex.Replace(html[start..end], "Generated at [^<]*", "");
+        return System.Text.RegularExpressions.Regex.Replace(summary, "<nav.*?</nav>", "", System.Text.RegularExpressions.RegexOptions.Singleline);
     }
 }
