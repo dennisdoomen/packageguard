@@ -26,14 +26,17 @@ Risk scores aren't just for reporting - your [configuration](./configuration.md#
 
 ## Vulnerability indicators
 
-Known vulnerabilities come from [OSV](https://osv.dev) and drive most of the security score. The console summary and
-the HTML report show them as separate indicators, so you can tell a package that is vulnerable itself from one that only
+Known vulnerabilities come from [OSV](https://osv.dev) and drive most of the security score. The HTML report shows them as separate indicators, so you can tell a package that is vulnerable itself from one that only
 inherits a vulnerability:
 
 - **Direct vulnerabilities** - the number of advisories that affect the package version you use, with the maximum severity. The advisory ids are listed in the package's Evidence section.
 - **Transitive vulnerabilities** - advisories in the dependencies beneath the package. The Evidence section names each vulnerable dependency, its version and the advisory ids.
 - **Fix availability** - whether a fixed version already exists, so you know if upgrading solves it.
 - **Fix speed** - the median time between publication of an advisory and the update that addresses it.
+
+At report level, the header counts the **known vulnerabilities**, the summary table has a **Vulnerabilities** column, and
+vulnerable packages are listed first with a red row. In the package details, the vulnerability count is shown next to the
+risk score.
 
 You can also gate on these indicators. A [policy](./configuration.md#gating-on-risk-and-package-age) can deny
 packages whose worst OSV severity exceeds a cap you choose.
@@ -133,8 +136,8 @@ The HTML report is intentionally static and self-contained:
 
 - no scripts
 - no external assets
-- a top-level status summary for Azure DevOps and GitHub artifact viewers
-- a package summary table with links to each package details section
+- a header with the package count, the number of known vulnerabilities and the low/medium/high risk counts, plus jump links to the summary, the dependency hygiene section and the package details
+- a package summary table with a Vulnerabilities column, where vulnerable packages are listed first and highlighted in red
 - per-package legal, security and operational rationale plus raw evidence
 
 Example console output:
@@ -155,14 +158,15 @@ The HTML report is intended for humans. The SARIF report is intended for CI syst
 Example HTML report sections:
 
 - Project path and generation timestamp
-- Overall status with low/medium/high package counts
-- Status-check summary table
-- Package summary table with clickable package names and versions
+- Overall status, known-vulnerability count and low/medium/high package counts
+- Package summary table with clickable package names and versions, and a Vulnerabilities column
+- Dependency Hygiene section
 - Package details cards with:
   - overall score
   - legal, security and operational sub-scores
   - scoring rationale
-  - collected evidence such as license, repository, release, maintainer, CI and dependency signals
+  - the vulnerability count next to the score
+  - collected evidence, grouped into Package, Security, Maintenance and Releases cards, such as license, repository, release, maintainer, CI and dependency signals
 
 ## Dependency hygiene
 
