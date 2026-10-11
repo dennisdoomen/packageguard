@@ -36,6 +36,17 @@ Here is the `dependencies` command run on PackageGuard itself:
 
 ![Console output of the dependencies command](/img/dependencies-output.png)
 
+## Commands
+
+PackageGuard has four commands. Running `packageguard <path>` without a command is the same as `packageguard analyze`.
+
+| Command | What it does |
+| --- | --- |
+| `analyze` | Checks your NuGet and npm dependencies against the allow- and deny-lists, and optionally scores risk and generates an SBOM. See [Usage](./usage.md). |
+| `explain <package>` | Shows why a package is present and how it was evaluated. See [Explaining a package](./explain.md). |
+| `dependencies` | Finds redundant package references and version conflicts, offline. See [Redundant references and version conflicts](./dependencies.md). |
+| `init` | Scaffolds a configuration from the licenses you actually use. See [Getting started with `init`](./init.md). |
+
 ## What's so special about that?
 
 I've noticed that the commercial solutions for this are usually very expensive and have functionality that smaller companies may not need. Hopefully this little tool fills the gap between tools like GitHub's Dependabot and expensive commercial products like Blackduck, SNYK and others.
