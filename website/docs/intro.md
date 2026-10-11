@@ -24,6 +24,10 @@ At a glance, PackageGuard can:
 - **Cache** package, license and risk data (`--use-caching`) - including GitHub responses and per-repository risk profiles - to keep repeated scans and CI runs fast, with configurable cache freshness (`--risk-cache-max-age-hours`, `--refresh-risk-cache`)
 - Run as a **.NET global tool** or a **portable, cross-platform** (Windows/Linux/macOS) deployment - no CI-specific plugin required
 
+The HTML risk report that `--report-risk` generates, here for PackageGuard itself:
+
+![HTML risk report of PackageGuard](/img/risk-report.png)
+
 Here is the `dependencies` command run on PackageGuard itself:
 
 ![Console output of the dependencies command](/img/dependencies-output.png)
