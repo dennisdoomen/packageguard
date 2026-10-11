@@ -275,13 +275,6 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
             rationale.Add(RiskEvaluationHelpers.CreateRationale("Single maintainer on a non-organization account", 0.5));
         }
 
-        if (package.PublishedAt != null &&
-            package.PublishedAt.Value < DateTimeOffset.UtcNow.AddMonths(-24))
-        {
-            risk += 1.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Last published release is older than 24 months", 1.0));
-        }
-
         return risk;
     }
 }

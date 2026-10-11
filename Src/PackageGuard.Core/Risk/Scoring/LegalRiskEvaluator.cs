@@ -43,7 +43,10 @@ internal sealed class LegalRiskEvaluator : IEvaluateRiskDimension
             rationale.Add(RiskEvaluationHelpers.CreateRationale($"Unclassified license ({package.License})", 0.0));
         }
 
-        if (package.HasValidLicenseUrl is false || string.IsNullOrEmpty(package.LicenseUrl))
+        // A license that the package declares itself (for example an SPDX expression in the nuspec) needs no URL
+        bool urlIsRequired = package.LicenseEvidence != LicenseEvidence.Declared;
+
+        if (urlIsRequired && (package.HasValidLicenseUrl is false || string.IsNullOrEmpty(package.LicenseUrl)))
         {
             risk += 1.0;
             rationale.Add(RiskEvaluationHelpers.CreateRationale("Missing or invalid license URL", 1.0));

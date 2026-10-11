@@ -221,7 +221,7 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
             if (packageInfo != null)
             {
                 NuGetVersion? latestStableVersion = packageMetadata
-                    .Where(p => !p.Identity.Version.IsPrerelease)
+                    .Where(p => p.IsListed && !p.Identity.Version.IsPrerelease)
                     .Select(p => p.Identity.Version)
                     .OrderByDescending(version => version)
                     .FirstOrDefault();

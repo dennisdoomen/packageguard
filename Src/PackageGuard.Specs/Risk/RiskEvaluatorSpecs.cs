@@ -977,4 +977,44 @@ internal class RiskEvaluatorSpecs
         package.RiskDimensions.OperationalRiskRationale.Should()
             .Contain(item => item.Contains("OpenSSF Scorecard score is moderate (6.0)"));
     }
+
+    [TestMethod]
+    internal void Should_not_ask_for_a_license_url_when_the_package_declares_its_license()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            LicenseEvidence = LicenseEvidence.Declared,
+            LicenseUrl = null
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.LegalRisk.Should().Be(0.0);
+        package.RiskDimensions.LegalRiskRationale.Should().NotContain(item => item.Contains("license URL"));
+    }
+
+    [TestMethod]
+    internal void Should_score_the_age_of_the_last_release_in_the_operational_dimension_only()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-30)
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("Last release is older than 24 months"));
+
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .NotContain(item => item.Contains("older than 24 months"));
+    }
 }
