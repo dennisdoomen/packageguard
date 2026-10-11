@@ -52,6 +52,8 @@ app.Configure(c =>
         .WithDescription("Analyzes NuGet/NPM dependencies against the configured allow/deny policies.");
     c.AddCommand<ExplainCommand>("explain")
         .WithDescription("Explains why a specific package is present and how it was evaluated against policy.");
+    c.AddCommand<DependenciesCommand>("dependencies")
+        .WithDescription("Finds redundant package references and version conflicts.");
     c.AddCommand<InitCommand>("init")
         .WithDescription("Scans the repository and scaffolds a configuration file from the licenses actually found.");
 });

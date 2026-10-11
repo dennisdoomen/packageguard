@@ -1,12 +1,13 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using FluentAssertions;
 using JetBrains.Annotations;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PackageGuard.Core;
+using PackageGuard.Core.CSharp;
 using PackageGuard.Core.Package;
 using PackageGuard.Core.Risk;
 
@@ -338,5 +339,57 @@ internal sealed class RiskReportWriterSpecs
         reportPaths.SarifPath.Should().Be(explicitSarifPath);
         (await File.ReadAllTextAsync(explicitHtmlPath)).Should().NotBe("old html");
         (await File.ReadAllTextAsync(explicitSarifPath)).Should().NotBe("old sarif");
+    }
+
+    [TestMethod]
+    public async Task Should_list_dependency_findings_without_changing_the_risk_summary()
+    {
+        DependencyFinding[] findings =
+        [
+            new() { Kind = DependencyFindingKind.RedundantViaProject, Project = "Api", TargetFramework = "net9.0",
+                PackageId = "Serilog", ResolvedVersion = "3.1.1", SafeToRemove = true, Providers = ["Domain"] },
+            new() { Kind = DependencyFindingKind.VersionConflict, PackageId = "Newtonsoft.Json",
+                Description = "Newtonsoft.Json resolves to multiple versions: 13.0.3 (Api); 12.0.1 (Domain)." }
+        ];
+
+        string withFindings = await WriteHtml(findings);
+        string withoutFindings = await WriteHtml([]);
+
+        withFindings.Should().Contain("Dependency Hygiene");
+        withFindings.Should().Contain("Serilog 3.1.1").And.Contain("Domain").And.Contain("Keeps the resolved version");
+        withFindings.Should().Contain("Newtonsoft.Json resolves to multiple versions");
+        withoutFindings.Should().NotContain("Dependency Hygiene");
+        ExtractSummary(withFindings).Should().Be(ExtractSummary(withoutFindings));
+    }
+
+    [TestMethod]
+    public async Task Should_encode_dependency_findings_in_the_html_report()
+    {
+        string html = await WriteHtml([new DependencyFinding { Kind = DependencyFindingKind.RedundantViaPackage,
+            Project = "<script>", PackageId = "A&B", Providers = ["C"] }]);
+
+        html.Should().Contain("&lt;script&gt;").And.Contain("A&amp;B");
+        html.Should().NotContain("<td><script>");
+    }
+
+    private async Task<string> WriteHtml(IReadOnlyCollection<DependencyFinding> findings)
+    {
+        RiskReportPaths paths = await RiskHtmlReportWriter.WriteAsync(
+            Path.Combine(reportDirectory, "PackageGuard.sln"),
+            [new PackageInfo { Name = "Contoso.Security", Version = "2.4.0", RiskScore = 10, RiskDimensions = new RiskDimensions() }],
+            Path.Combine(reportDirectory, Guid.NewGuid().ToString("N") + ".html"),
+            findings);
+
+        return await File.ReadAllTextAsync(paths.HtmlPath);
+    }
+
+    /// <summary>
+    /// The part of the report that carries the risk status, which has to be the same with or without dependency findings.
+    /// </summary>
+    private static string ExtractSummary(string html)
+    {
+        int start = html.IndexOf("<h1>", StringComparison.Ordinal);
+        int end = html.IndexOf("<h2>Package Summary</h2>", StringComparison.Ordinal);
+        return System.Text.RegularExpressions.Regex.Replace(html[start..end], "Generated at [^<]*", "");
     }
 }

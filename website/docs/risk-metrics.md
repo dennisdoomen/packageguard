@@ -149,3 +149,13 @@ Example HTML report sections:
   - legal, security and operational sub-scores
   - scoring rationale
   - collected evidence such as license, repository, release, maintainer, CI and dependency signals
+
+## Dependency hygiene in the report
+
+When the report covers NuGet projects, the HTML report also gets a **Dependency Hygiene** section. It lists the
+redundant package references and the version conflicts found in the restore graph, the same findings that the
+[`dependencies` command](./dependencies.md) reports. The data comes from the restore output PackageGuard already
+loaded for the scan, so it adds no extra restore and no network access.
+
+These findings are not part of the risk score. They never change a package's score, the risk zone counts, the overall
+report status, or the exit code. The SARIF report does not include them.

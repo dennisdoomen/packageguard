@@ -1,6 +1,7 @@
 using System.Reflection;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
+using NuGet.ProjectModel;
 using PackageGuard.Core;
 using PackageGuard.Core.CSharp;
 using PackageGuard.Core.Package;
@@ -43,6 +44,14 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         }
 
         var analyzer = BuildAnalyzer(logger, settings);
+
+        // The restore graph is already loaded for the analysis, so keeping it for the dependency hygiene section costs nothing extra
+        List<LockFile> lockFiles = [];
+        if (settings.ReportRisk)
+        {
+            analyzer.OnProjectLockFileLoaded = (_, lockFile) => lockFiles.Add(lockFile);
+        }
+
         var loader = new ConfigurationLoader(logger, settings.ProjectPath);
 
         GetPolicyByProject getPolicy = _ => loader.GetConfigurationFromConfigPath(settings.ConfigPath);
@@ -67,7 +76,7 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         RiskReportPaths? reportPaths = null;
         if (settings.ReportRisk && packages.Length > 0)
         {
-            reportPaths = await WriteRiskReportsAsync(logger, settings, packages);
+            reportPaths = await WriteRiskReportsAsync(logger, settings, packages, lockFiles);
         }
 
         int exitCode = ReportViolations(logger, violations, settings);
@@ -114,13 +123,16 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         return (violations, []);
     }
 
-    private static async Task<RiskReportPaths> WriteRiskReportsAsync(ILogger logger, AnalyzeCommandSettings settings, PackageInfo[] packages)
+    private static async Task<RiskReportPaths> WriteRiskReportsAsync(ILogger logger, AnalyzeCommandSettings settings, PackageInfo[] packages,
+        IReadOnlyCollection<LockFile> lockFiles)
     {
         logger.LogHeader("Writing risk reports");
         logger.LogInformation("Writing detailed HTML and SARIF risk reports for {PackageCount} packages.", packages.Length);
 
+        IReadOnlyCollection<DependencyFinding> dependencyFindings = new DependencyHygieneAnalyzer().Analyze(lockFiles);
+
         RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
-            settings.ProjectPath, packages, settings.GetReportRiskPath());
+            settings.ProjectPath, packages, settings.GetReportRiskPath(), dependencyFindings);
 
         AnsiConsole.MarkupLine("[yellow1]Package Risk Summary:[/]");
         AnsiConsole.MarkupLine("");
@@ -133,6 +145,14 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         }
 
         AnsiConsole.MarkupLine("");
+
+        if (dependencyFindings.Count > 0)
+        {
+            int conflicts = dependencyFindings.Count(f => f.Kind == DependencyFindingKind.VersionConflict);
+            AnsiConsole.MarkupLine(
+                $"Dependency hygiene: {dependencyFindings.Count - conflicts} redundant references, {conflicts} version conflicts. See the HTML report.");
+            AnsiConsole.MarkupLine("");
+        }
 
         return reportPaths;
     }
