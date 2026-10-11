@@ -24,6 +24,20 @@ Each dimension is scored from `0` to `10`, and the weighted total is scaled to `
 
 Risk scores aren't just for reporting - your [configuration](./configuration.md#gating-on-risk-and-package-age) can deny packages that exceed a risk threshold, minimum package age, or OSV severity cap, with documented exceptions for accepted-risk packages.
 
+## Vulnerability indicators
+
+Known vulnerabilities come from [OSV](https://osv.dev) and drive most of the security score. The console summary and
+the HTML report show them as separate indicators, so you can tell a package that is vulnerable itself from one that only
+inherits a vulnerability:
+
+- **Direct vulnerabilities** - the number of advisories that affect the package version you use, with the maximum severity. The advisory ids are listed in the package's Evidence section.
+- **Transitive vulnerabilities** - advisories in the dependencies beneath the package. The Evidence section names each vulnerable dependency, its version and the advisory ids.
+- **Fix availability** - whether a fixed version already exists, so you know if upgrading solves it.
+- **Fix speed** - the median time between publication of an advisory and the update that addresses it.
+
+You can also gate on these indicators. A [policy](./configuration.md#gating-on-risk-and-package-age) can deny
+packages whose worst OSV severity exceeds a cap you choose.
+
 ## What gets measured?
 
 PackageGuard combines package metadata, repository evidence, workflow signals, dependency-graph data, signing checks and OSV vulnerability intelligence.
@@ -149,6 +163,17 @@ Example HTML report sections:
   - legal, security and operational sub-scores
   - scoring rationale
   - collected evidence such as license, repository, release, maintainer, CI and dependency signals
+
+## Dependency hygiene
+
+Dependency hygiene is about the *shape* of your dependency graph rather than the quality of individual packages. It
+looks for two things:
+
+- **Redundant references** - a direct `PackageReference` that a referenced project or another direct package already provides.
+- **Version conflicts** - one package that resolves to different versions in different projects.
+
+Unlike the legal, security and operational dimensions, hygiene is not scored. It is reported next to the scores so you can
+act on it without it distorting them. Use the [`dependencies` command](./dependencies.md) to run the check on its own.
 
 ## Dependency hygiene in the report
 

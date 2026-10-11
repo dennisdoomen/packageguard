@@ -9,6 +9,9 @@ open feature requests from [the issue tracker](https://github.com/dennisdoomen/p
 free to upvote or comment on any of the linked issues if one of them matters to you.
 
 **Minor features**
+- Let `dependencies` find redundant references and version conflicts in npm, yarn and pnpm projects too (today it only reads NuGet restore output)
+- Make `dependencies` match project references through `AssemblyName` instead of the project file name
+- Report dependency hygiene findings in the SARIF output, and fail the PackageGuard build itself on them with `--severity error`
 - Allow specifying the location of `dotnet.exe`
 - Allow ignoring certain .csproj files or folders using Globs or wildcards (e.g. build.csproj)
 - Expose the internal engine through the `PackageGuard.Core` NuGet package
