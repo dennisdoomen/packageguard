@@ -96,6 +96,18 @@ const FeatureList: FeatureItem[] = [
       </>
     ),
   },
+  {
+    title: 'Dependency Hygiene',
+    emoji: '🧹',
+    to: '/docs/dependencies',
+    description: (
+      <>
+        Run <code>packageguard dependencies</code> to find package references
+        you do not need and packages that resolve to different versions across
+        projects. It works offline, from the restore output.
+      </>
+    ),
+  },
 ];
 
 function Feature({title, emoji, description, to}: FeatureItem) {
