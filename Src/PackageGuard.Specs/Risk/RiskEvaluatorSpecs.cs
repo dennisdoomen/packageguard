@@ -1017,4 +1017,35 @@ internal class RiskEvaluatorSpecs
         package.RiskDimensions.SecurityRiskRationale.Should()
             .NotContain(item => item.Contains("older than 24 months"));
     }
+
+    [TestMethod]
+    internal void Should_score_supply_chain_signals_in_the_security_dimension_only()
+    {
+        // Arrange
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            PublishedAt = DateTimeOffset.UtcNow.AddMonths(-2),
+            HasVerifiedReleaseSignature = false,
+            HasVerifiedPublisher = false,
+            HasReproducibleBuildSignal = false
+        };
+
+        // Act
+        riskEvaluator.EvaluateRisk(package);
+
+        // Assert
+        package.RiskDimensions.SecurityRiskRationale.Should()
+            .Contain(item => item.Contains("Verified release signature signal was not detected"))
+            .And.Contain(item => item.Contains("No trusted NuGet package signature or organization-owned repository was detected"))
+            .And.Contain(item => item.Contains("No reproducible-build or deterministic-build signal was detected"));
+
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .NotContain(item => item.Contains("release signature"))
+            .And.NotContain(item => item.Contains("trusted NuGet package signature"))
+            .And.NotContain(item => item.Contains("reproducible-build"));
+    }
 }

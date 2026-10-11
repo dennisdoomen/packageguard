@@ -15,13 +15,37 @@ At a glance, PackageGuard can:
 - Enforce **allow- and deny-lists** for open-source licenses, specific packages, and package versions, discovered **hierarchically** across solution-, project- and repository-level configuration files
 - Resolve **licenses** from NuGet/npm metadata, GitHub repositories, and downloaded license text through a chain of fetchers, falling back gracefully when a source doesn't have an answer
 - **Explain** a single package on demand (`packageguard explain <package>`, with fuzzy name matching) - its dependency path, how its version was resolved, the exact policy rule and configuration file that allowed or denied it, and its risk breakdown
-- Score every package's **risk** across three dimensions - Legal, Security and Operational - via `--report-risk`, weighing signals such as license compatibility, known vulnerabilities (OSV), maintainer activity, package signing, release cadence, and dozens more
+- Find **redundant package references** and **version conflicts** with `packageguard dependencies` - a package that a referenced project or another package already brings in, or one that resolves to different versions in different projects - working offline from the restore output
+- Score every package's **risk** across three dimensions - Legal, Security and Operational - via `--report-risk`, weighing signals such as license compatibility, known vulnerabilities (OSV), maintainer activity, package signing, release cadence, and dozens more, and list the dependency hygiene findings in the same report
 - Back every risk score with **evidence, not just a number**: each package card in the HTML report has a dedicated Evidence section with collapsible, collapsed-by-default panels naming the exact packages, versions, GHSA/OSV vulnerability ids and release dates behind its rationale, so you can see *why* a package scored the way it did without digging through logs
 - Produce a **colored console summary**, a **self-contained HTML report** you can open in a browser, and a **SARIF file** for surfacing violations and risk findings directly in GitHub code scanning
 - Generate a standards-compliant **Software Bill of Materials (SBOM)** in **CycloneDX** or **SPDX** JSON format via `--sbom`, complete with purls, declared-vs-concluded license evidence, and a direct/transitive dependency graph
 - Enrich that SBOM with **vulnerability data** from OSV when `--sbom` is combined with `--report-risk`
 - **Cache** package, license and risk data (`--use-caching`) - including GitHub responses and per-repository risk profiles - to keep repeated scans and CI runs fast, with configurable cache freshness (`--risk-cache-max-age-hours`, `--refresh-risk-cache`)
 - Run as a **.NET global tool** or a **portable, cross-platform** (Windows/Linux/macOS) deployment - no CI-specific plugin required
+
+The HTML risk report that `--report-risk` generates, here for PackageGuard itself:
+
+![HTML risk report of PackageGuard](/img/risk-report.png)
+
+Every package gets its own details, with the legal, security and operational rationale behind its score:
+
+![Package details in the HTML risk report](/img/risk-report-package.png)
+
+Here is the `dependencies` command run on PackageGuard itself:
+
+![Console output of the dependencies command](/img/dependencies-output.png)
+
+## Commands
+
+PackageGuard has four commands. Running `packageguard <path>` without a command is the same as `packageguard analyze`.
+
+| Command | What it does |
+| --- | --- |
+| `analyze` | Checks your NuGet and npm dependencies against the allow- and deny-lists, and optionally scores risk and generates an SBOM. See [Usage](./usage.md). |
+| `explain <package>` | Shows why a package is present and how it was evaluated. See [Explaining a package](./explain.md). |
+| `dependencies` | Finds redundant package references and version conflicts, offline. See [Redundant references and version conflicts](./dependencies.md). |
+| `init` | Scaffolds a configuration from the licenses you actually use. See [Getting started with `init`](./init.md). |
 
 ## What's so special about that?
 
@@ -39,4 +63,5 @@ Contact me through [Email](mailto:dennis.doomen@avivasolutions.nl), [Bluesky](ht
 - [Configuration](./configuration.md) - define your allow- and deny-lists
 - [Usage](./usage.md) - run a scan and read the results
 - [Explaining a package](./explain.md) - see why a specific package is present and how it was evaluated
+- [Redundant references and version conflicts](./dependencies.md) - clean up package references you do not need
 - [Risk Metrics](./risk-metrics.md) - score packages on legal, security and operational risk
