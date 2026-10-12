@@ -57,6 +57,10 @@ public partial class PackageInfo
     /// <summary>
     /// Gets or sets the projects that reference this package in the current analysis run.
     /// </summary>
+    /// <remarks>
+    /// Run state only. It holds machine-specific absolute paths, so it must not be persisted in the cache file.
+    /// </remarks>
+    [MemoryPackIgnore]
     public string[] Projects
     {
         get => projects.ToArray();
