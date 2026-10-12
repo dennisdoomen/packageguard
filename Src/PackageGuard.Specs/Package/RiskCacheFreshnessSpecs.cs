@@ -116,6 +116,26 @@ public class RiskCacheFreshnessSpecs
         package.Should().NotBeNull("without risk reporting the age of an entry does not matter");
     }
 
+    [TestMethod]
+    public async Task Does_not_persist_the_machine_specific_paths_of_the_projects_using_a_package()
+    {
+        // Arrange
+        string cachePath = CreateCachePath();
+        PackageInfo package = CreateEnrichedPackage(cachedAt: DateTimeOffset.UtcNow);
+        package.TrackAsUsedInProject(@"C:\Workspaces\SomeRepo\Build\_build.csproj");
+        package.MarkAsUsed();
+
+        var collection = new PackageInfoCollection(NullLogger.Instance) { package };
+
+        // Act
+        await collection.WriteToCache(cachePath);
+
+        // Assert
+        byte[] bytes = await System.IO.File.ReadAllBytesAsync(cachePath);
+        System.Text.Encoding.UTF8.GetString(bytes).Should().NotContain("_build.csproj");
+        System.Text.Encoding.Unicode.GetString(bytes).Should().NotContain("_build.csproj");
+    }
+
     private static AnalyzerSettings CreateSettings() => new()
     {
         ReportRisk = true,

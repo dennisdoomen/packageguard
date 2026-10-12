@@ -246,6 +246,7 @@ namespace PackageGuard.Core.Package
         public System.DateTimeOffset? OwnerCreatedAt { get; set; }
         public bool OwnerIsOrganization { get; set; }
         public double? PrereleaseRatio { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public string[] Projects { get; set; }
         public System.DateTimeOffset? PublishedAt { get; set; }
         public int? RapidReleaseCorrectionCount { get; set; }
