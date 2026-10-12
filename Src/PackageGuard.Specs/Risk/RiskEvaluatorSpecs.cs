@@ -536,6 +536,24 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
+    internal void Should_not_penalize_a_dual_license_with_a_permissive_option()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "(BSD-3-Clause OR GPL-2.0)",
+            LicenseUrl = "https://opensource.org/licenses/BSD-3-Clause",
+            HasValidLicenseUrl = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.LegalRisk.Should().Be(0.0);
+    }
+
+    [TestMethod]
     internal void Should_add_security_risk_when_package_signature_is_missing()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
