@@ -24,23 +24,16 @@ internal sealed class LegalRiskEvaluator : IEvaluateRiskDimension
             rationale.Add(RiskEvaluationHelpers.CreateRationale($"Non-standard or unrecognized license type ({package.License})",
                 6.0));
         }
-        else if (IsRestrictiveLicense(package.License))
-        {
-            risk += 6.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Restrictive license ({package.License})", 6.0));
-        }
-        else if (IsWeakCopyleftLicense(package.License))
-        {
-            risk += 3.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Weak copyleft license ({package.License})", 3.0));
-        }
-        else if (IsPermissiveLicense(package.License))
-        {
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Permissive license ({package.License})", 0.0));
-        }
         else
         {
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Unclassified license ({package.License})", 0.0));
+            // With an OR expression the consumer may pick any option, so the least risky one counts
+            var (alternativeRisk, label) = package.License
+                .Split([" OR "], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Select(Classify)
+                .MinBy(c => c.Risk);
+
+            risk += alternativeRisk;
+            rationale.Add(RiskEvaluationHelpers.CreateRationale($"{label} ({package.License})", alternativeRisk));
         }
 
         // A license that the package declares itself (for example an SPDX expression in the nuspec) needs no URL
@@ -68,6 +61,12 @@ internal sealed class LegalRiskEvaluator : IEvaluateRiskDimension
 
         return RiskEvaluationHelpers.CreateEvaluation(risk, rationale);
     }
+
+    private static (double Risk, string Label) Classify(string license) =>
+        IsRestrictiveLicense(license) ? (6.0, "Restrictive license") :
+        IsWeakCopyleftLicense(license) ? (3.0, "Weak copyleft license") :
+        IsPermissiveLicense(license) ? (0.0, "Permissive license") :
+        (0.0, "Unclassified license");
 
     /// <summary>
     /// Returns <see langword="true"/> if the license is considered restrictive (copyleft or commercial restrictions).
