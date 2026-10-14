@@ -42,18 +42,18 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-      <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.12" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.12" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.12" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.12" />
+      <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.13" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.13" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.13" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.13" />
       <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-      <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.12" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.12" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.12" />
-      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.12" />
+      <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.13" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.13" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.13" />
+      <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.13" />
       <PackageReference Include="Serilog.Extensions.Logging" Version="10.0.0" />
     </ItemGroup>
 
