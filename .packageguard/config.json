@@ -28,6 +28,12 @@
         },
         "RiskExceptions": [
             {
+                "Package": "System.Security.Cryptography.Xml",
+                "Versions": "[10.0.13]",
+                "Reason": "10.0.13 is the only release that fixes three DoS advisories (CVE-2026-96958 to -96960) in the transitive 10.0.10, but it was published on 2026-10-13 and fails the 3-day MinPackageAgeDays rule until 2026-10-16.",
+                "ExpiresOn": "2026-10-17"
+            },
+            {
                 "Package": "Newtonsoft.Json",
                 "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
             },
