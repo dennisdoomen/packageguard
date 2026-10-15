@@ -56,6 +56,31 @@ public class DotNetLockFileLoaderSpecs
     }
 
     [TestMethod]
+    public void Can_load_the_lock_file_from_a_custom_intermediate_output_path()
+    {
+        // Arrange
+        var testProject = ChainablePath.Current / "TestCases" / "CustomIntermediatePath";
+        (testProject / "artifacts").DeleteFileOrDirectory();
+
+        new DotNetLockFileLoader().GetPackageLockFile((testProject / "CustomIntermediatePath.csproj").ToString());
+
+        var loggingProvider = new InMemoryLoggerProvider();
+
+        var loader = new DotNetLockFileLoader
+        {
+            Logger = loggingProvider.CreateLogger("")
+        };
+
+        // Act
+        var lockFile = loader.GetPackageLockFile((testProject / "CustomIntermediatePath.csproj").ToString());
+
+        // Assert
+        lockFile.Should().NotBeNull();
+        lockFile!.Libraries.Should().Contain(x => x.Name == "Newtonsoft.Json");
+        loggingProvider.Logs.Select(x => x.Message).Should().NotContainMatch("*dotnet restore*");
+    }
+
+    [TestMethod]
     public void Can_disable_interactive_restores()
     {
         // Arrange

@@ -1,4 +1,5 @@
 using CliWrap;
+using CliWrap.Buffered;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NuGet.ProjectModel;
@@ -38,7 +39,7 @@ public class DotNetLockFileLoader
 
         DateTime lastProjectModification = File.GetLastWriteTimeUtc(projectPath);
 
-        FileInfo assetsJson = new(projectPath.Directory / "obj" / "project.assets.json");
+        FileInfo assetsJson = new(GetProjectAssetsFilePath(projectPath));
 
         if (!SkipRestore && (ForceRestore || !assetsJson.Exists || assetsJson.LastWriteTimeUtc < lastProjectModification))
         {
@@ -52,6 +53,32 @@ public class DotNetLockFileLoader
         }
 
         return lockFile;
+    }
+
+    /// <summary>
+    /// Asks MSBuild where the project writes its <c>project.assets.json</c>, so that a customized
+    /// <c>BaseIntermediateOutputPath</c> or <c>MSBuildProjectExtensionsPath</c> (e.g. from a <c>Directory.Build.props</c>)
+    /// is respected. Falls back to the default <c>obj</c> folder if MSBuild cannot evaluate the project.
+    /// </summary>
+    private string GetProjectAssetsFilePath(ChainablePath projectPath)
+    {
+        string defaultPath = projectPath.Directory / "obj" / "project.assets.json";
+
+        BufferedCommandResult result = Cli.Wrap("dotnet")
+            .WithArguments(["msbuild", projectPath, "-getProperty:ProjectAssetsFile"])
+            .WithValidation(CommandResultValidation.None)
+            .ExecuteBufferedAsync().GetAwaiter().GetResult();
+
+        string assetsFilePath = result.StandardOutput.Trim();
+        if (!result.IsSuccess || assetsFilePath.Length == 0)
+        {
+            Logger.LogWarning("Could not determine the location of project.assets.json for {ProjectPath}, assuming {DefaultPath}",
+                projectPath, defaultPath);
+
+            return defaultPath;
+        }
+
+        return assetsFilePath;
     }
 
     private void RestoreProjectPackages(ChainablePath projectPath)
