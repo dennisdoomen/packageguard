@@ -123,8 +123,8 @@ public sealed class DependenciesCommand(ILogger logger) : AsyncCommand<Dependenc
     private static void ReportConflict(DependencyFinding finding)
     {
         // Description is "<package> resolves to multiple versions: <v> (<projects>); <v> (<projects>)."
-        const string Separator = " resolves to multiple versions: ";
-        int index = finding.Description.IndexOf(Separator, StringComparison.Ordinal);
+        const string separator = " resolves to multiple versions: ";
+        int index = finding.Description.IndexOf(separator, StringComparison.Ordinal);
         if (index < 0)
         {
             AnsiConsole.MarkupLine($"  {Markup.Escape(finding.Description)}");
@@ -132,7 +132,7 @@ public sealed class DependenciesCommand(ILogger logger) : AsyncCommand<Dependenc
         }
 
         AnsiConsole.MarkupLine($"  [bold]{Markup.Escape(finding.PackageId)}[/]");
-        foreach (string version in finding.Description[(index + Separator.Length)..].TrimEnd('.').Split("; "))
+        foreach (string version in finding.Description[(index + separator.Length)..].TrimEnd('.').Split("; "))
         {
             int open = version.IndexOf(" (", StringComparison.Ordinal);
             string number = open < 0 ? version : version[..open];
