@@ -216,6 +216,60 @@
                 "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
             },
             {
+                "Package": "Microsoft.Extensions.*",
+                "Versions": "[10.0.13]",
+                "Reason": "Temporary exception for the reviewed October 2026 dependency update until it passes the 3-day NuGet age gate.",
+                "ExpiresOn": "2026-10-17"
+            },
+            {
+                "Package": "Microsoft.Extensions.*",
+                "Versions": "[10.11.0]",
+                "Reason": "Temporary exception for the reviewed October 2026 dependency update until it passes the 3-day NuGet age gate.",
+                "ExpiresOn": "2026-10-17"
+            },
+            {
+                "Package": "Microsoft.CodeCoverage",
+                "Versions": "[18.11.0]",
+                "Reason": "Temporary exception for the reviewed October 2026 dependency update until it passes the 3-day NuGet age gate.",
+                "ExpiresOn": "2026-10-17"
+            },
+            {
+                "Package": "Microsoft.NET.Test.Sdk",
+                "Versions": "[18.11.0]",
+                "Reason": "Temporary exception for the reviewed October 2026 dependency update until it passes the 3-day NuGet age gate.",
+                "ExpiresOn": "2026-10-17"
+            },
+            {
+                "Package": "Microsoft.TestPlatform.*",
+                "Versions": "[18.11.0]",
+                "Reason": "Temporary exception for the reviewed October 2026 dependency update until it passes the 3-day NuGet age gate.",
+                "ExpiresOn": "2026-10-17"
+            },
+            {
+                "Package": "System.Diagnostics.DiagnosticSource",
+                "Versions": "[10.0.13]",
+                "Reason": "Temporary exception for the reviewed October 2026 dependency update until it passes the 3-day NuGet age gate.",
+                "ExpiresOn": "2026-10-17"
+            },
+            {
+                "Package": "System.IO.Pipelines",
+                "Versions": "[10.0.13]",
+                "Reason": "Temporary exception for the reviewed October 2026 dependency update until it passes the 3-day NuGet age gate.",
+                "ExpiresOn": "2026-10-17"
+            },
+            {
+                "Package": "System.Text.*",
+                "Versions": "[10.0.13]",
+                "Reason": "Temporary exception for the reviewed October 2026 dependency update until it passes the 3-day NuGet age gate.",
+                "ExpiresOn": "2026-10-17"
+            },
+            {
+                "Package": "System.Security.Cryptography.*",
+                "Versions": "[10.0.13]",
+                "Reason": "Temporary exception for the patched cryptography dependencies until they pass the 3-day NuGet age gate.",
+                "ExpiresOn": "2026-10-17"
+            },
+            {
                 "Package": "Verify",
                 "Reason": "Test-only dependency (PackageGuard.ApiVerificationTests), never shipped. Its operational risk score (8.8) drifted just over the MaxOperationalRisk limit of 8 as release-cadence signals aged, without any actual concern."
             },
