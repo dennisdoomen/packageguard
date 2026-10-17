@@ -30,7 +30,7 @@
             {
                 "Package": "System.Security.Cryptography.Xml",
                 "Versions": "[10.0.13]",
-                "Reason": "10.0.13 is the only release that fixes three DoS advisories (CVE-2026-96958 to -96960) in the transitive 10.0.10, but it was published on 2026-10-13 and fails the 3-day MinPackageAgeDays rule until 2026-10-16.",
+                "Reason": "Pinned to 10.0.13 because it fixes GHSA-7hqp-7c5m-4vq6. It was published a few hours short of the 3-day minimum age; this exception covers only that gap.",
                 "ExpiresOn": "2026-10-17"
             },
             {

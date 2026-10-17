@@ -34,6 +34,11 @@ public class ProjectPolicy
     public List<RiskException> RiskExceptions { get; init; } = new();
 
     /// <summary>
+    /// Documented decisions that specific vulnerabilities do not apply, until a date on which they must be reviewed.
+    /// </summary>
+    public List<VulnerabilityException> VulnerabilityExceptions { get; } = new();
+
+    /// <summary>
     /// One or more NuGet or NPM feeds that should be completely ignored during the analysis.
     /// </summary>
     /// <value>
@@ -48,6 +53,13 @@ public class ProjectPolicy
     /// </summary>
     public void Validate()
     {
+        if (VulnerabilityExceptions.Any(exception => string.IsNullOrWhiteSpace(exception.Vulnerability) ||
+                                                     string.IsNullOrWhiteSpace(exception.Reason) ||
+                                                     exception.ReviewOn is null))
+        {
+            throw new ArgumentException("Every vulnerability exception needs a vulnerability, a reason and a reviewOn date");
+        }
+
         if (this is
             {
                 AllowList.HasPolicies: false,
@@ -65,6 +77,13 @@ public class ProjectPolicy
     /// </summary>
     internal RiskException? FindApplicableRiskException(PackageInfo package) =>
         RiskExceptions.FirstOrDefault(exception => exception.Matches(package));
+
+    /// <summary>
+    /// Returns the <see cref="VulnerabilityExceptions"/> entry that covers <paramref name="vulnerability"/> of
+    /// <paramref name="package"/>, or <see langword="null"/> when there is none.
+    /// </summary>
+    internal VulnerabilityException? FindVulnerabilityException(PackageInfo package, OsvVulnerabilityRecord vulnerability) =>
+        VulnerabilityExceptions.FirstOrDefault(exception => exception.Matches(package, vulnerability));
 
     /// <summary>
     /// Determines whether <paramref name="package"/> is covered by a <see cref="RiskExceptions"/> entry that

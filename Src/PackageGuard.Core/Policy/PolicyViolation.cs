@@ -8,4 +8,5 @@ public record PolicyViolation(
     string FeedName,
     string FeedUrl,
     string Reason = "",
-    bool IsWarning = false);
+    bool IsWarning = false,
+    bool IsMalicious = false);

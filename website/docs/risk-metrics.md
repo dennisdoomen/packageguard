@@ -34,12 +34,20 @@ inherits a vulnerability:
 - **Fix availability** - whether a fixed version already exists, so you know if upgrading solves it.
 - **Fix speed** - the median time between publication of an advisory and the update that addresses it.
 
-At report level, the header counts the **known vulnerabilities**, the summary table has a **Vulnerabilities** column, and
-vulnerable packages are listed first with a red row. In the package details, the vulnerability count is shown next to the
-risk score.
+At report level, the HTML report shows vulnerabilities as their own concept, on top of how they raise the Security score:
+
+- A full-width red block lists any **known malicious packages** at the very top.
+- Below the title, three blocks show the packages analyzed with the overall report status, the **critical (CISA KEV)** and **total** vulnerability counts, and the number of packages per risk level.
+- A **Vulnerabilities** table lists every vulnerability, with the CISA KEV ones first. Rows are red for CISA KEV, yellow for vulnerabilities that still apply, and green for the ones you marked as not applicable with a [vulnerability exception](./configuration.md#vulnerability-exceptions).
+
+In the package details, the vulnerability count is shown next to the risk score.
+
+**Exploit data.** For every CVE alias of an OSV finding, PackageGuard looks up the [EPSS](https://www.first.org/epss/) probability of exploitation within 30 days and whether the CVE is on the [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) list. A KEV vulnerability adds a heavy penalty (+3.0) to the Security score, and the EPSS score weighs vulnerabilities of the same severity (up to +1.5). Both values appear in the HTML report and in the SARIF properties. Use `denyKnownExploited` to fail the build on a KEV vulnerability. If either feed can't be reached, PackageGuard logs a warning and continues without that data.
+
+**Malicious packages.** An OSV advisory whose ID starts with `MAL-` (from the OpenSSF Malicious Packages data) is not treated as a normal vulnerability. Whenever risk data is collected, a package with such an advisory always fails the run, regardless of its risk score, policy or risk exceptions, and `--treat-deny-as-warning` doesn't downgrade it. It is listed first in the console output, in its own section at the top of the HTML report, and as a `packageguard/malicious-package` result at SARIF level `error`.
 
 You can also gate on these indicators. A [policy](./configuration.md#gating-on-risk-and-package-age) can deny
-packages whose worst OSV severity exceeds a cap you choose.
+packages whose worst OSV severity exceeds a cap you choose, or that have a vulnerability on the CISA KEV list (`denyKnownExploited`).
 
 ## What gets measured?
 
@@ -136,7 +144,9 @@ The HTML report is intentionally static and self-contained:
 
 - no scripts
 - no external assets
-- a header with the package count, the number of known vulnerabilities and the low/medium/high risk counts, plus jump links to the summary, the dependency hygiene section and the package details
+- a block for known malicious packages at the very top, when there are any
+- a header with three blocks: the package count with the overall status, the critical (CISA KEV) and total vulnerability counts, and the low/medium/high risk counts, plus jump links to the vulnerabilities, the dependency hygiene section and the package details
+- a Vulnerabilities table with red rows for CISA KEV, yellow rows for vulnerabilities that apply and green rows for the ones marked as not applicable
 - a package summary table with a Vulnerabilities column, where vulnerable packages are listed first and highlighted in red
 - per-package legal, security and operational rationale plus raw evidence
 
