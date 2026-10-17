@@ -24,6 +24,11 @@ internal static class RiskSarifReportWriter
     private const string HighRiskRuleId = "packageguard/risk-high";
 
     /// <summary>
+    /// SARIF rule ID for packages with a known malicious-package advisory, which is always reported at the highest level.
+    /// </summary>
+    private const string MaliciousPackageRuleId = "packageguard/malicious-package";
+
+    /// <summary>
     /// Builds a SARIF JSON string reporting all packages with a risk score of 30 or above,
     /// using the project at <paramref name="projectPath"/> as the artifact location reference.
     /// </summary>
@@ -46,6 +51,11 @@ internal static class RiskSarifReportWriter
                             Rules =
                             [
                                 CreateRule(
+                                    MaliciousPackageRuleId,
+                                    "Known malicious package",
+                                    "An OpenSSF malicious-package advisory (MAL-) exists for this package. Remove it now; machines that installed it may be compromised.",
+                                    "10.0"),
+                                CreateRule(
                                     MediumRiskRuleId,
                                     "Medium package risk",
                                     "PackageGuard identified a package with a medium overall risk score.",
@@ -59,8 +69,11 @@ internal static class RiskSarifReportWriter
                         }
                     },
                     Results = packages
-                        .Where(package => package.RiskScore >= 30)
-                        .Select(package => CreateResult(locationPath, package))
+                        .Where(package => package.MaliciousAdvisoryIds.Length > 0)
+                        .Select(package => CreateMaliciousResult(locationPath, package))
+                        .Concat(packages
+                            .Where(package => package.RiskScore >= 30)
+                            .Select(package => CreateResult(locationPath, package)))
                         .ToArray()
                 }
             ]
@@ -95,12 +108,93 @@ internal static class RiskSarifReportWriter
     }
 
     /// <summary>
+    /// Creates the SARIF result for a package with a malicious-package advisory, at the highest level.
+    /// </summary>
+    private static SarifResult CreateMaliciousResult(string locationPath, PackageInfo package)
+    {
+        string[] advisoryIds = package.MaliciousAdvisoryIds;
+
+        return new SarifResult
+        {
+            RuleId = MaliciousPackageRuleId,
+            Level = "error",
+            Message = new SarifMessage
+            {
+                Text =
+                    $"{package.Name} {package.Version} is a known malicious package ({string.Join(", ", advisoryIds)}). " +
+                    $"Remove it now and treat machines that installed it as compromised. " +
+                    $"Used by: {string.Join(", ", GetDisplayProjectPaths(package))}."
+            },
+            PartialFingerprints = new Dictionary<string, string>
+            {
+                ["package"] = $"{package.Source}|{package.Name}|{package.Version}|malicious"
+            },
+            Properties = new Dictionary<string, object>
+            {
+                ["packageName"] = package.Name,
+                ["packageVersion"] = package.Version,
+                ["source"] = package.Source,
+                ["usedBy"] = GetDisplayProjectPaths(package),
+                ["advisories"] = advisoryIds
+            },
+            Locations = CreateLocations(locationPath)
+        };
+    }
+
+    /// <summary>
+    /// Creates the single location every result points at.
+    /// </summary>
+    private static SarifLocation[] CreateLocations(string locationPath) =>
+    [
+        new()
+        {
+            PhysicalLocation = new SarifPhysicalLocation
+            {
+                ArtifactLocation = new SarifArtifactLocation
+                {
+                    Uri = locationPath
+                },
+                Region = new SarifRegion
+                {
+                    StartLine = 1
+                }
+            }
+        }
+    ];
+
+    /// <summary>
     /// Creates a SARIF result entry for a single package, including risk message, fingerprint, properties, and location.
     /// </summary>
     private static SarifResult CreateResult(string locationPath, PackageInfo package)
     {
         string riskZone = package.RiskScore >= 60 ? "High" : "Medium";
         string ruleId = riskZone == "High" ? HighRiskRuleId : MediumRiskRuleId;
+
+        var properties = new Dictionary<string, object>
+        {
+            ["packageName"] = package.Name,
+            ["packageVersion"] = package.Version,
+            ["source"] = package.Source,
+            ["usedBy"] = GetDisplayProjectPaths(package),
+            ["riskScore"] = package.RiskScore,
+            ["riskZone"] = riskZone,
+            ["legalRisk"] = package.RiskDimensions.LegalRisk,
+            ["securityRisk"] = package.RiskDimensions.SecurityRisk,
+            ["operationalRisk"] = package.RiskDimensions.OperationalRisk,
+            ["legalRationale"] = package.RiskDimensions.LegalRiskRationale,
+            ["securityRationale"] = package.RiskDimensions.SecurityRiskRationale,
+            ["operationalRationale"] = package.RiskDimensions.OperationalRiskRationale
+        };
+
+        if (package.MaxEpssScore is { } epss)
+        {
+            properties["maxEpssScore"] = epss;
+        }
+
+        if (package.KnownExploitedCveIds is { Length: > 0 } exploitedCveIds)
+        {
+            properties["knownExploitedVulnerabilities"] = exploitedCveIds;
+        }
 
         return new SarifResult
         {
@@ -119,38 +213,8 @@ internal static class RiskSarifReportWriter
             {
                 ["package"] = $"{package.Source}|{package.Name}|{package.Version}"
             },
-            Properties = new Dictionary<string, object>
-            {
-                ["packageName"] = package.Name,
-                ["packageVersion"] = package.Version,
-                ["source"] = package.Source,
-                ["usedBy"] = GetDisplayProjectPaths(package),
-                ["riskScore"] = package.RiskScore,
-                ["riskZone"] = riskZone,
-                ["legalRisk"] = package.RiskDimensions.LegalRisk,
-                ["securityRisk"] = package.RiskDimensions.SecurityRisk,
-                ["operationalRisk"] = package.RiskDimensions.OperationalRisk,
-                ["legalRationale"] = package.RiskDimensions.LegalRiskRationale,
-                ["securityRationale"] = package.RiskDimensions.SecurityRiskRationale,
-                ["operationalRationale"] = package.RiskDimensions.OperationalRiskRationale
-            },
-            Locations =
-            [
-                new SarifLocation
-                {
-                    PhysicalLocation = new SarifPhysicalLocation
-                    {
-                        ArtifactLocation = new SarifArtifactLocation
-                        {
-                            Uri = locationPath
-                        },
-                        Region = new SarifRegion
-                        {
-                            StartLine = 1
-                        }
-                    }
-                }
-            ]
+            Properties = properties,
+            Locations = CreateLocations(locationPath)
         };
     }
 

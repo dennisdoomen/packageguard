@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using PackageGuard.Core.CSharp;
 using PackageGuard.Core.Package;
+using PackageGuard.Core.Policy;
 using PackageGuard.Core.Risk.Scoring;
 using Pathy;
 
@@ -156,6 +157,8 @@ internal static class RiskHtmlReportWriter
         int mediumRiskCount = packages.Count(package => GetRiskZone(package.RiskScore) == "Medium");
         int highRiskCount = packages.Count(package => GetRiskZone(package.RiskScore) == "High");
         int vulnerabilityCount = packages.Sum(package => package.VulnerabilityCount);
+        int criticalVulnerabilityCount = packages.Sum(package => package.ActiveVulnerabilities.Count(vulnerability => vulnerability.IsKnownExploited));
+        bool hasVulnerabilityDetails = packages.Any(package => package.Vulnerabilities.Length > 0);
         string overallZone = packages.Select(package => package.RiskScore).DefaultIfEmpty(0).Max() switch
         {
             >= 60 => "High",
@@ -164,9 +167,12 @@ internal static class RiskHtmlReportWriter
         };
 
         AppendHtmlHead(builder, projectPath);
+        AppendMaliciousPackagesSection(builder, packages);
         AppendReportHeader(builder, new ReportHeaderContext(
             projectPath, generatedAt, overallZone, packages.Length, lowRiskCount, mediumRiskCount, highRiskCount, vulnerabilityCount,
-            packages.Length > 0 ? CreatePackageAnchor(packages[0]) : null, dependencyFindings.Count > 0));
+            packages.Length > 0 ? CreatePackageAnchor(packages[0]) : null, dependencyFindings.Count > 0,
+            criticalVulnerabilityCount, hasVulnerabilityDetails));
+        AppendVulnerabilitiesSection(builder, packages);
         AppendPackageSummaryTable(builder, packages);
         AppendDependencyHygieneSection(builder, dependencyFindings);
         AppendPackageDetailSections(builder, packages);
@@ -237,6 +243,15 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine("    .label { color: #475569; font-weight: 600; }");
         builder.AppendLine("    .rationale-list strong { color: #991b1b; }");
         builder.AppendLine("    .meta { color: #64748b; }");
+        builder.AppendLine(
+            "    .malicious-card { border: 3px solid #991b1b; background: #fef2f2; }");
+        builder.AppendLine("    .malicious-card h2 { color: #991b1b; }");
+        builder.AppendLine(
+            "    .summary-blocks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }");
+        builder.AppendLine("    .summary-blocks .card { margin-bottom: 0; }");
+        builder.AppendLine("    .summary-blocks h2 { font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase; color: #64748b; }");
+        builder.AppendLine("    .summary-blocks .status-grid { margin-top: 0; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }");
+        builder.AppendLine("    .critical-pill { background: #7f1d1d; color: #ffffff; border: 1px solid #450a0a; }");
         builder.AppendLine("    code { font-family: Cascadia Code, Consolas, monospace; }");
         builder.AppendLine(
             "    @media print { body { background: #ffffff; } main { padding: 0; } .anchor-link { display: none; } .card { box-shadow: none; break-inside: avoid; } a { color: inherit; text-decoration: none; } }");
@@ -256,7 +271,37 @@ internal static class RiskHtmlReportWriter
         int HighRiskCount,
         int VulnerabilityCount,
         string? FirstPackageAnchor,
-        bool HasDependencyFindings);
+        bool HasDependencyFindings,
+        int CriticalVulnerabilityCount,
+        bool HasVulnerabilityDetails);
+
+    /// <summary>
+    /// Adds a prominent section above everything else that lists the packages with a malicious-package advisory.
+    /// </summary>
+    private static void AppendMaliciousPackagesSection(StringBuilder builder, PackageInfo[] packages)
+    {
+        PackageInfo[] maliciousPackages = packages.Where(package => package.MaliciousAdvisoryIds.Length > 0).ToArray();
+        if (maliciousPackages.Length == 0)
+        {
+            return;
+        }
+
+        builder.AppendLine("  <section class=\"card malicious-card\" id=\"malicious\">");
+        builder.AppendLine("    <h2>Known malicious packages</h2>");
+        builder.AppendLine(
+            "    <p><strong>Remove these packages now.</strong> Machines that installed them may be compromised. This fails the run regardless of the risk score.</p>");
+
+        builder.AppendLine("    <ul>");
+        foreach (PackageInfo package in maliciousPackages)
+        {
+            string advisories = string.Join(", ", package.MaliciousAdvisoryIds.Select(Encode));
+            builder.AppendLine(
+                $"      <li><a href=\"#{CreatePackageAnchor(package)}\">{Encode(package.Name)} {Encode(package.Version)}</a> <span class=\"meta\">({advisories})</span></li>");
+        }
+
+        builder.AppendLine("    </ul>");
+        builder.AppendLine("  </section>");
+    }
 
     private static void AppendReportHeader(StringBuilder builder, ReportHeaderContext ctx)
     {
@@ -277,6 +322,11 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine("    <nav class=\"jump-links\">");
         builder.AppendLine("      <span class=\"label\">Jump to:</span>");
         builder.AppendLine("      <a href=\"#summary\">Summary</a>");
+        if (ctx.HasVulnerabilityDetails)
+        {
+            builder.AppendLine("      <a href=\"#vulnerabilities\">Vulnerabilities</a>");
+        }
+
         if (hasDependencyFindings)
         {
             builder.AppendLine("      <a href=\"#dependency-hygiene\">Dependency Hygiene</a>");
@@ -288,22 +338,126 @@ internal static class RiskHtmlReportWriter
         }
 
         builder.AppendLine("    </nav>");
-        builder.AppendLine("    <div class=\"status-grid\">");
+        builder.AppendLine("  </section>");
+        AppendSummaryBlocks(builder, ctx);
+    }
+
+    /// <summary>
+    /// Adds the row of three blocks below the title: the packages and overall status, the vulnerabilities, and the
+    /// number of packages per risk level.
+    /// </summary>
+    private static void AppendSummaryBlocks(StringBuilder builder, ReportHeaderContext ctx)
+    {
+        string Count(int value) => value.ToString(CultureInfo.InvariantCulture);
+
+        builder.AppendLine("  <div class=\"summary-blocks\">");
+
+        builder.AppendLine("    <section class=\"card\">");
+        builder.AppendLine("      <h2>Packages</h2>");
+        builder.AppendLine("      <div class=\"status-grid\">");
         builder.AppendLine(
-            $"      <section class=\"status-card\"><p class=\"status-value\">{packageCount}</p><p class=\"meta\">Packages analyzed</p></section>");
+            $"        <section class=\"status-card\"><p class=\"status-value\">{ctx.PackageCount}</p><p class=\"meta\">Packages analyzed</p></section>");
         builder.AppendLine(
-            $"      <section class=\"status-card\"><p class=\"status-value\">{BuildVulnerabilityPill(vulnerabilityCount)}</p><p class=\"meta\">Known vulnerabilities</p></section>");
+            $"        <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill(ctx.OverallZone)}</p><p class=\"meta\">Overall report status</p></section>");
+        builder.AppendLine("      </div>");
+        builder.AppendLine("    </section>");
+
+        builder.AppendLine("    <section class=\"card\">");
+        builder.AppendLine("      <h2>Vulnerabilities</h2>");
+        builder.AppendLine("      <div class=\"status-grid\">");
         builder.AppendLine(
-            $"      <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill(overallZone)}</p><p class=\"meta\">Overall report status</p></section>");
+            $"        <section class=\"status-card\"><p class=\"status-value\"><span class=\"score-pill critical-pill\">{Count(ctx.CriticalVulnerabilityCount)}</span></p><p class=\"meta\">Critical (CISA KEV)</p></section>");
         builder.AppendLine(
-            $"      <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill("Low", lowRiskCount.ToString(CultureInfo.InvariantCulture), showZoneLabel: false)}</p><p class=\"meta\">Packages with a score below 30</p></section>");
+            $"        <section class=\"status-card\"><p class=\"status-value\">{BuildVulnerabilityPill(ctx.VulnerabilityCount)}</p><p class=\"meta\">Total</p></section>");
+        builder.AppendLine("      </div>");
+        builder.AppendLine("    </section>");
+
+        builder.AppendLine("    <section class=\"card\">");
+        builder.AppendLine("      <h2>Risk levels</h2>");
+        builder.AppendLine("      <div class=\"status-grid\">");
         builder.AppendLine(
-            $"      <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill("Medium", mediumRiskCount.ToString(CultureInfo.InvariantCulture), showZoneLabel: false)}</p><p class=\"meta\">Packages with a score from 30 to 59.9</p></section>");
+            $"        <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill("Low", Count(ctx.LowRiskCount), showZoneLabel: false)}</p><p class=\"meta\">Low (below 30)</p></section>");
         builder.AppendLine(
-            $"      <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill("High", highRiskCount.ToString(CultureInfo.InvariantCulture), showZoneLabel: false)}</p><p class=\"meta\">Packages with a score of 60 or above</p></section>");
-        builder.AppendLine("    </div>");
+            $"        <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill("Medium", Count(ctx.MediumRiskCount), showZoneLabel: false)}</p><p class=\"meta\">Medium (30 to 59.9)</p></section>");
+        builder.AppendLine(
+            $"        <section class=\"status-card\"><p class=\"status-value\">{BuildZonePill("High", Count(ctx.HighRiskCount), showZoneLabel: false)}</p><p class=\"meta\">High (60 or above)</p></section>");
+        builder.AppendLine("      </div>");
+        builder.AppendLine("    </section>");
+
+        builder.AppendLine("  </div>");
+    }
+
+    /// <summary>
+    /// Lists every vulnerability in one table: the actively exploited (CISA KEV) ones in red, the other ones that still
+    /// apply in yellow, and the ones that a policy exception marked as not applicable in green.
+    /// </summary>
+    private static void AppendVulnerabilitiesSection(StringBuilder builder, PackageInfo[] packages)
+    {
+        var rows = packages
+            .SelectMany(package => package.Vulnerabilities.Select(vulnerability => (package, vulnerability)))
+            .OrderBy(row => row.vulnerability.IsSuppressed)
+            .ThenByDescending(row => row.vulnerability.IsKnownExploited)
+            .ThenByDescending(row => row.vulnerability.Severity)
+            .ToArray();
+
+        if (rows.Length == 0)
+        {
+            return;
+        }
+
+        builder.AppendLine("  <section class=\"card\" id=\"vulnerabilities\">");
+        builder.AppendLine("    <h2>Vulnerabilities</h2>");
+        builder.AppendLine("    <table class=\"summary-table\">");
+        builder.AppendLine(
+            "      <thead><tr><th>Vulnerability</th><th>Package</th><th>Severity</th><th>EPSS</th><th>Status</th></tr></thead>");
+
+        builder.AppendLine("      <tbody>");
+        foreach ((PackageInfo package, OsvVulnerabilityRecord vulnerability) in rows)
+        {
+            string epss = vulnerability.EpssScore is { } score
+                ? $"{(score * 100).ToString("0.0##", CultureInfo.InvariantCulture)}%"
+                : "";
+
+            string rowClass = vulnerability.IsSuppressed ? "summary-low"
+                : vulnerability.IsKnownExploited ? "summary-high"
+                : "summary-medium";
+
+            builder.AppendLine(
+                $"        <tr class=\"{rowClass}\"><td>{Encode(GetVulnerabilityLabel(vulnerability))}</td><td><a href=\"#{CreatePackageAnchor(package)}\">{Encode(package.Name)} {Encode(package.Version)}</a></td><td>{FormatDecimal(vulnerability.Severity)}</td><td>{epss}</td><td>{BuildVulnerabilityStatus(vulnerability)}</td></tr>");
+        }
+
+        builder.AppendLine("      </tbody>");
+        builder.AppendLine("    </table>");
         builder.AppendLine("  </section>");
     }
+
+    /// <summary>
+    /// Describes whether a vulnerability applies: not applicable until a review date, critical, or expired and applicable again.
+    /// </summary>
+    private static string BuildVulnerabilityStatus(OsvVulnerabilityRecord vulnerability)
+    {
+        VulnerabilityException? exception = vulnerability.Exception;
+        if (vulnerability.IsSuppressed)
+        {
+            return $"Not applicable until {exception!.ReviewOn:yyyy-MM-dd}: {Encode(exception.Reason)}";
+        }
+
+        string status = vulnerability.IsKnownExploited
+            ? "<span class=\"score-pill critical-pill\">Critical (CISA KEV)</span>"
+            : "Applicable";
+
+        return exception is null
+            ? status
+            : $"{status} <span class=\"meta\">Not-applicable decision expired on {exception.ReviewOn:yyyy-MM-dd}: {Encode(exception.Reason)}</span>";
+    }
+
+    /// <summary>
+    /// Shows the CVE identifier when there is one, as that is what people search for, next to the OSV identifier.
+    /// </summary>
+    private static string GetVulnerabilityLabel(OsvVulnerabilityRecord vulnerability) =>
+        vulnerability.CveIds.FirstOrDefault() is { } cveId && !cveId.Equals(vulnerability.Id, StringComparison.OrdinalIgnoreCase)
+            ? $"{cveId} ({vulnerability.Id})"
+            : vulnerability.Id;
 
     private static void AppendPackageSummaryTable(StringBuilder builder, PackageInfo[] packages)
     {
@@ -612,7 +766,24 @@ internal static class RiskHtmlReportWriter
             yield return new DetailEntry(
                 "Vulnerabilities",
                 $"{package.VulnerabilityCount} (max severity {FormatDecimal(package.MaxVulnerabilitySeverity)})",
-                package.Vulnerabilities.Select(vulnerability => vulnerability.Id).ToArray());
+                package.ActiveVulnerabilities.Select(vulnerability => vulnerability.Id).ToArray());
+        }
+
+        if (package.MaliciousAdvisoryIds.Length > 0)
+        {
+            yield return ("Malicious package advisories", string.Join(", ", package.MaliciousAdvisoryIds));
+        }
+
+        if (package.MaxEpssScore is { } epss)
+        {
+            yield return ("Highest EPSS exploitation probability (30 days)",
+                $"{(epss * 100).ToString("0.0##", CultureInfo.InvariantCulture)}%");
+        }
+
+        if (package.KnownExploitedCveIds is { Length: > 0 } exploitedCveIds)
+        {
+            yield return new DetailEntry("Known exploited (CISA KEV)", exploitedCveIds.Length.ToString(CultureInfo.InvariantCulture),
+                exploitedCveIds);
         }
 
         if (package.MedianVulnerabilityFixDays != null)

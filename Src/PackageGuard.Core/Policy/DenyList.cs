@@ -37,6 +37,12 @@ public class DenyList : PackagePolicy
     public double? MaxOsvSeverityScore { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether to deny packages that have a vulnerability on the CISA Known
+    /// Exploited Vulnerabilities (KEV) list.
+    /// </summary>
+    public bool DenyKnownExploited { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether to deny packages that are not signed. Packages for which signing
     /// is unknown (not evaluated, e.g. npm packages) are not denied.
     /// </summary>
@@ -64,7 +70,7 @@ public class DenyList : PackagePolicy
     /// </summary>
     internal bool HasRiskPolicies =>
         MaxOverallRisk.HasValue || MaxLegalRisk.HasValue || MaxSecurityRisk.HasValue || MaxOperationalRisk.HasValue ||
-        MaxOsvSeverityScore.HasValue || DenyUnsigned || DenyDeprecated || DenyWithoutRepository || MinPackageAgeDays.Count > 0;
+        MaxOsvSeverityScore.HasValue || DenyKnownExploited || DenyUnsigned || DenyDeprecated || DenyWithoutRepository || MinPackageAgeDays.Count > 0;
 
     /// <summary>
     /// Determines if the given package is denied by the licenses or packages defined in this deny list.
@@ -141,6 +147,12 @@ public class DenyList : PackagePolicy
         {
             return new PolicyDecision(true,
                 $"highest known OSV severity {package.MaxVulnerabilitySeverity:0.#} exceeds the maximum of {maxOsvSeverityScore:0.#}");
+        }
+
+        if (DenyKnownExploited && package.KnownExploitedCveIds is { Length: > 0 } exploitedCveIds)
+        {
+            return new PolicyDecision(true,
+                $"has vulnerabilities on the CISA Known Exploited Vulnerabilities list ({string.Join(", ", exploitedCveIds)})");
         }
 
         if (DenyUnsigned && package.IsPackageSigned == false)

@@ -158,7 +158,17 @@ namespace PackageGuard.Core.Package
     {
         public OsvVulnerabilityRecord() { }
         public string[] Aliases { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public double? EpssScore { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public PackageGuard.Core.Policy.VulnerabilityException? Exception { get; set; }
         public string Id { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool IsKnownExploited { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool IsMalicious { get; }
+        [MemoryPack.MemoryPackIgnore]
+        public bool IsSuppressed { get; }
         public string[] References { get; set; }
         public double Severity { get; set; }
     }
@@ -226,12 +236,18 @@ namespace PackageGuard.Core.Package
         public bool IsUsed { get; set; }
         public double? IssueResponseCoverage { get; set; }
         public double? IssueTriageWithinSevenDaysRate { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public string[] KnownExploitedCveIds { get; }
         public System.DateTimeOffset? LatestStablePublishedAt { get; set; }
         public string? LatestStableVersion { get; set; }
         public string? License { get; set; }
         public PackageGuard.Core.Package.LicenseEvidence LicenseEvidence { get; set; }
         public string? LicenseUrl { get; set; }
         public double? MajorReleaseRatio { get; set; }
+        [MemoryPack.MemoryPackIgnore]
+        public string[] MaliciousAdvisoryIds { get; }
+        [MemoryPack.MemoryPackIgnore]
+        public double? MaxEpssScore { get; }
         public double MaxVulnerabilitySeverity { get; set; }
         public double? MeanReleaseIntervalDays { get; set; }
         public double? MedianCriticalIssueResponseDays { get; set; }
@@ -318,6 +334,7 @@ namespace PackageGuard.Core.Policy
     {
         public DenyList() { }
         public bool DenyDeprecated { get; set; }
+        public bool DenyKnownExploited { get; set; }
         public bool DenyUnsigned { get; set; }
         public bool DenyWithoutRepository { get; set; }
         public double? MaxLegalRisk { get; set; }
@@ -346,9 +363,10 @@ namespace PackageGuard.Core.Policy
     }
     public class PolicyViolation : System.IEquatable<PackageGuard.Core.Policy.PolicyViolation>
     {
-        public PolicyViolation(string PackageId, string Version, string License, string[] Projects, string FeedName, string FeedUrl, string Reason = "", bool IsWarning = false) { }
+        public PolicyViolation(string PackageId, string Version, string License, string[] Projects, string FeedName, string FeedUrl, string Reason = "", bool IsWarning = false, bool IsMalicious = false) { }
         public string FeedName { get; init; }
         public string FeedUrl { get; init; }
+        public bool IsMalicious { get; init; }
         public bool IsWarning { get; init; }
         public string License { get; init; }
         public string PackageId { get; init; }
@@ -363,6 +381,7 @@ namespace PackageGuard.Core.Policy
         public PackageGuard.Core.Policy.DenyList DenyList { get; init; }
         public string[] IgnoredFeeds { get; set; }
         public System.Collections.Generic.List<PackageGuard.Core.Policy.RiskException> RiskExceptions { get; init; }
+        public System.Collections.Generic.List<PackageGuard.Core.Policy.VulnerabilityException> VulnerabilityExceptions { get; }
         public PackageGuard.Core.Policy.WarnList WarnList { get; init; }
         public void Validate() { }
     }
@@ -374,6 +393,15 @@ namespace PackageGuard.Core.Policy
         public string Reason { get; init; }
         public string? SourceFile { get; init; }
         public string? Versions { get; init; }
+    }
+    public class VulnerabilityException
+    {
+        public VulnerabilityException() { }
+        public bool IsOverdue { get; }
+        public string Package { get; init; }
+        public string Reason { get; init; }
+        public System.DateOnly? ReviewOn { get; init; }
+        public string Vulnerability { get; init; }
     }
     public class WarnList : PackageGuard.Core.Policy.PackagePolicy
     {

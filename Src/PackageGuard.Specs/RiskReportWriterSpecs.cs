@@ -385,7 +385,7 @@ internal sealed class RiskReportWriterSpecs
 
         string html = await File.ReadAllTextAsync(paths.HtmlPath);
 
-        html.Should().Contain("<p class=\"status-value\"><span class=\"score-pill vuln-pill\">5</span></p><p class=\"meta\">Known vulnerabilities</p>");
+        html.Should().Contain("<p class=\"status-value\"><span class=\"score-pill vuln-pill\">5</span></p><p class=\"meta\">Total</p>");
         html.Should().Contain("<th>Vulnerabilities</th>");
         html.Should().Contain("<td><span class=\"score-pill vuln-pill\">2</span></td>");
         html.Should().Contain("<td><span class=\"score-pill vuln-pill\">3</span></td>");

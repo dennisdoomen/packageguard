@@ -159,44 +159,65 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
 
     private static int ReportViolations(ILogger logger, PolicyViolation[] violations, AnalyzeCommandSettings settings)
     {
-        if (violations.Length > 0)
+        if (violations.Length == 0)
+        {
+            AnsiConsole.MarkupLine("[green3_1]No policy violations found.[/]");
+            return SuccessExitCode;
+        }
+
+        // Malicious packages are reported first and apart from the normal violations
+        PolicyViolation[] malicious = violations.Where(violation => violation.IsMalicious).ToArray();
+        PolicyViolation[] regular = violations.Where(violation => !violation.IsMalicious).ToArray();
+
+        if (malicious.Length > 0)
+        {
+            AnsiConsole.MarkupLine(
+                "[red1]KNOWN MALICIOUS PACKAGES found. Remove them now, and treat every machine that installed them as compromised:[/]");
+
+            AnsiConsole.MarkupLine("");
+            WriteViolations(logger, malicious, _ => "MALICIOUS");
+        }
+
+        if (regular.Length > 0)
         {
             AnsiConsole.MarkupLine("[red1]Policy violations found:[/]");
             AnsiConsole.MarkupLine("");
-
-            foreach (var violation in violations)
-            {
-                bool isWarning = violation.IsWarning || settings.TreatDenyAsWarning;
-                string label = isWarning ? "WARNING" : "DENIED";
-
-                logger.LogInformation("{Id} {Version} [{Label}]", violation.PackageId, violation.Version, label);
-                logger.LogInformation("- License: {License}", violation.License);
-                logger.LogInformation("- Feed: {Source} ({Url})", violation.FeedName, violation.FeedUrl);
-
-                if (!string.IsNullOrWhiteSpace(violation.Reason))
-                {
-                    logger.LogInformation("- Reason: {Reason}", violation.Reason);
-                }
-
-                if (violation.Projects.Any())
-                {
-                    logger.LogInformation("- Projects:");
-                }
-
-                foreach (string project in violation.Projects)
-                {
-                    logger.LogInformation("  - {Project}", project);
-                }
-
-                AnsiConsole.MarkupLine("");
-            }
-
-            bool hasFailingViolation = violations.Any(violation => !violation.IsWarning) && !settings.TreatDenyAsWarning;
-            return hasFailingViolation && !settings.IgnoreViolations ? FailureExitCode : SuccessExitCode;
+            WriteViolations(logger, regular,
+                violation => violation.IsWarning || settings.TreatDenyAsWarning ? "WARNING" : "DENIED");
         }
 
-        AnsiConsole.MarkupLine("[green3_1]No policy violations found.[/]");
-        return SuccessExitCode;
+        // A malicious package fails the run even when denies are otherwise treated as warnings
+        bool hasFailingViolation = malicious.Length > 0 ||
+                                   (regular.Any(violation => !violation.IsWarning) && !settings.TreatDenyAsWarning);
+
+        return hasFailingViolation && !settings.IgnoreViolations ? FailureExitCode : SuccessExitCode;
+    }
+
+    private static void WriteViolations(ILogger logger, PolicyViolation[] violations, Func<PolicyViolation, string> getLabel)
+    {
+        foreach (var violation in violations)
+        {
+            logger.LogInformation("{Id} {Version} [{Label}]", violation.PackageId, violation.Version, getLabel(violation));
+            logger.LogInformation("- License: {License}", violation.License);
+            logger.LogInformation("- Feed: {Source} ({Url})", violation.FeedName, violation.FeedUrl);
+
+            if (!string.IsNullOrWhiteSpace(violation.Reason))
+            {
+                logger.LogInformation("- Reason: {Reason}", violation.Reason);
+            }
+
+            if (violation.Projects.Any())
+            {
+                logger.LogInformation("- Projects:");
+            }
+
+            foreach (string project in violation.Projects)
+            {
+                logger.LogInformation("  - {Project}", project);
+            }
+
+            AnsiConsole.MarkupLine("");
+        }
     }
 
     /// <summary>
