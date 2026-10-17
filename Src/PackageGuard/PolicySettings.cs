@@ -17,6 +17,9 @@ public class PolicySettings
     public RiskExceptionItem[] RiskExceptions { get; set; } = [];
 
     [UsedImplicitly]
+    public VulnerabilityExceptionItem[] VulnerabilityExceptions { get; set; } = [];
+
+    [UsedImplicitly]
     public string[] IgnoredFeeds { get; set; } = [];
 
     public class PolicyItem
@@ -58,6 +61,9 @@ public class PolicySettings
         public double? MaxOsvSeverityScore { get; set; }
 
         [UsedImplicitly]
+        public bool DenyKnownExploited { get; set; }
+
+        [UsedImplicitly]
         public bool DenyUnsigned { get; set; }
 
         [UsedImplicitly]
@@ -74,6 +80,21 @@ public class PolicySettings
     {
         [UsedImplicitly]
         public bool Prerelease { get; set; }
+    }
+
+    public class VulnerabilityExceptionItem
+    {
+        [UsedImplicitly]
+        public string Vulnerability { get; set; } = "";
+
+        [UsedImplicitly]
+        public string Package { get; set; } = "*";
+
+        [UsedImplicitly]
+        public string Reason { get; set; } = "";
+
+        [UsedImplicitly]
+        public DateOnly? ReviewOn { get; set; }
     }
 
     public class RiskExceptionItem

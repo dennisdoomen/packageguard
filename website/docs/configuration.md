@@ -159,6 +159,7 @@ Besides package identity and license, the `deny` section can also gate on the [r
 - `maxOverallRisk` - denies a package whose overall risk score (`0`-`100`) exceeds this value.
 - `maxLegalRisk`, `maxSecurityRisk`, `maxOperationalRisk` - deny a package whose legal, security or operational dimension score (`0`-`10` each) exceeds this value. A package can be operationally awful and still land under `maxOverallRisk`, so these give you more targeted control than the blended score alone.
 - `maxOsvSeverityScore` - denies a package whose highest known OSV/CVSS severity exceeds this value (for example `7.0` to deny anything "High" or above), independent of the blended security score.
+- `denyKnownExploited` - denies a package that has a vulnerability on the [CISA Known Exploited Vulnerabilities (KEV)](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) list.
 - `denyUnsigned` - denies packages that aren't signed. Packages for which signing can't be evaluated (for example npm packages) are never denied by this rule.
 - `denyDeprecated` - denies packages marked as deprecated by their registry.
 - `denyWithoutRepository` - denies packages that don't declare a repository URL.
@@ -190,6 +191,31 @@ A build can pass today and fail tomorrow because a new CVE was published or a ri
 ```
 
 Once `expiresOn` has passed, the exception stops applying and the package is denied again if it still violates a risk rule.
+
+### Vulnerability exceptions
+
+`vulnerabilityExceptions` records that you analyzed a specific vulnerability and decided it does not apply to you. It needs a `reason` and a `reviewOn` date on which you must look at the decision again.
+
+```json
+{
+    "settings": {
+        "vulnerabilityExceptions": [
+            {
+                "vulnerability": "CVE-2024-0001",
+                "package": "System.Security.Cryptography.Xml",
+                "reason": "We only parse XML that we generate ourselves, so the vulnerable path is never reached.",
+                "reviewOn": "2026-12-01"
+            }
+        ]
+    }
+}
+```
+
+- `vulnerability` - the OSV identifier or any of its aliases, such as a `CVE-` or `GHSA-` id. An advisory id already identifies the affected versions, so there is no version setting.
+- `package` - optional name or wildcard. Use it when the same vulnerability affects several packages and you only analyzed one.
+- `reason` and `reviewOn` - both are required.
+
+Until the review date, the vulnerability does not count: it is left out of the vulnerability totals, the Security score and the deny rules (`maxOsvSeverityScore`, `denyKnownExploited`). The HTML report keeps it in the Vulnerabilities table, on a green row with the reason and review date. After the review date the exception lapses, the vulnerability counts again, and the report shows that the decision expired. When several projects use the same package, every one of their policies needs the exception. A `MAL-` malicious-package advisory is only covered when you name its exact id.
 
 ## Warnings instead of build failures
 

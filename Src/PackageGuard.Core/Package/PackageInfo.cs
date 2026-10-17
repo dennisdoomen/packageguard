@@ -165,6 +165,37 @@ public partial class PackageInfo
     public OsvVulnerabilityRecord[] Vulnerabilities { get; set; } = [];
 
     /// <summary>
+    /// Gets the vulnerabilities that count, which excludes the ones marked as not applicable by a policy exception.
+    /// </summary>
+    [MemoryPackIgnore]
+    internal IEnumerable<OsvVulnerabilityRecord> ActiveVulnerabilities =>
+        Vulnerabilities.Where(vulnerability => !vulnerability.IsSuppressed);
+
+    /// <summary>
+    /// Gets the identifiers of the OpenSSF malicious-package advisories (<c>MAL-</c>) reported for this package version.
+    /// </summary>
+    [MemoryPackIgnore]
+    public string[] MaliciousAdvisoryIds =>
+        ActiveVulnerabilities.Where(vulnerability => vulnerability.IsMalicious).Select(vulnerability => vulnerability.Id).ToArray();
+
+    /// <summary>
+    /// Gets the CVE identifiers of the vulnerabilities of this package version that are on the CISA KEV list.
+    /// </summary>
+    [MemoryPackIgnore]
+    public string[] KnownExploitedCveIds =>
+        ActiveVulnerabilities.Where(vulnerability => vulnerability.IsKnownExploited)
+            .SelectMany(vulnerability => vulnerability.CveIds)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+    /// <summary>
+    /// Gets the highest EPSS exploitation probability (0-1) across the vulnerabilities of this package version,
+    /// or <see langword="null"/> when no EPSS data is available.
+    /// </summary>
+    [MemoryPackIgnore]
+    public double? MaxEpssScore => ActiveVulnerabilities.Max(vulnerability => vulnerability.EpssScore);
+
+    /// <summary>
     /// Gets or sets the shortest dependency depth discovered for this package in the analyzed graph.
     /// For NuGet, <see cref="CSharp.CSharpProjectAnalysisStrategy"/> computes this with a breadth-first
     /// walk from direct project dependencies starting at depth 1.

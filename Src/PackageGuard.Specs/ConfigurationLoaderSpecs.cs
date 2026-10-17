@@ -637,6 +637,39 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
+    public void Can_parse_vulnerability_exceptions()
+    {
+        // Arrange
+        File.WriteAllText(ChainablePath.Current / "test.json",
+            """
+            {
+                "settings": {
+                    "deny": { "denyKnownExploited": true },
+                    "vulnerabilityExceptions": [
+                        {
+                            "vulnerability": "CVE-2024-0001",
+                            "package": "Contoso.Xml",
+                            "reason": "The vulnerable code path is never reached",
+                            "reviewOn": "2026-12-01"
+                        }
+                    ]
+                }
+            }
+            """);
+
+        // Act
+        ProjectPolicy policy = configurationLoader.GetConfigurationFromConfigPath("test.json");
+
+        // Assert
+        policy.DenyList.DenyKnownExploited.Should().BeTrue();
+        VulnerabilityException exception = policy.VulnerabilityExceptions.Should().ContainSingle().Subject;
+        exception.Vulnerability.Should().Be("CVE-2024-0001");
+        exception.Package.Should().Be("Contoso.Xml");
+        exception.Reason.Should().Be("The vulnerable code path is never reached");
+        exception.ReviewOn.Should().Be(new DateOnly(2026, 12, 1));
+    }
+
+    [TestMethod]
     public void Project_level_config_without_a_risk_threshold_keeps_the_solution_level_threshold()
     {
         // Arrange

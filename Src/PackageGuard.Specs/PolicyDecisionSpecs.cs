@@ -189,6 +189,35 @@ public class PolicyDecisionSpecs
     }
 
     [TestMethod]
+    public void Denies_a_package_with_a_known_exploited_vulnerability_when_configured()
+    {
+        // Arrange
+        var denyList = new DenyList { DenyKnownExploited = true };
+        PackageInfo package = CreatePackage();
+        package.Vulnerabilities = [new OsvVulnerabilityRecord { Id = "GHSA-x", Aliases = ["CVE-2024-0001"], IsKnownExploited = true }];
+
+        // Act
+        PolicyDecision decision = denyList.EvaluateRiskDeny(package);
+
+        // Assert
+        denyList.HasRiskPolicies.Should().BeTrue();
+        decision.IsMatch.Should().BeTrue();
+        decision.Reason.Should().Contain("CVE-2024-0001");
+    }
+
+    [TestMethod]
+    public void Allows_a_package_without_a_known_exploited_vulnerability_even_when_configured()
+    {
+        // Arrange
+        var denyList = new DenyList { DenyKnownExploited = true };
+        PackageInfo package = CreatePackage();
+        package.Vulnerabilities = [new OsvVulnerabilityRecord { Id = "GHSA-x", Aliases = ["CVE-2024-0001"] }];
+
+        // Act & Assert
+        denyList.EvaluateRiskDeny(package).IsMatch.Should().BeFalse();
+    }
+
+    [TestMethod]
     public void Denies_an_unsigned_package_when_configured()
     {
         // Arrange

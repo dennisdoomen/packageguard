@@ -70,6 +70,7 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         target.DenyList.MaxSecurityRisk = source.DenyList.MaxSecurityRisk ?? target.DenyList.MaxSecurityRisk;
         target.DenyList.MaxOperationalRisk = source.DenyList.MaxOperationalRisk ?? target.DenyList.MaxOperationalRisk;
         target.DenyList.MaxOsvSeverityScore = source.DenyList.MaxOsvSeverityScore ?? target.DenyList.MaxOsvSeverityScore;
+        target.DenyList.DenyKnownExploited = source.DenyList.DenyKnownExploited;
         target.DenyList.DenyUnsigned = source.DenyList.DenyUnsigned;
         target.DenyList.DenyDeprecated = source.DenyList.DenyDeprecated;
         target.DenyList.DenyWithoutRepository = source.DenyList.DenyWithoutRepository;
@@ -82,6 +83,7 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         target.WarnList.Prerelease = source.WarnList.Prerelease;
 
         target.RiskExceptions.AddRange(source.RiskExceptions);
+        target.VulnerabilityExceptions.AddRange(source.VulnerabilityExceptions);
 
         target.IgnoredFeeds = [..target.IgnoredFeeds, ..source.IgnoredFeeds];
     }
@@ -248,6 +250,7 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         policy.DenyList.MaxSecurityRisk = settings.Deny.MaxSecurityRisk;
         policy.DenyList.MaxOperationalRisk = settings.Deny.MaxOperationalRisk;
         policy.DenyList.MaxOsvSeverityScore = settings.Deny.MaxOsvSeverityScore;
+        policy.DenyList.DenyKnownExploited = settings.Deny.DenyKnownExploited;
         policy.DenyList.DenyUnsigned = settings.Deny.DenyUnsigned;
         policy.DenyList.DenyDeprecated = settings.Deny.DenyDeprecated;
         policy.DenyList.DenyWithoutRepository = settings.Deny.DenyWithoutRepository;
@@ -282,6 +285,17 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
                 Reason = exception.Reason,
                 ExpiresOn = exception.ExpiresOn,
                 SourceFile = sourceFile
+            });
+        }
+
+        foreach (PolicySettings.VulnerabilityExceptionItem exception in settings.VulnerabilityExceptions)
+        {
+            policy.VulnerabilityExceptions.Add(new VulnerabilityException
+            {
+                Vulnerability = exception.Vulnerability,
+                Package = exception.Package,
+                Reason = exception.Reason,
+                ReviewOn = exception.ReviewOn
             });
         }
 
