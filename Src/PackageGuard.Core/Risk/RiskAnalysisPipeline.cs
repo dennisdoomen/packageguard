@@ -61,6 +61,10 @@ internal sealed class RiskAnalysisPipeline(ILogger logger, GetPolicyByProject ge
         var enricher = new ParallelPackageRiskEnricher(logger, settings.GitHubApiKey);
         await enricher.EnrichAsync(enrichmentSet, logger, onEnrichmentProgress);
 
+        // Needs the OSV vulnerabilities, so it cannot be one of the parallel enrichers
+        await new ExploitDataEnricher(logger).EnrichAsync(enrichmentSet);
+        ApplyVulnerabilityExceptions(enrichmentSet);
+
         IReadOnlyDictionary<string, PackageInfo> packagesByKey = packages.CreatePackagesByKey();
         var transitiveVulnEnricher = new TransitiveVulnerabilityCountEnricher(packagesByKey);
         var healthEnricher = new DependencyHealthCountEnricher(packagesByKey);
@@ -83,16 +87,61 @@ internal sealed class RiskAnalysisPipeline(ILogger logger, GetPolicyByProject ge
     }
 
     /// <summary>
+    /// Marks the vulnerabilities that a policy exception covers and recomputes the vulnerability count and highest
+    /// severity from the ones that still count. Done on every run, so removing an exception takes effect right away
+    /// even for packages whose OSV data came from the cache.
+    /// </summary>
+    internal void ApplyVulnerabilityExceptions(IEnumerable<PackageInfo> packages)
+    {
+        foreach (PackageInfo package in packages.Where(package => package.Vulnerabilities.Length > 0))
+        {
+            foreach (OsvVulnerabilityRecord vulnerability in package.Vulnerabilities)
+            {
+                vulnerability.Exception = FindExceptionInEveryProject(package, vulnerability);
+            }
+
+            OsvVulnerabilityRecord[] active = package.ActiveVulnerabilities.ToArray();
+            package.VulnerabilityCount = active.Length;
+            package.MaxVulnerabilitySeverity = active.Length == 0 ? 0 : active.Max(vulnerability => vulnerability.Severity);
+        }
+    }
+
+    /// <summary>
+    /// Returns the exception for a vulnerability only when the policy of every project that uses the package has one;
+    /// when they differ, the one that has to be reviewed first applies.
+    /// </summary>
+    private VulnerabilityException? FindExceptionInEveryProject(PackageInfo package, OsvVulnerabilityRecord vulnerability)
+    {
+        VulnerabilityException?[] exceptions = package.Projects
+            .Select(projectPath => getPolicyByProject(projectPath).FindVulnerabilityException(package, vulnerability))
+            .ToArray();
+
+        return exceptions.Length == 0 || exceptions.Any(exception => exception is null)
+            ? null
+            : exceptions.OrderBy(exception => exception!.ReviewOn).First();
+    }
+
+    /// <summary>
     /// Checks every package against the risk-based deny rules of the policy of each project that references
     /// it, skipping packages covered by a currently-applicable <see cref="RiskException"/>. Requires
     /// <paramref name="packages"/> to have already been scored by the risk pipeline.
     /// </summary>
-    private PolicyViolation[] EvaluateRiskBasedViolations(PackageInfo[] packages)
+    internal PolicyViolation[] EvaluateRiskBasedViolations(PackageInfo[] packages)
     {
         List<PolicyViolation> violations = new();
 
         foreach (PackageInfo package in packages)
         {
+            // A malicious package is blocked regardless of policy, risk score or risk exceptions
+            if (package.MaliciousAdvisoryIds is { Length: > 0 } advisoryIds)
+            {
+                violations.Add(new PolicyViolation(package.Name, package.Version, package.License ?? "",
+                    package.Projects.ToArray(), package.Source, package.SourceUrl,
+                    $"known malicious package ({string.Join(", ", advisoryIds)})", IsMalicious: true));
+
+                continue;
+            }
+
             foreach (string projectPath in package.Projects)
             {
                 ProjectPolicy policy = getPolicyByProject(projectPath);

@@ -28,6 +28,12 @@
         },
         "RiskExceptions": [
             {
+                "Package": "System.Security.Cryptography.Xml",
+                "Versions": "[10.0.13]",
+                "Reason": "Pinned to 10.0.13 because it fixes GHSA-7hqp-7c5m-4vq6. It was published a few hours short of the 3-day minimum age; this exception covers only that gap.",
+                "ExpiresOn": "2026-10-17"
+            },
+            {
                 "Package": "Newtonsoft.Json",
                 "Reason": "Actively maintained, widely-used dependency; operational risk score reflects generic release-cadence heuristics rather than an actual concern. Accepted when MaxOperationalRisk gating was introduced."
             },

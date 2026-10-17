@@ -24,6 +24,7 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         }
 
         risk += EvaluateVulnerabilityRisk(package, rationale);
+        risk += EvaluateExploitRisk(package, rationale);
         risk += EvaluateTransitiveDependencyRisk(package, rationale);
         risk += EvaluateSupplyChainRisk(package, rationale);
         risk += EvaluateOwnershipRisk(package, rationale);
@@ -89,6 +90,32 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         }
 
         return cappedVulnerabilityRisk;
+    }
+
+    /// <summary>
+    /// Scores how likely the known vulnerabilities are to be exploited, on top of how severe they are. Kept outside
+    /// the vulnerability cap so that a known-exploited vulnerability always weighs in.
+    /// </summary>
+    private static double EvaluateExploitRisk(PackageInfo package, List<string> rationale)
+    {
+        double risk = 0;
+
+        if (package.KnownExploitedCveIds is { Length: > 0 } exploitedCveIds)
+        {
+            risk += 3.0;
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                $"Vulnerabilities are on the CISA Known Exploited Vulnerabilities list ({string.Join(", ", exploitedCveIds)})", 3.0));
+        }
+
+        if (package.MaxEpssScore is > 0 and var epss)
+        {
+            double epssRisk = epss * 1.5;
+            risk += epssRisk;
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                $"Highest EPSS exploitation probability within 30 days is {RiskEvaluationHelpers.FormatScore(epss * 100)}%", epssRisk));
+        }
+
+        return risk;
     }
 
     private static double EvaluateTransitiveDependencyRisk(PackageInfo package, List<string> rationale)
