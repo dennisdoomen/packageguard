@@ -257,4 +257,23 @@ public class ProjectAnalyzerSpecs
             return Task.CompletedTask;
         }
     }
+
+    [TestMethod]
+    public void Reports_a_package_violated_in_several_projects_once_with_all_those_projects()
+    {
+        // Arrange
+        PolicyViolation[] violations =
+        [
+            new("FluentAssertions", "8.11.0", "Unknown", ["A.csproj"], "nuget.org", "https://api.nuget.org/v3/index.json", "denied"),
+            new("FluentAssertions", "8.11.0", "Unknown", ["B.csproj"], "nuget.org", "https://api.nuget.org/v3/index.json", "denied"),
+            new("FluentAssertions", "8.11.0", "Unknown", ["B.csproj"], "nuget.org", "https://api.nuget.org/v3/index.json", "warned", IsWarning: true)
+        ];
+
+        // Act
+        PolicyViolation[] merged = ProjectAnalyzer.MergeViolations(violations);
+
+        // Assert
+        merged.Should().HaveCount(2);
+        merged.Single(violation => !violation.IsWarning).Projects.Should().BeEquivalentTo("A.csproj", "B.csproj");
+    }
 }

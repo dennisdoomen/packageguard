@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NuGet.ProjectModel;
 using PackageGuard.Core.CSharp;
@@ -89,7 +89,7 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
 
         return new AnalysisResult
         {
-            Violations = violations.ToArray(),
+            Violations = MergeViolations(violations),
             Packages = allPackages
         };
     }
@@ -115,4 +115,17 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
 
         return violations;
     }
+
+    /// <summary>
+    /// Combines violations that report the same finding for the same package, which happens when several
+    /// projects each violate it, so every package is listed once with all the projects it was found in.
+    /// </summary>
+    internal static PolicyViolation[] MergeViolations(IEnumerable<PolicyViolation> violations) =>
+        violations
+            .GroupBy(violation => (violation.PackageId, violation.Version, violation.Reason, violation.IsWarning, violation.IsMalicious))
+            .Select(group => group.First() with
+            {
+                Projects = group.SelectMany(violation => violation.Projects).Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
+            })
+            .ToArray();
 }
