@@ -48,7 +48,7 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
 
                 await CollectPackagesFrom(projectPath, settings, packages, analyzer);
 
-                violations.AddRange(VerifyAgainstPolicy(packages, policy));
+                violations.AddRange(VerifyAgainstPolicy(packages, policy, projectPath));
             }
         }
         else
@@ -120,7 +120,7 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
     /// Checks every package in <paramref name="packages"/> against the allow/deny lists and license rules in
     /// <paramref name="policy"/> and returns a violation record for each non-compliant package.
     /// </summary>
-    private PolicyViolation[] VerifyAgainstPolicy(PackageInfoCollection packages, ProjectPolicy policy)
+    private PolicyViolation[] VerifyAgainstPolicy(PackageInfoCollection packages, ProjectPolicy policy, string projectPath)
     {
         var violations = new List<PolicyViolation>();
 
@@ -134,7 +134,7 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
             if (!allowDecision.IsMatch || denyDecision.IsMatch)
             {
                 PolicyDecision decision = denyDecision.IsMatch ? denyDecision : allowDecision;
-                violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(),
+                violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, [projectPath],
                     package.Source, package.SourceUrl, decision.Reason));
             }
             else
@@ -142,7 +142,7 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
                 PolicyDecision warnDecision = policy.WarnList.EvaluateWarn(package);
                 if (warnDecision.IsMatch)
                 {
-                    violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(),
+                    violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, [projectPath],
                         package.Source, package.SourceUrl, warnDecision.Reason, IsWarning: true));
                 }
             }
