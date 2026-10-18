@@ -157,6 +157,12 @@
       <None Include="TestCases\UnknownLicense\ConsoleApp.sln">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <Content Include="TestCases\CustomIntermediatePath\CustomIntermediatePath.csproj">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
+      <Content Include="TestCases\CustomIntermediatePath\Directory.Build.props">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Content>
       <Content Include="TestCases\SlnxApp\SlnxApp.csproj">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>
