@@ -1,5 +1,6 @@
 // See https://aka.ms/new-console-template for more information
 
+using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using PackageGuard;
@@ -7,6 +8,10 @@ using Serilog;
 using Spectre.Console.Cli;
 using Spectre.Console.Cli.Extensions.DependencyInjection;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
+
+// Windows consoles default to an OEM code page that cannot encode symbols like ← and →. .NET then substitutes
+// control characters (← becomes ESC), which the terminal treats as escape sequences that swallow the next characters.
+Console.OutputEncoding = Encoding.UTF8;
 
 bool verbose = args.Contains("--verbose", StringComparer.OrdinalIgnoreCase)
             || args.Contains("-v", StringComparer.OrdinalIgnoreCase);
