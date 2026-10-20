@@ -48,7 +48,7 @@ public class GitHubLicenseFetcher : IFetchLicense
         }
 
         logger.LogDebug("Fetching GitHub license from {Url}", url);
-        using JsonDocument? document = await apiClient.GetJsonAsync(url);
+        using JsonDocument? document = await apiClient.GetJsonAsync(url, fields: GitHubResponseFields.Repository);
         if (document is null)
         {
             return;

@@ -36,6 +36,15 @@ internal sealed partial class GitHubResponseCacheEntry
     public DateTimeOffset StoredAt { get; set; }
 
     /// <summary>
+    /// The <see cref="GitHubResponseFields.Signature"/> of the selection <see cref="Body"/> was trimmed to, or
+    /// <see langword="null"/> for an entry without a body or one written before responses were trimmed.
+    /// </summary>
+    /// <remarks>
+    /// Declared after the other persisted members, which MemoryPack requires to keep reading older cache files.
+    /// </remarks>
+    public string? Fields { get; set; }
+
+    /// <summary>
     /// Indicates whether the entry was read or written during the current run. Entries left untouched are dropped
     /// when the cache is persisted, so the file does not grow without bound.
     /// </summary>

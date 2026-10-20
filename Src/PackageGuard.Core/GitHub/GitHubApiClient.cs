@@ -216,12 +216,14 @@ internal sealed class GitHubApiClient : IDisposable
     /// </summary>
     /// <param name="url">The absolute GitHub API URL to request.</param>
     /// <param name="importance">How valuable the request is when the budget runs low.</param>
+    /// <param name="fields">The properties the caller reads; the rest of the response is dropped before it is cached.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     public async Task<JsonDocument?> GetJsonAsync(string url,
         GitHubRequestImportance importance = GitHubRequestImportance.Essential,
+        GitHubResponseFields? fields = null,
         CancellationToken cancellationToken = default)
     {
-        string? body = await GetStringAsync(url, importance, cancellationToken);
+        string? body = await GetStringAsync(url, importance, fields ?? GitHubResponseFields.All, cancellationToken);
         if (string.IsNullOrEmpty(body))
         {
             return null;
@@ -244,11 +246,13 @@ internal sealed class GitHubApiClient : IDisposable
     /// </summary>
     /// <param name="url">The absolute GitHub API URL to request.</param>
     /// <param name="importance">How valuable the request is when the budget runs low.</param>
+    /// <param name="fields">The properties to keep from the response.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     private async Task<string?> GetStringAsync(string url, GitHubRequestImportance importance,
+        GitHubResponseFields fields,
         CancellationToken cancellationToken = default)
     {
-        string? alreadyFetched = responseCache.FindFreshBody(url);
+        string? alreadyFetched = responseCache.FindFreshBody(url, fields);
         if (alreadyFetched is not null)
         {
             return alreadyFetched;
@@ -261,7 +265,7 @@ internal sealed class GitHubApiClient : IDisposable
 
         for (int attempt = 1; attempt <= MaxAttempts; attempt++)
         {
-            GitHubAttemptResult result = await SendOnceAsync(url, cancellationToken);
+            GitHubAttemptResult result = await SendOnceAsync(url, fields, cancellationToken);
             if (result.IsFinal)
             {
                 return result.Body;
@@ -302,12 +306,13 @@ internal sealed class GitHubApiClient : IDisposable
     /// <summary>
     /// Performs a single attempt, translating the response into either a final answer or a retry instruction.
     /// </summary>
-    private async Task<GitHubAttemptResult> SendOnceAsync(string url, CancellationToken cancellationToken)
+    private async Task<GitHubAttemptResult> SendOnceAsync(string url, GitHubResponseFields fields,
+        CancellationToken cancellationToken)
     {
         await concurrencyGate.WaitAsync(cancellationToken);
         try
         {
-            return await SendAndInterpretAsync(url, cancellationToken);
+            return await SendAndInterpretAsync(url, fields, cancellationToken);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException &&
                                   !cancellationToken.IsCancellationRequested)
@@ -324,9 +329,10 @@ internal sealed class GitHubApiClient : IDisposable
     /// <summary>
     /// Sends the conditional request and maps the status code onto an attempt result.
     /// </summary>
-    private async Task<GitHubAttemptResult> SendAndInterpretAsync(string url, CancellationToken cancellationToken)
+    private async Task<GitHubAttemptResult> SendAndInterpretAsync(string url, GitHubResponseFields fields,
+        CancellationToken cancellationToken)
     {
-        GitHubResponseCacheEntry? cached = responseCache.Find(url);
+        GitHubResponseCacheEntry? cached = responseCache.FindResponse(url, fields);
 
         logger.LogDebug("GET {Url}", url);
         using HttpRequestMessage request = CreateRequest(url, cached?.ETag);
@@ -340,18 +346,18 @@ internal sealed class GitHubApiClient : IDisposable
         }
 
         return response.IsSuccessStatusCode
-            ? GitHubAttemptResult.Final(await StoreSuccessAsync(url, response, cancellationToken))
+            ? GitHubAttemptResult.Final(await StoreSuccessAsync(url, response, fields, cancellationToken))
             : InterpretFailure(url, response);
     }
 
     /// <summary>
-    /// Reads and caches the body of a successful response.
+    /// Reads the body of a successful response, trims it to the properties the caller reads, and caches it.
     /// </summary>
-    private async Task<string> StoreSuccessAsync(string url, HttpResponseMessage response,
+    private async Task<string> StoreSuccessAsync(string url, HttpResponseMessage response, GitHubResponseFields fields,
         CancellationToken cancellationToken)
     {
-        string body = await response.Content.ReadAsStringAsync(cancellationToken);
-        responseCache.StoreResponse(url, response.Headers.ETag?.ToString(), body);
+        string body = fields.Trim(await response.Content.ReadAsStringAsync(cancellationToken));
+        responseCache.StoreResponse(url, response.Headers.ETag?.ToString(), body, fields);
         return body;
     }
 
