@@ -109,6 +109,44 @@ public class GitHubApiClientSpecs
     }
 
     [TestMethod]
+    public async Task Keeps_only_the_properties_the_caller_reads()
+    {
+        // Arrange
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() => ScriptedResponse.Json(
+            """[{"sha":"abc","author":{"login":"jane","avatar_url":"x"},"commit":{"message":"m","author":{"date":"2026-01-01T00:00:00Z"}}}]"""));
+
+        using var client = new GitHubApiClient(NullLogger.Instance, apiKey: null, responseCache: null, handler);
+
+        // Act
+        using JsonDocument document = await client.GetJsonAsync(Url,
+            fields: GitHubResponseFields.Of("author.login", "commit.author.date"));
+
+        // Assert
+        document!.RootElement.GetRawText().Should().Be(
+            """[{"author":{"login":"jane"},"commit":{"author":{"date":"2026-01-01T00:00:00Z"}}}]""");
+    }
+
+    [TestMethod]
+    public async Task Fetches_a_body_again_when_it_was_cached_for_other_properties()
+    {
+        // Arrange
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() =>
+            ScriptedResponse.Json("""{"name":"widget","html_url":"https://github.com/acme/widget"}""", eTag: "\"abc123\""));
+
+        var cache = new GitHubResponseCache(NullLogger.Instance);
+        using var client = new GitHubApiClient(NullLogger.Instance, apiKey: null, cache, handler);
+        await client.GetJsonAsync(Url, fields: GitHubResponseFields.Of("name"));
+
+        // Act
+        using JsonDocument document = await client.GetJsonAsync(Url, fields: GitHubResponseFields.Of("name", "html_url"));
+
+        // Assert
+        document!.RootElement.GetProperty("html_url").GetString().Should().Be("https://github.com/acme/widget");
+        handler.Requests.Last().Headers.IfNoneMatch.Should().BeEmpty(
+            "a 304 would hand back the cached body, which lacks the property");
+    }
+
+    [TestMethod]
     public async Task Revalidates_a_persisted_body_with_a_conditional_request_on_a_later_run()
     {
         // Arrange

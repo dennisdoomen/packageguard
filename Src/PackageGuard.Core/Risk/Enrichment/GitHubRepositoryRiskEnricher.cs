@@ -218,7 +218,7 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     {
         try
         {
-            using JsonDocument? repoDocument = await GetJsonAsync(repositoryApiRoot);
+            using JsonDocument? repoDocument = await GetJsonAsync(repositoryApiRoot, GitHubResponseFields.Repository);
             if (repoDocument is null)
             {
                 return null;
@@ -241,7 +241,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
 
             using JsonDocument? ownerDocument = await GetJsonAsync(ownerIsOrganization
                 ? $"https://api.github.com/orgs/{ownerLogin}"
-                : $"https://api.github.com/users/{ownerLogin}");
+                : $"https://api.github.com/users/{ownerLogin}",
+                GitHubResponseFields.Of("created_at"));
 
             DateTimeOffset? ownerCreatedAt = ownerDocument is null
                 ? null
@@ -374,20 +375,22 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     }
 
     /// <summary>Requests a document that the repository's risk profile depends on.</summary>
-    private Task<JsonDocument?> GetJsonAsync(string url) => apiClient.GetJsonAsync(url);
+    private Task<JsonDocument?> GetJsonAsync(string url, GitHubResponseFields fields) =>
+        apiClient.GetJsonAsync(url, fields: fields);
 
     /// <summary>
     /// Requests a document that refines a single risk signal. Requests like these are dropped once the rate limit
     /// budget runs low, so that the repositories still to be scanned keep getting their essential signals.
     /// </summary>
-    private Task<JsonDocument?> GetOptionalJsonAsync(string url) =>
-        apiClient.GetJsonAsync(url, GitHubRequestImportance.Optional);
+    private Task<JsonDocument?> GetOptionalJsonAsync(string url, GitHubResponseFields fields) =>
+        apiClient.GetJsonAsync(url, GitHubRequestImportance.Optional, fields);
 
     /// <summary>Lists filenames in the repository root directory.</summary>
     private async Task<string[]> GetRootFilesAsync(string repositoryApiRoot, string defaultBranch)
     {
         using JsonDocument? contents =
-            await GetJsonAsync($"{repositoryApiRoot}/contents?ref={Uri.EscapeDataString(defaultBranch)}");
+            await GetJsonAsync($"{repositoryApiRoot}/contents?ref={Uri.EscapeDataString(defaultBranch)}",
+                GitHubResponseFields.Of("name"));
 
         if (contents?.RootElement.ValueKind != JsonValueKind.Array)
         {
@@ -406,7 +409,7 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     {
         try
         {
-            using JsonDocument? readmeDoc = await GetJsonAsync($"{repositoryApiRoot}/readme");
+            using JsonDocument? readmeDoc = await GetJsonAsync($"{repositoryApiRoot}/readme", GitHubResponseFields.Of("content"));
             if (readmeDoc is null)
             {
                 return new GitHubReadmeData
@@ -459,7 +462,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     /// <summary>Fetches contributor list and computes concentration metrics.</summary>
     private async Task<GitHubContributorData> GetContributorDataAsync(string repositoryApiRoot)
     {
-        using JsonDocument? contributorsDoc = await GetJsonAsync($"{repositoryApiRoot}/contributors?per_page=100");
+        using JsonDocument? contributorsDoc = await GetJsonAsync($"{repositoryApiRoot}/contributors?per_page=100",
+            GitHubResponseFields.Of("login", "contributions"));
         if (contributorsDoc?.RootElement.ValueKind != JsonValueKind.Array)
         {
             return new GitHubContributorData();
@@ -636,7 +640,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     private async Task<GitHubIssueData> GetIssueDataAsync(string repositoryApiRoot)
     {
         using JsonDocument? issuesDoc =
-            await GetJsonAsync($"{repositoryApiRoot}/issues?state=open&labels=bug&per_page=100");
+            await GetJsonAsync($"{repositoryApiRoot}/issues?state=open&labels=bug&per_page=100",
+                GitHubResponseFields.Of("number", "created_at", "labels.name", "comments_url", "pull_request.url"));
 
         if (issuesDoc?.RootElement.ValueKind != JsonValueKind.Array)
         {
@@ -737,7 +742,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
 
         try
         {
-            using JsonDocument? commentsDoc = await GetOptionalJsonAsync(issue.CommentsUrl);
+            using JsonDocument? commentsDoc = await GetOptionalJsonAsync(issue.CommentsUrl,
+                GitHubResponseFields.Of("author_association", "created_at"));
             if (commentsDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
                 return new GitHubIssueResponseData();
@@ -790,7 +796,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     private async Task<GitHubPullRequestSnapshot[]> GetMergedPullRequestsAsync(string repositoryApiRoot)
     {
         using JsonDocument? pullsDoc =
-            await GetJsonAsync($"{repositoryApiRoot}/pulls?state=closed&sort=updated&direction=desc&per_page=100");
+            await GetJsonAsync($"{repositoryApiRoot}/pulls?state=closed&sort=updated&direction=desc&per_page=100",
+                GitHubResponseFields.Of("number", "author_association", "created_at", "merged_at"));
 
         if (pullsDoc?.RootElement.ValueKind != JsonValueKind.Array)
         {
@@ -832,7 +839,9 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     {
         try
         {
-            using JsonDocument? releaseDoc = await GetJsonAsync($"{repositoryApiRoot}/releases?per_page=10");
+            using JsonDocument? releaseDoc = await GetJsonAsync($"{repositoryApiRoot}/releases?per_page=10",
+                GitHubResponseFields.Of("tag_name", "body", "published_at", "created_at", "prerelease", "target_commitish",
+                    "immutable"));
             if (releaseDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
                 return new GitHubReleaseData();
@@ -976,7 +985,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         try
         {
             using JsonDocument? workflowsDoc = await GetJsonAsync(
-                $"{repositoryApiRoot}/actions/runs?branch={Uri.EscapeDataString(defaultBranch)}&per_page=10");
+                $"{repositoryApiRoot}/actions/runs?branch={Uri.EscapeDataString(defaultBranch)}&per_page=10",
+                GitHubResponseFields.Of("workflow_runs.status", "workflow_runs.conclusion"));
 
             if (workflowsDoc is null ||
                 !workflowsDoc.RootElement.TryGetProperty("workflow_runs", out JsonElement runs) ||
@@ -1018,7 +1028,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         try
         {
             using JsonDocument? branchDoc = await GetJsonAsync(
-                $"{repositoryApiRoot}/branches/{Uri.EscapeDataString(defaultBranch)}");
+                $"{repositoryApiRoot}/branches/{Uri.EscapeDataString(defaultBranch)}",
+                GitHubResponseFields.Of("protected", "protection.required_status_checks.contexts"));
 
             if (branchDoc is null)
             {
@@ -1123,13 +1134,19 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         };
     }
 
-    /// <summary>Analyzes recent commits for maintainer activity and commit verification ratio.</summary>
+    /// <summary>Analyzes the commits of the last 12 months for maintainer activity and commit verification ratio.</summary>
+    /// <remarks>
+    /// The commits are filtered by date here instead of through the <c>since</c> parameter. A <c>since</c> value that
+    /// moves with the clock gives the URL a new cache key on every run, so it could never be revalidated.
+    /// </remarks>
     private async Task<GitHubCommitHealthData> GetCommitHealthDataAsync(string repositoryApiRoot, string defaultBranch)
     {
         try
         {
             using JsonDocument? commitsDoc = await GetJsonAsync(
-                $"{repositoryApiRoot}/commits?sha={Uri.EscapeDataString(defaultBranch)}&since={Uri.EscapeDataString(DateTimeOffset.UtcNow.AddMonths(-12).ToString("O"))}&per_page=100");
+                $"{repositoryApiRoot}/commits?sha={Uri.EscapeDataString(defaultBranch)}&per_page=100",
+                GitHubResponseFields.Of("author.login", "commit.author.email", "commit.author.date",
+                    "commit.verification.verified"));
 
             if (commitsDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
@@ -1139,9 +1156,20 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
             Dictionary<string, DateTimeOffset> lastActivityByMaintainer = [];
             int verifiedCommitCount = 0;
             int signedCommitSampleCount = 0;
+            DateTimeOffset oneYearAgo = DateTimeOffset.UtcNow.AddMonths(-12);
 
             foreach (JsonElement commit in commitsDoc.RootElement.EnumerateArray())
             {
+                DateTimeOffset? committedAt = commit.TryGetProperty("commit", out JsonElement commitData) &&
+                                              commitData.TryGetProperty("author", out JsonElement commitAuthor)
+                    ? TryReadDate(commitAuthor, "date")
+                    : null;
+
+                if (committedAt < oneYearAgo)
+                {
+                    continue;
+                }
+
                 string? identity =
                     commit.TryGetProperty("author", out JsonElement authorElement) &&
                     authorElement.TryGetProperty("login", out JsonElement loginElement)
@@ -1156,11 +1184,6 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
                 {
                     continue;
                 }
-
-                DateTimeOffset? committedAt = commit.TryGetProperty("commit", out JsonElement commitData) &&
-                                              commitData.TryGetProperty("author", out JsonElement commitAuthor)
-                    ? TryReadDate(commitAuthor, "date")
-                    : null;
 
                 if (committedAt != null)
                 {
@@ -1203,13 +1226,18 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     }
 
     /// <summary>Fetches bug issues closed in the last 90 days.</summary>
+    /// <remarks>
+    /// The issues are filtered by their closing date here instead of through the <c>since</c> parameter, for the
+    /// same reason as <see cref="GetCommitHealthDataAsync"/>. An issue closed in the last 90 days was also updated
+    /// in that period, so the most recently updated issues contain the same matches.
+    /// </remarks>
     private async Task<GitHubClosedIssueSnapshot[]> GetClosedBugIssuesAsync(string repositoryApiRoot)
     {
         try
         {
-            string since = Uri.EscapeDataString(DateTimeOffset.UtcNow.AddDays(-90).ToString("O"));
             using JsonDocument? issuesDoc = await GetJsonAsync(
-                $"{repositoryApiRoot}/issues?state=closed&labels=bug&sort=updated&direction=desc&since={since}&per_page=50");
+                $"{repositoryApiRoot}/issues?state=closed&labels=bug&sort=updated&direction=desc&per_page=50",
+                GitHubResponseFields.Of("number", "closed_at", "pull_request.url"));
 
             if (issuesDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
@@ -1251,7 +1279,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
             try
             {
                 using JsonDocument? eventsDoc = await GetOptionalJsonAsync(
-                    $"{repositoryApiRoot}/issues/{issue.Number}/timeline?per_page=100");
+                    $"{repositoryApiRoot}/issues/{issue.Number}/timeline?per_page=100",
+                    GitHubResponseFields.Of("event"));
 
                 return eventsDoc?.RootElement.ValueKind == JsonValueKind.Array &&
                        eventsDoc.RootElement.EnumerateArray().Any(eventItem =>
@@ -1279,7 +1308,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         try
         {
             using JsonDocument? commitsDoc = await GetOptionalJsonAsync(
-                $"{repositoryApiRoot}/commits?sha={Uri.EscapeDataString(defaultBranch)}&path={Uri.EscapeDataString(path)}&per_page=1");
+                $"{repositoryApiRoot}/commits?sha={Uri.EscapeDataString(defaultBranch)}&path={Uri.EscapeDataString(path)}&per_page=1",
+                GitHubResponseFields.Of("commit.author.date"));
 
             if (commitsDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
@@ -1318,7 +1348,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         try
         {
             using JsonDocument? workflowsDoc = await GetJsonAsync(
-                $"{repositoryApiRoot}/contents/.github/workflows?ref={Uri.EscapeDataString(defaultBranch)}");
+                $"{repositoryApiRoot}/contents/.github/workflows?ref={Uri.EscapeDataString(defaultBranch)}",
+                GitHubResponseFields.Of("path"));
 
             if (workflowsDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
@@ -1401,7 +1432,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         try
         {
             using JsonDocument? reviewsDoc =
-                await GetOptionalJsonAsync($"{repositoryApiRoot}/pulls/{pullRequestNumber}/reviews?per_page=100");
+                await GetOptionalJsonAsync($"{repositoryApiRoot}/pulls/{pullRequestNumber}/reviews?per_page=100",
+                    GitHubResponseFields.Of("user.login"));
 
             if (reviewsDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
@@ -1479,7 +1511,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         try
         {
             using JsonDocument? fileDoc = await GetJsonAsync(
-                $"{repositoryApiRoot}/contents/{Uri.EscapeDataString(path)}?ref={Uri.EscapeDataString(defaultBranch)}");
+                $"{repositoryApiRoot}/contents/{Uri.EscapeDataString(path)}?ref={Uri.EscapeDataString(defaultBranch)}",
+                GitHubResponseFields.Of("content"));
 
             if (fileDoc is not null && fileDoc.RootElement.TryGetProperty("content", out JsonElement contentElement))
             {

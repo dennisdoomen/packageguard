@@ -59,20 +59,31 @@ internal sealed class GitHubResponseCache(ILogger logger)
     }
 
     /// <summary>
+    /// Returns the cached response for <paramref name="url"/> when its body was trimmed to <paramref name="fields"/>,
+    /// or <see langword="null"/> when nothing usable is cached. A body trimmed to another selection can lack a
+    /// property the caller reads, so it is fetched again instead of revalidated.
+    /// </summary>
+    public GitHubResponseCacheEntry? FindResponse(string url, GitHubResponseFields fields)
+    {
+        GitHubResponseCacheEntry? entry = Find(url);
+        return entry is { IsNotFound: false } && entry.Fields == fields.Signature ? entry : null;
+    }
+
+    /// <summary>
     /// Returns the body of a response the API already confirmed during this run, or <see langword="null"/> when the
     /// URL has not been requested yet. Several components ask for the same repository, and GitHub data does not
     /// change over the course of a single run.
     /// </summary>
-    public string? FindFreshBody(string url)
+    public string? FindFreshBody(string url, GitHubResponseFields fields)
     {
-        GitHubResponseCacheEntry? entry = Find(url);
-        return entry is { IsFreshThisRun: true, IsNotFound: false } ? entry.Body : null;
+        GitHubResponseCacheEntry? entry = FindResponse(url, fields);
+        return entry is { IsFreshThisRun: true } ? entry.Body : null;
     }
 
     /// <summary>
-    /// Stores a successful response body and its entity tag.
+    /// Stores a successful response body, already trimmed to <paramref name="fields"/>, and its entity tag.
     /// </summary>
-    public void StoreResponse(string url, string? eTag, string body)
+    public void StoreResponse(string url, string? eTag, string body, GitHubResponseFields fields)
     {
         if (body.Length > MaxCacheableBodyLength)
         {
@@ -84,6 +95,7 @@ internal sealed class GitHubResponseCache(ILogger logger)
         {
             entry.ETag = eTag;
             entry.Body = body;
+            entry.Fields = fields.Signature;
             entry.IsNotFound = false;
         });
     }
@@ -95,6 +107,7 @@ internal sealed class GitHubResponseCache(ILogger logger)
     {
         entry.ETag = null;
         entry.Body = string.Empty;
+        entry.Fields = null;
         entry.IsNotFound = true;
     });
 
