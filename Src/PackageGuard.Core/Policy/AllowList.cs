@@ -66,7 +66,8 @@ public class AllowList : PackagePolicy
             };
         }
 
-        bool licenseComplies = !(Licenses.Any() && !Licenses.Contains(package.License!, StringComparer.OrdinalIgnoreCase));
+        IReadOnlyList<string> matchingLicenses = LicenseExpression.FindAllowingEntries(package.License, Licenses);
+        bool licenseComplies = Licenses.Count == 0 || matchingLicenses.Count > 0;
 
         foreach (PackageSelector selector in Packages)
         {
@@ -107,21 +108,14 @@ public class AllowList : PackagePolicy
             };
         }
 
-        if (Licenses.Any())
+        if (matchingLicenses.Count > 0)
         {
-            string? matchingLicense = Licenses.FirstOrDefault(license =>
-                license.Equals(package.License, StringComparison.OrdinalIgnoreCase));
-
-            if (matchingLicense is not null)
+            return new PolicyDecision
             {
-                LicenseSourceFiles.TryGetValue(matchingLicense, out string? licenseSourceFile);
-                return new PolicyDecision
-                {
-                    IsMatch = true,
-                    Reason = $"matches allow list license entry \"{matchingLicense}\"",
-                    SourceFile = licenseSourceFile
-                };
-            }
+                IsMatch = true,
+                Reason = LicenseExpression.DescribeMatch("allow list", matchingLicenses, package.License),
+                SourceFile = FindLicenseSourceFiles(matchingLicenses)
+            };
         }
 
         return new PolicyDecision

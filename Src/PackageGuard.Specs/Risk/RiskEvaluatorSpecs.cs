@@ -517,6 +517,24 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
+    internal void Scores_the_most_restrictive_license_of_an_and_expression()
+    {
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT AND GPL-3.0-only",
+            LicenseUrl = "https://opensource.org/licenses/GPL-3.0",
+            HasValidLicenseUrl = true
+        };
+
+        riskEvaluator.EvaluateRisk(package);
+
+        package.RiskDimensions.LegalRisk.Should().Be(6.0);
+    }
+
+    [TestMethod]
     internal void Should_evaluate_legal_risk_for_agpl_as_restrictive()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
