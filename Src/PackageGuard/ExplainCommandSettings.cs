@@ -3,6 +3,7 @@ using JetBrains.Annotations;
 using PackageGuard.Core;
 using PackageGuard.Core.Npm;
 using Pathy;
+using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace PackageGuard;
@@ -121,4 +122,9 @@ public class ExplainCommandSettings : CommandSettings
             RiskCacheMaxAge = TimeSpan.FromHours(Math.Max(0, RiskCacheMaxAgeHours))
         };
     }
+
+    /// <summary>
+    /// Validates that an explicit <see cref="ConfigPath"/> exists.
+    /// </summary>
+    public override ValidationResult Validate() => AnalyzeCommandSettings.ValidateConfigPath(ConfigPath);
 }

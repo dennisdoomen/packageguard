@@ -120,10 +120,17 @@ public class AnalyzeCommandSettings : CommandSettings
     public string? SbomOutput { get; set; }
 
     /// <summary>
-    /// Validates that <see cref="Sbom"/>, when specified, is a supported format and is paired with <see cref="SbomOutput"/>.
+    /// Validates that an explicit <see cref="ConfigPath"/> exists, and that <see cref="Sbom"/>, when specified, is a
+    /// supported format and is paired with <see cref="SbomOutput"/>.
     /// </summary>
     public override ValidationResult Validate()
     {
+        ValidationResult configPathResult = ValidateConfigPath(ConfigPath);
+        if (!configPathResult.Successful)
+        {
+            return configPathResult;
+        }
+
         if (string.IsNullOrWhiteSpace(Sbom))
         {
             return ValidationResult.Success();
@@ -138,6 +145,22 @@ public class AnalyzeCommandSettings : CommandSettings
         if (string.IsNullOrWhiteSpace(SbomOutput))
         {
             return ValidationResult.Error("--sbom-output must be specified when --sbom is used.");
+        }
+
+        return ValidationResult.Success();
+    }
+
+    /// <summary>
+    /// Returns an error when an explicit <paramref name="configPath"/> does not exist, so a typo in
+    /// <c>--config-path</c> stops the run instead of silently loading an empty policy.
+    /// </summary>
+    internal static ValidationResult ValidateConfigPath(string? configPath)
+    {
+        if (configPath is not null && !File.Exists(configPath))
+        {
+            return ValidationResult.Error(
+                $"The configuration file {configPath} does not exist. " +
+                "Fix the --config-path option, or leave it out to discover the configuration files");
         }
 
         return ValidationResult.Success();
