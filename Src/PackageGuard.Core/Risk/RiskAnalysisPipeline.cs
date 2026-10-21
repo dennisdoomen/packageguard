@@ -135,9 +135,18 @@ internal sealed class RiskAnalysisPipeline(ILogger logger, GetPolicyByProject ge
             // A malicious package is blocked regardless of policy, risk score or risk exceptions
             if (package.MaliciousAdvisoryIds is { Length: > 0 } advisoryIds)
             {
-                violations.Add(new PolicyViolation(package.Name, package.Version, package.License ?? "",
-                    package.Projects.ToArray(), package.Source, package.SourceUrl,
-                    $"known malicious package ({string.Join(", ", advisoryIds)})", IsMalicious: true));
+                violations.Add(new PolicyViolation
+                {
+                    PackageId = package.Name,
+                    Version = package.Version,
+                    License = package.License ?? "",
+                    Projects = package.Projects.ToArray(),
+                    FeedName = package.Source,
+                    FeedUrl = package.SourceUrl,
+                    Reason = $"known malicious package ({string.Join(", ", advisoryIds)})",
+                    IsMalicious = true,
+                    Resolution = "Remove the package and every package that depends on it"
+                });
 
                 continue;
             }
@@ -153,8 +162,7 @@ internal sealed class RiskAnalysisPipeline(ILogger logger, GetPolicyByProject ge
                 PolicyDecision decision = policy.DenyList.EvaluateRiskDeny(package);
                 if (decision.IsMatch)
                 {
-                    violations.Add(new PolicyViolation(package.Name, package.Version, package.License ?? "",
-                        package.Projects.ToArray(), package.Source, package.SourceUrl, decision.Reason));
+                    violations.Add(PolicyViolation.FromDecision(package, package.Projects.ToArray(), decision));
                     break;
                 }
             }

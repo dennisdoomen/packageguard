@@ -40,14 +40,24 @@ public class AllowList : PackagePolicy
         if (matchingFeed is not null)
         {
             FeedSourceFiles.TryGetValue(matchingFeed, out string? feedSourceFile);
-            return new PolicyDecision(true, $"matches allow list feed entry \"{matchingFeed}\"", feedSourceFile);
+            return new PolicyDecision
+            {
+                IsMatch = true,
+                Reason = $"matches allow list feed entry \"{matchingFeed}\"",
+                SourceFile = feedSourceFile
+            };
         }
 
         // Check if prerelease packages are explicitly disallowed
         bool prereleaseComplies = Prerelease || !NuGetVersion.Parse(package.Version).IsPrerelease;
         if (!prereleaseComplies)
         {
-            return new PolicyDecision(false, "prerelease packages are not allowed by policy");
+            return new PolicyDecision
+            {
+                IsMatch = false,
+                Reason = "prerelease packages are not allowed by policy",
+                Resolution = "Use a stable version, or set prerelease to true in the allow section of your config"
+            };
         }
 
         bool licenseComplies = !(Licenses.Any() && !Licenses.Contains(package.License!, StringComparer.OrdinalIgnoreCase));
@@ -59,19 +69,35 @@ public class AllowList : PackagePolicy
                 if (selector.VersionRange is not null &&
                     !package.SatisfiesRange(package.Name, selector.VersionRange))
                 {
-                    return new PolicyDecision(false,
-                        $"matches allow list package entry \"{selector.Id}\" but version {package.Version} does not satisfy \"{selector.VersionRange}\"",
-                        selector.SourceFile);
+                    return new PolicyDecision
+                    {
+                        IsMatch = false,
+                        Reason = $"matches allow list package entry \"{selector.Id}\" but version {package.Version} does not satisfy \"{selector.VersionRange}\"",
+                        SourceFile = selector.SourceFile,
+                        Resolution = $"Use a version that satisfies \"{selector.VersionRange}\", or change that range in the allow " +
+                                     $"section of {DescribeConfigurationFile(selector.SourceFile)}"
+                    };
                 }
 
                 // If the package (and version) is allowed, we don't care about the license violation
-                return new PolicyDecision(true, $"matches allow list package entry \"{selector.Id}\"", selector.SourceFile);
+                return new PolicyDecision
+                {
+                    IsMatch = true,
+                    Reason = $"matches allow list package entry \"{selector.Id}\"",
+                    SourceFile = selector.SourceFile
+                };
             }
         }
 
         if (!licenseComplies)
         {
-            return new PolicyDecision(false, $"license \"{package.License}\" is not in the allow list");
+            return new PolicyDecision
+            {
+                IsMatch = false,
+                Reason = $"license \"{package.License}\" is not in the allow list",
+                Resolution = "Add the license or the package to the allow section of your config, or use a different package. " +
+                             "Note that riskExceptions do not exempt a package from license rules"
+            };
         }
 
         if (Licenses.Any())
@@ -82,10 +108,19 @@ public class AllowList : PackagePolicy
             if (matchingLicense is not null)
             {
                 LicenseSourceFiles.TryGetValue(matchingLicense, out string? licenseSourceFile);
-                return new PolicyDecision(true, $"matches allow list license entry \"{matchingLicense}\"", licenseSourceFile);
+                return new PolicyDecision
+                {
+                    IsMatch = true,
+                    Reason = $"matches allow list license entry \"{matchingLicense}\"",
+                    SourceFile = licenseSourceFile
+                };
             }
         }
 
-        return new PolicyDecision(true, "no allow list rule matched; no allow list restrictions apply");
+        return new PolicyDecision
+        {
+            IsMatch = true,
+            Reason = "no allow list rule matched; no allow list restrictions apply"
+        };
     }
 }

@@ -27,7 +27,11 @@ public class WarnList : PackagePolicy
     {
         if (Prerelease && NuGetVersion.Parse(package.Version).IsPrerelease)
         {
-            return new PolicyDecision(true, "prerelease packages are flagged for warning by policy");
+            return new PolicyDecision
+            {
+                IsMatch = true,
+                Reason = "prerelease packages are flagged for warning by policy"
+            };
         }
 
         if (Licenses.Any())
@@ -38,7 +42,12 @@ public class WarnList : PackagePolicy
             if (matchingLicense is not null)
             {
                 LicenseSourceFiles.TryGetValue(matchingLicense, out string? licenseSourceFile);
-                return new PolicyDecision(true, $"matches warn list license entry \"{matchingLicense}\"", licenseSourceFile);
+                return new PolicyDecision
+                {
+                    IsMatch = true,
+                    Reason = $"matches warn list license entry \"{matchingLicense}\"",
+                    SourceFile = licenseSourceFile
+                };
             }
         }
 
@@ -47,10 +56,19 @@ public class WarnList : PackagePolicy
             if (package.Name.MatchesWildcard(selector.Id) &&
                 (selector.VersionRange is null || package.SatisfiesRange(package.Name, selector.VersionRange)))
             {
-                return new PolicyDecision(true, $"matches warn list package entry \"{selector.Id}\"", selector.SourceFile);
+                return new PolicyDecision
+                {
+                    IsMatch = true,
+                    Reason = $"matches warn list package entry \"{selector.Id}\"",
+                    SourceFile = selector.SourceFile
+                };
             }
         }
 
-        return new PolicyDecision(false, "no warn list rule matched");
+        return new PolicyDecision
+        {
+            IsMatch = false,
+            Reason = "no warn list rule matched"
+        };
     }
 }

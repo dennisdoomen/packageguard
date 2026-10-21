@@ -206,6 +206,11 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
                 logger.LogInformation("- Reason: {Reason}", violation.Reason);
             }
 
+            if (!string.IsNullOrWhiteSpace(violation.Resolution))
+            {
+                logger.LogInformation("- Resolve: {Resolution}", violation.Resolution);
+            }
+
             if (violation.Projects.Any())
             {
                 logger.LogInformation("- Projects:");

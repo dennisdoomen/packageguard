@@ -19,4 +19,10 @@ public abstract class PackagePolicy
     /// Checks if there are any policies defined either in Packages or Licenses.
     /// </summary>
     internal bool HasPolicies => Packages.Any() || Licenses.Any();
+
+    /// <summary>
+    /// Names the configuration file a rule came from in a resolution hint. Configuration files are hierarchical, so
+    /// the file is named when it is known, and the hint falls back to "your config" when it is not.
+    /// </summary>
+    private protected static string DescribeConfigurationFile(string? sourceFile) => sourceFile ?? "your config";
 }

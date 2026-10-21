@@ -192,6 +192,22 @@ A build can pass today and fail tomorrow because a new CVE was published or a ri
 
 Once `expiresOn` has passed, the exception stops applying and the package is denied again if it still violates a risk rule.
 
+For every denied package, the output shows a `Resolve` line after the `Reason` line. It names the fix for that kind of rule. For a risk rule, it points to `riskExceptions`:
+
+```
+System.Security.Cryptography.Pkcs 10.0.13 [DENIED]
+- License: MIT
+- Feed: nuget.org (https://api.nuget.org/v3/index.json)
+- Reason: published 1.5 day(s) ago, which is less than the minimum age of 3 day(s)
+- Resolve: Use an older version, wait until this version is 3 day(s) old, or add it to the riskExceptions section of your config. Set expiresOn to make the exception temporary
+- Projects:
+  - C:\Workspaces\MyApp\MyApp.csproj
+```
+
+A match in the warn list has no `Resolve` line.
+
+A license violation never suggests `riskExceptions`, because a risk exception does not change license rules.
+
 ### Vulnerability exceptions
 
 `vulnerabilityExceptions` records that you analyzed a specific vulnerability and decided it does not apply to you. It needs a `reason` and a `reviewOn` date on which you must look at the decision again.
