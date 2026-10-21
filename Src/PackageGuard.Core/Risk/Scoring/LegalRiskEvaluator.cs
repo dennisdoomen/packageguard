@@ -63,9 +63,10 @@ internal sealed class LegalRiskEvaluator : IEvaluateRiskDimension
         return RiskEvaluationHelpers.CreateEvaluation(risk, rationale);
     }
 
+    // Weak copyleft goes first, because "LGPL" contains "GPL"
     private static (double Risk, string Label) Classify(string license) =>
-        IsRestrictiveLicense(license) ? (6.0, "Restrictive license") :
         IsWeakCopyleftLicense(license) ? (3.0, "Weak copyleft license") :
+        IsRestrictiveLicense(license) ? (6.0, "Restrictive license") :
         IsPermissiveLicense(license) ? (0.0, "Permissive license") :
         (0.0, "Unclassified license");
 
