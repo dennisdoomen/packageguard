@@ -4,11 +4,13 @@ sidebar_position: 4
 
 # Usage
 
-With a [configuration](./configuration.md) in place, simply invoke PackageGuard like this:
+Invoke PackageGuard like this:
 
 ```bash
 packageguard --config-path <path-to-config-file> <path-to-solution-file-or-project>
 ```
+
+Without a [configuration](./configuration.md), PackageGuard only allows permissive licenses and warns you to run `packageguard init` to create one.
 
 If you pass a directory, PackageGuard will try to find the `.sln`, `.slnx` or `package.json` files there. But you can also specify a specific `.csproj` or `package.json` to scan.
 

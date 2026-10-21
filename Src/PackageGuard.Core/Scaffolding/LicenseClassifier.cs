@@ -63,6 +63,12 @@ internal static class LicenseClassifier
     }
 
     /// <summary>
+    /// Returns every known license identifier in the given <paramref name="category"/>.
+    /// </summary>
+    public static IEnumerable<string> GetLicenses(LicenseCategory category) =>
+        Categories.Where(entry => entry.Value == category).Select(entry => entry.Key);
+
+    /// <summary>
     /// Returns <c>true</c> for any category that imposes copyleft obligations of some kind.
     /// </summary>
     public static bool IsCopyleft(LicenseCategory category) =>

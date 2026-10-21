@@ -17,6 +17,10 @@ PackageGuard will automatically look for configuration files in the following or
 
 Settings from multiple configuration files are merged together, with project-level settings taking precedence over solution-level settings for boolean values, while arrays (packages, licenses, feeds) are combined.
 
+## Running without a configuration
+
+If PackageGuard finds no configuration file, it still runs. It then allows only well-known permissive licenses, such as MIT, Apache-2.0, the BSD licenses and ISC, and applies no other rules. A package with any other license, or with a license that could not be found, is reported as a violation. PackageGuard prints a warning about this once per run. Run [`packageguard init`](./init.md) to create a configuration file that fits your project.
+
 ## Manual configuration path
 
 You can still specify a custom configuration file path using the `--config-path` CLI parameter to override the hierarchical discovery:
