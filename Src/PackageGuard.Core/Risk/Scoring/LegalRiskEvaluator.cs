@@ -1,4 +1,5 @@
 using PackageGuard.Core.Package;
+using PackageGuard.Core.Policy;
 
 namespace PackageGuard.Core.Risk.Scoring;
 
@@ -26,11 +27,11 @@ internal sealed class LegalRiskEvaluator : IEvaluateRiskDimension
         }
         else
         {
-            // With an OR expression the consumer may pick any option, so the least risky one counts
-            var (alternativeRisk, label) = package.License
-                .Split([" OR "], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(Classify)
-                .MinBy(c => c.Risk);
+            // With OR the consumer may pick any option, so the least risky one counts. With AND all licenses apply.
+            var (alternativeRisk, label) = LicenseExpression.Parse(package.License).Evaluate(
+                term => Classify(term.Id),
+                (left, right) => left.Risk <= right.Risk ? left : right,
+                (left, right) => left.Risk >= right.Risk ? left : right);
 
             risk += alternativeRisk;
             rationale.Add(RiskEvaluationHelpers.CreateRationale($"{label} ({package.License})", alternativeRisk));

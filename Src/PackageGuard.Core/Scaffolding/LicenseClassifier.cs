@@ -1,3 +1,5 @@
+using PackageGuard.Core.Policy;
+
 namespace PackageGuard.Core.Scaffolding;
 
 /// <summary>
@@ -49,8 +51,9 @@ internal static class LicenseClassifier
     };
 
     /// <summary>
-    /// Classifies the given SPDX license identifier. Returns <see cref="LicenseCategory.Unknown"/> for a
-    /// missing, empty, or unrecognized license.
+    /// Classifies the given SPDX license expression. Returns <see cref="LicenseCategory.Unknown"/> for a
+    /// missing, empty, or unrecognized license. For <c>OR</c> the least restrictive option counts, since the
+    /// consumer can choose; for <c>AND</c> the most restrictive one does.
     /// </summary>
     public static LicenseCategory Classify(string? license)
     {
@@ -59,8 +62,17 @@ internal static class LicenseClassifier
             return LicenseCategory.Unknown;
         }
 
-        return Categories.GetValueOrDefault(license, LicenseCategory.Unknown);
+        return LicenseExpression.Parse(license).Evaluate(
+            term => Categories.GetValueOrDefault(term.Id, LicenseCategory.Unknown),
+            (left, right) => Restrictiveness(left) <= Restrictiveness(right) ? left : right,
+            (left, right) => Restrictiveness(left) >= Restrictiveness(right) ? left : right);
     }
+
+    /// <summary>
+    /// Ranks the categories from least to most restrictive, treating an unknown license as the most restrictive.
+    /// </summary>
+    private static int Restrictiveness(LicenseCategory category) =>
+        category == LicenseCategory.Unknown ? int.MaxValue : (int)category;
 
     /// <summary>
     /// Returns <c>true</c> for any category that imposes copyleft obligations of some kind.

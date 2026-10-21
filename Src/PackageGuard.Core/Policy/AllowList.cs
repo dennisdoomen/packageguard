@@ -50,7 +50,8 @@ public class AllowList : PackagePolicy
             return new PolicyDecision(false, "prerelease packages are not allowed by policy");
         }
 
-        bool licenseComplies = !(Licenses.Any() && !Licenses.Contains(package.License!, StringComparer.OrdinalIgnoreCase));
+        string? matchingLicense = LicenseExpression.FindAllowingEntry(package.License, Licenses);
+        bool licenseComplies = Licenses.Count == 0 || matchingLicense is not null;
 
         foreach (PackageSelector selector in Packages)
         {
@@ -74,16 +75,11 @@ public class AllowList : PackagePolicy
             return new PolicyDecision(false, $"license \"{package.License}\" is not in the allow list");
         }
 
-        if (Licenses.Any())
+        if (matchingLicense is not null)
         {
-            string? matchingLicense = Licenses.FirstOrDefault(license =>
-                license.Equals(package.License, StringComparison.OrdinalIgnoreCase));
-
-            if (matchingLicense is not null)
-            {
-                LicenseSourceFiles.TryGetValue(matchingLicense, out string? licenseSourceFile);
-                return new PolicyDecision(true, $"matches allow list license entry \"{matchingLicense}\"", licenseSourceFile);
-            }
+            LicenseSourceFiles.TryGetValue(matchingLicense, out string? licenseSourceFile);
+            return new PolicyDecision(true, LicenseExpression.DescribeMatch("allow list", matchingLicense, package.License),
+                licenseSourceFile);
         }
 
         return new PolicyDecision(true, "no allow list rule matched; no allow list restrictions apply");

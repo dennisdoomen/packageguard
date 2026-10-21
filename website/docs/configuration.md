@@ -109,6 +109,19 @@ The effective configuration for `WebProject` will allow:
 
 License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions, but we have special support for certain proprietary Microsoft licenses such as used by the `Microsoft.AspNet.WebApi*` packages. For those, we support using the license name `Microsoft .NET Library License`.
 
+Many packages declare an [SPDX license expression](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-expressions/) instead of a single license. PackageGuard evaluates these expressions:
+
+| Expression | Allowed when | Denied (or warned about) when |
+|---|---|---|
+| `MIT OR Apache-2.0` | any option is allowed, because you can choose | every option is denied |
+| `MIT AND Unicode-DFS-2016` | every license is allowed | any license is denied |
+| `GPL-2.0-only WITH Classpath-exception-2.0` | the full term or `GPL-2.0-only` is allowed | only the full term is denied, because the exception is the point |
+| `Apache-2.0+` or `GPL-2.0-or-later` | the license or its base version (`Apache-2.0`, `GPL-2.0-only`) is allowed | the license itself is denied |
+
+Parentheses work as expected, and the operators are not case-sensitive. An entry in your configuration can also be an expression, such as `"GPL-2.0-only WITH Classpath-exception-2.0"`. Deprecated identifiers are treated as their current form, so `GPL-3.0` matches `GPL-3.0-only` and `GPL-2.0+` matches `GPL-2.0-or-later`. When an expression is allowed because of one of its licenses, `explain` names that license, for example `matches allow list license entry "MIT" (from "MIT OR Apache-2.0")`.
+
+The legal risk score follows the same rules: it uses the least restrictive option of an `OR` and the most restrictive license of an `AND`.
+
 Package names under `allow.packages` and `deny.packages` support wildcard patterns (`*` and `?`) and can optionally include a [NuGet-compatible version (range)](https://learn.microsoft.com/en-us/nuget/concepts/package-versioning?tabs=semver20sort) separated by `/`.
 
 Examples:
