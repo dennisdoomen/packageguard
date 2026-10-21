@@ -30,16 +30,12 @@ public class WarnList : PackagePolicy
             return new PolicyDecision(true, "prerelease packages are flagged for warning by policy");
         }
 
-        if (Licenses.Any())
+        string? matchingLicense = LicenseExpression.FindDenyingEntry(package.License, Licenses);
+        if (matchingLicense is not null)
         {
-            string? matchingLicense = Licenses.FirstOrDefault(license =>
-                license.Equals(package.License, StringComparison.OrdinalIgnoreCase));
-
-            if (matchingLicense is not null)
-            {
-                LicenseSourceFiles.TryGetValue(matchingLicense, out string? licenseSourceFile);
-                return new PolicyDecision(true, $"matches warn list license entry \"{matchingLicense}\"", licenseSourceFile);
-            }
+            LicenseSourceFiles.TryGetValue(matchingLicense, out string? licenseSourceFile);
+            return new PolicyDecision(true, LicenseExpression.DescribeMatch("warn list", matchingLicense, package.License),
+                licenseSourceFile);
         }
 
         foreach (PackageSelector selector in Packages)

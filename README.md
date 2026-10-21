@@ -53,7 +53,7 @@ At a glance, PackageGuard can:
 
 - Scan **NuGet, npm, pnpm and Yarn** dependencies across an entire solution or codebase in one run, direct and transitive alike
 - **Scaffold a starting configuration** (`packageguard init`) from the licenses actually found in your repository, flagging copyleft licenses and suggesting a policy that fits whether your software is proprietary, SaaS, or open source
-- Enforce **allow- and deny-lists** for open-source licenses, specific packages, and package versions, discovered **hierarchically** across solution-, project- and repository-level configuration files
+- Enforce **allow- and deny-lists** for open-source licenses (including SPDX expressions such as `MIT OR Apache-2.0`), specific packages, and package versions, discovered **hierarchically** across solution-, project- and repository-level configuration files
 - Resolve **licenses** from NuGet/npm metadata, GitHub repositories, and downloaded license text through a chain of fetchers, falling back gracefully when a source doesn't have an answer
 - **Explain** a single package on demand (`packageguard explain <package>`, with fuzzy name matching) - its dependency path, how its version was resolved, the exact policy rule and configuration file that allowed or denied it, and its risk breakdown
 - Find **redundant package references** and **version conflicts** across projects (`packageguard dependencies`), offline and without touching your policy
