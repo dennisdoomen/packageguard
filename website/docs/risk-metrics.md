@@ -60,6 +60,7 @@ Not every package exposes every signal. PackageGuard uses the evidence it can fi
 - **License presence** - missing or unknown licenses are treated as high legal risk.
 - **License type** - restrictive licenses (for example GPL/AGPL/SSPL/BUSL-style terms) increase risk more than permissive licenses such as MIT, BSD or Apache-2.0.
 - **Weak copyleft detection** - licenses such as LGPL or MPL are scored as lower legal risk than strong copyleft, but still higher than permissive licenses.
+- **License expressions** - for an SPDX expression, the least restrictive option of an `OR` counts (you can choose), and the most restrictive license of an `AND` counts (all of them apply).
 - **License URL validity** - missing or invalid license URLs add a smaller amount of legal risk because they make the package harder to audit.
 - **Policy compatibility** - if the detected license conflicts with your configured allow/deny policy, legal risk goes up further.
 
