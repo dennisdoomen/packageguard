@@ -14,10 +14,18 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
     /// Creates the function that resolves the policy for a project. An explicit <paramref name="configPath"/> is
     /// used as is; otherwise the configuration files are discovered for each project.
     /// </summary>
+    /// <exception cref="FileNotFoundException">An explicit <paramref name="configPath"/> does not exist.</exception>
     public GetPolicyByProject CreatePolicyResolver(string configPath)
     {
-        if (configPath == AnalyzeCommandSettings.DefaultConfigFileName && !File.Exists(configPath))
+        if (!File.Exists(configPath))
         {
+            if (configPath != AnalyzeCommandSettings.DefaultConfigFileName)
+            {
+                throw new FileNotFoundException(
+                    $"The configuration file {ChainablePath.From(configPath)} does not exist. " +
+                    "Fix the --config-path option, or leave it out to discover the configuration files", configPath);
+            }
+
             return GetEffectiveConfigurationForProject;
         }
 

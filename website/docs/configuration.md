@@ -29,6 +29,8 @@ You can still specify a custom configuration file path using the `--config-path`
 packageguard --config-path path/to/my-config.json
 ```
 
+If the file does not exist, PackageGuard stops with an error instead of using the default policy, so a typo in the path can't go unnoticed.
+
 ## Configuration format
 
 Each configuration file should follow this JSON format:

@@ -349,6 +349,26 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
+    public void Fails_if_an_explicit_config_path_does_not_exist()
+    {
+        // Act
+        Action act = () => configurationLoader.CreatePolicyResolver(tempDir / "does-not-exist.json");
+
+        // Assert
+        act.Should().Throw<FileNotFoundException>().WithMessage("*does-not-exist.json*--config-path*");
+    }
+
+    [TestMethod]
+    public void Discovers_the_configuration_files_if_the_default_config_path_does_not_exist()
+    {
+        // Act
+        Action act = () => configurationLoader.CreatePolicyResolver(AnalyzeCommandSettings.DefaultConfigFileName);
+
+        // Assert
+        act.Should().NotThrow();
+    }
+
+    [TestMethod]
     public void Warns_once_about_a_missing_config_and_points_to_the_init_command()
     {
         // Arrange
