@@ -15,14 +15,6 @@ namespace PackageGuard;
 [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 public class AnalyzeCommandSettings : CommandSettings
 {
-    /// <summary>
-    /// The default name of the PackageGuard configuration file.
-    /// </summary>
-    /// <summary>
-    /// The default name of the PackageGuard configuration file.
-    /// </summary>
-    public const string DefaultConfigFileName = "config.json";
-
     [Description(
         "The path to a directory containing a .sln/.slnx file and/or a package.json, a specific .sln/.slnx file, a specific .csproj file, or a specific package.json. Defaults to the current working directory")]
     [CommandArgument(0, "[path]")]
@@ -31,7 +23,7 @@ public class AnalyzeCommandSettings : CommandSettings
     [Description(
         "The path to the configuration file. Defaults to hierarchical discovery of packageguard.config.json or .packageguard/config.json files starting from the solution directory.")]
     [CommandOption("-c|--config-path|--configPath")]
-    public string ConfigPath { get; set; } = DefaultConfigFileName;
+    public string? ConfigPath { get; set; }
 
     [Description("Allow enabling or disabling an interactive mode of \"dotnet restore\". Defaults to true")]
     [CommandOption("-i|--restore-interactive|--restoreinteractive")]

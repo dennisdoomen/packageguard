@@ -6,6 +6,7 @@ using FluentAssertions;
 using Meziantou.Extensions.Logging.InMemory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PackageGuard.Core.Package;
 using PackageGuard.Core.Policy;
 using Pathy;
 
@@ -332,10 +333,9 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
-    public void Does_not_do_anything_if_no_config_is_found()
+    public void Only_allows_permissive_licenses_if_no_config_is_found()
     {
         // Arrange
-        // Create directory without solution or config files
         var emptyDir = tempDir / "EmptyDir";
         emptyDir.CreateDirectoryRecursively();
 
@@ -343,9 +343,73 @@ public class ConfigurationLoaderSpecs
         ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(emptyDir);
 
         // Assert
-        policy.AllowList.Licenses.Should().BeEmpty();
+        policy.AllowList.Licenses.Should().Contain(["MIT", "Apache-2.0"]).And.NotContain("GPL-3.0-only");
         policy.AllowList.Packages.Should().BeEmpty();
-        policy.AllowList.Prerelease.Should().BeTrue("default value");
+        policy.DenyList.HasPolicies.Should().BeFalse();
+        policy.Invoking(p => p.Validate()).Should().NotThrow();
+    }
+
+    [TestMethod]
+    public void Points_to_the_init_command_for_a_license_that_the_default_policy_does_not_allow()
+    {
+        // Arrange
+        var emptyDir = tempDir / "EmptyDir";
+        emptyDir.CreateDirectoryRecursively();
+
+        ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(emptyDir);
+
+        var package = new PackageInfo
+        {
+            Name = "CopyleftPackage",
+            Version = "1.0.0",
+            License = "GPL-3.0-only"
+        };
+
+        // Act
+        PolicyDecision decision = policy.AllowList.EvaluateAllow(package);
+
+        // Assert
+        decision.IsMatch.Should().BeFalse();
+        decision.Resolution.Should().Contain("packageguard init").And.NotContain("your config");
+    }
+
+    [TestMethod]
+    public void Uses_the_default_policy_if_neither_a_config_path_nor_a_config_file_exists()
+    {
+        // Arrange
+        var emptyDir = tempDir / "EmptyDir";
+        emptyDir.CreateDirectoryRecursively();
+
+        GetPolicyByProject getPolicy = configurationLoader.CreatePolicyResolver(configPath: null);
+
+        // Act
+        ProjectPolicy policy = getPolicy(emptyDir);
+
+        // Assert
+        policy.AllowList.Licenses.Should().Contain(["MIT", "Apache-2.0"]);
+    }
+
+    [TestMethod]
+    public void Warns_once_about_a_missing_config_and_points_to_the_init_command()
+    {
+        // Arrange
+        var firstProject = tempDir / "First";
+        firstProject.CreateDirectoryRecursively();
+
+        var secondProject = tempDir / "Second";
+        secondProject.CreateDirectoryRecursively();
+
+        var loggingProvider = new InMemoryLoggerProvider();
+        var loader = new ConfigurationLoader(loggingProvider.CreateLogger(""));
+
+        // Act
+        loader.GetEffectiveConfigurationForProject(firstProject);
+        loader.GetEffectiveConfigurationForProject(secondProject);
+
+        // Assert
+        loggingProvider.Logs.Select(x => x.Message)
+            .Where(message => message.Contains("packageguard init"))
+            .Should().ContainSingle();
     }
 
     [TestMethod]
