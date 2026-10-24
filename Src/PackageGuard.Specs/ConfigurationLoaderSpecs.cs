@@ -332,10 +332,9 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
-    public void Does_not_do_anything_if_no_config_is_found()
+    public void Only_allows_permissive_licenses_if_no_config_is_found()
     {
         // Arrange
-        // Create directory without solution or config files
         var emptyDir = tempDir / "EmptyDir";
         emptyDir.CreateDirectoryRecursively();
 
@@ -343,9 +342,53 @@ public class ConfigurationLoaderSpecs
         ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(emptyDir);
 
         // Assert
-        policy.AllowList.Licenses.Should().BeEmpty();
+        policy.AllowList.Licenses.Should().Contain(["MIT", "Apache-2.0"]).And.NotContain("GPL-3.0-only");
         policy.AllowList.Packages.Should().BeEmpty();
-        policy.AllowList.Prerelease.Should().BeTrue("default value");
+        policy.DenyList.HasPolicies.Should().BeFalse();
+        policy.Invoking(p => p.Validate()).Should().NotThrow();
+    }
+
+    [TestMethod]
+    public void Fails_if_an_explicit_config_path_does_not_exist()
+    {
+        // Act
+        Action act = () => configurationLoader.CreatePolicyResolver(tempDir / "does-not-exist.json");
+
+        // Assert
+        act.Should().Throw<FileNotFoundException>().WithMessage("*does-not-exist.json*--config-path*");
+    }
+
+    [TestMethod]
+    public void Discovers_the_configuration_files_if_the_default_config_path_does_not_exist()
+    {
+        // Act
+        Action act = () => configurationLoader.CreatePolicyResolver(AnalyzeCommandSettings.DefaultConfigFileName);
+
+        // Assert
+        act.Should().NotThrow();
+    }
+
+    [TestMethod]
+    public void Warns_once_about_a_missing_config_and_points_to_the_init_command()
+    {
+        // Arrange
+        var firstProject = tempDir / "First";
+        firstProject.CreateDirectoryRecursively();
+
+        var secondProject = tempDir / "Second";
+        secondProject.CreateDirectoryRecursively();
+
+        var loggingProvider = new InMemoryLoggerProvider();
+        var loader = new ConfigurationLoader(loggingProvider.CreateLogger(""));
+
+        // Act
+        loader.GetEffectiveConfigurationForProject(firstProject);
+        loader.GetEffectiveConfigurationForProject(secondProject);
+
+        // Assert
+        loggingProvider.Logs.Select(x => x.Message)
+            .Where(message => message.Contains("packageguard init"))
+            .Should().ContainSingle();
     }
 
     [TestMethod]

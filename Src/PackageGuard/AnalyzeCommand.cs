@@ -54,11 +54,7 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
 
         var loader = new ConfigurationLoader(logger, settings.ProjectPath);
 
-        GetPolicyByProject getPolicy = _ => loader.GetConfigurationFromConfigPath(settings.ConfigPath);
-        if (settings.ConfigPath == AnalyzeCommandSettings.DefaultConfigFileName && !File.Exists(settings.ConfigPath))
-        {
-            getPolicy = loader.GetEffectiveConfigurationForProject;
-        }
+        GetPolicyByProject getPolicy = loader.CreatePolicyResolver(settings.ConfigPath);
 
         bool sbomRequested = !string.IsNullOrWhiteSpace(settings.Sbom);
         AnalyzerSettings analyzerSettings = settings.ToCoreSettings();
