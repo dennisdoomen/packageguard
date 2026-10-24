@@ -33,11 +33,7 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
         var analyzer = new ProjectAnalyzer(licenseFetcher, new RiskEvaluator(logger)) { Logger = logger };
 
         var loader = new ConfigurationLoader(logger, settings.ProjectPath);
-        GetPolicyByProject getPolicy = _ => loader.GetConfigurationFromConfigPath(settings.ConfigPath);
-        if (settings.ConfigPath == AnalyzeCommandSettings.DefaultConfigFileName && !File.Exists(settings.ConfigPath))
-        {
-            getPolicy = loader.GetEffectiveConfigurationForProject;
-        }
+        GetPolicyByProject getPolicy = loader.CreatePolicyResolver(settings.ConfigPath);
 
         List<(string ProjectPath, LockFile LockFile)> lockFilesByProject = new();
         analyzer.OnProjectLockFileLoaded = (projectPath, lockFile) => lockFilesByProject.Add((projectPath, lockFile));

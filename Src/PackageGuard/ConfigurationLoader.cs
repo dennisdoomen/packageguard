@@ -1,12 +1,24 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core.Policy;
+using PackageGuard.Core.Scaffolding;
 using Pathy;
 
 namespace PackageGuard;
 
 public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
 {
+    private bool hasWarnedAboutMissingConfiguration;
+
+    /// <summary>
+    /// Creates the function that resolves the policy for a project. Without a <paramref name="configPath"/>, the
+    /// configuration files are discovered for each project. Otherwise that one file applies to every project.
+    /// </summary>
+    public GetPolicyByProject CreatePolicyResolver(string? configPath)
+    {
+        return configPath is null ? GetEffectiveConfigurationForProject : _ => GetConfigurationFromConfigPath(configPath);
+    }
+
     /// <summary>
     /// Gets the effective configuration for a specific project by merging solution-level and project-level configurations.
     /// </summary>
@@ -18,8 +30,7 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
 
         if (configPaths.Count == 0)
         {
-            // No configuration files found, return empty configuration
-            return new ProjectPolicy();
+            return CreateDefaultPolicy();
         }
 
         var merged = new ProjectPolicy
@@ -46,6 +57,31 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         }
 
         return merged;
+    }
+
+    /// <summary>
+    /// Creates the policy used when no configuration file exists: only permissive licenses are allowed, and no
+    /// other rules apply. Warns about it once per run, since the policy is resolved for every project.
+    /// </summary>
+    private ProjectPolicy CreateDefaultPolicy()
+    {
+        if (!hasWarnedAboutMissingConfiguration)
+        {
+            hasWarnedAboutMissingConfiguration = true;
+            logger.LogWarning(
+                "No PackageGuard configuration file found, so only permissive licenses are allowed. " +
+                "Run 'packageguard init' to create a configuration file");
+        }
+
+        return new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = LicenseClassifier.GetLicenses(LicenseCategory.Permissive).ToList(),
+                LicenseResolution = "Run 'packageguard init' to create a configuration file that allows this license, " +
+                                    "or use a different package"
+            }
+        };
     }
 
     /// <summary>

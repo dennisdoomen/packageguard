@@ -26,6 +26,12 @@ public class AllowList : PackagePolicy
     public bool Prerelease { get; set; } = true;
 
     /// <summary>
+    /// Replaces the hint for a package whose license is not in <see cref="PackagePolicy.Licenses"/>. Used by an
+    /// allow list that does not come from a configuration file, so the hint cannot point to one.
+    /// </summary>
+    internal string? LicenseResolution { get; init; }
+
+    /// <summary>
     /// Verifies if the given package complies given the feeds, packages and licenses defined in this allow list.
     /// </summary>
     /// <returns>Returns <c>true</c> if the package is allowed according to the policies in this list.</returns>
@@ -95,7 +101,8 @@ public class AllowList : PackagePolicy
             {
                 IsMatch = false,
                 Reason = $"license \"{package.License}\" is not in the allow list",
-                Resolution = "Add the license or the package to the allow section of your config, or use a different package. " +
+                Resolution = LicenseResolution ??
+                             "Add the license or the package to the allow section of your config, or use a different package. " +
                              "Note that riskExceptions do not exempt a package from license rules"
             };
         }

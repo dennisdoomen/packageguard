@@ -115,6 +115,17 @@ public class AnalyzeCommandSettingsSpecs
     }
 
     [TestMethod]
+    public void Rejects_an_explicit_config_path_that_does_not_exist()
+    {
+        var settings = new AnalyzeCommandSettings { ConfigPath = "does-not-exist.json" };
+
+        ValidationResult result = settings.Validate();
+
+        result.Successful.Should().BeFalse();
+        result.Message.Should().Contain("does-not-exist.json").And.Contain("--config-path");
+    }
+
+    [TestMethod]
     public void Does_not_require_an_sbom_format_or_output_path_when_sbom_generation_is_not_requested()
     {
         var settings = new AnalyzeCommandSettings();

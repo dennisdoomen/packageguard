@@ -8,6 +8,9 @@ Adopting PackageGuard usually starts with an empty configuration file and a ques
 which licenses should you allow? The `init` command scans your repository first, so the question comes with
 an answer already in front of you: here's what's actually here, and here's a policy that fits it.
 
+Until you have a configuration file, PackageGuard only allows well-known permissive licenses, such as MIT,
+Apache-2.0 and the BSD licenses, and warns that it found no configuration.
+
 ```bash
 packageguard init <path-to-solution-file-or-project>
 ```

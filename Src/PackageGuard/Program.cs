@@ -47,9 +47,18 @@ app.Configure(c =>
 
     // Spectre.Console.Cli only prints the exception's message by default, discarding the stack trace.
     // Always log the full exception so unexpected failures can be diagnosed from the console output.
+    // Invalid command-line input, such as a failed settings validation, only needs its message.
     c.SetExceptionHandler((ex, _) =>
     {
-        logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+        if (ex is CommandAppException)
+        {
+            logger.LogError("{Message}", ex.Message);
+        }
+        else
+        {
+            logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+        }
+
         return -1;
     });
 

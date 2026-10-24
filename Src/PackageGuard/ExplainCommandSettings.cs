@@ -3,6 +3,7 @@ using JetBrains.Annotations;
 using PackageGuard.Core;
 using PackageGuard.Core.Npm;
 using Pathy;
+using Spectre.Console;
 using Spectre.Console.Cli;
 
 namespace PackageGuard;
@@ -31,7 +32,7 @@ public class ExplainCommandSettings : CommandSettings
     [Description(
         "The path to the configuration file. Defaults to hierarchical discovery of packageguard.config.json or .packageguard/config.json files starting from the solution directory.")]
     [CommandOption("-c|--config-path|--configPath")]
-    public string ConfigPath { get; set; } = AnalyzeCommandSettings.DefaultConfigFileName;
+    public string? ConfigPath { get; set; }
 
     [Description("Allow enabling or disabling an interactive mode of \"dotnet restore\". Defaults to true")]
     [CommandOption("-i|--restore-interactive|--restoreinteractive")]
@@ -121,4 +122,9 @@ public class ExplainCommandSettings : CommandSettings
             RiskCacheMaxAge = TimeSpan.FromHours(Math.Max(0, RiskCacheMaxAgeHours))
         };
     }
+
+    /// <summary>
+    /// Validates that an explicit <see cref="ConfigPath"/> exists.
+    /// </summary>
+    public override ValidationResult Validate() => AnalyzeCommandSettings.ValidateConfigPath(ConfigPath);
 }
