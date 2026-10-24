@@ -89,6 +89,36 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  publish-github-packages:
+    name: "Publish to GitHub Packages"
+    needs: [ build ]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Download Artifacts
+      uses: actions/download-artifact@v8
+      with:
+        name: windows-artifacts
+        path: artifacts
+
+    - name: Push package to GitHub Packages
+      run: >
+        dotnet nuget push "artifacts/**/*.nupkg"
+        --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+        --api-key "${{ secrets.GITHUB_TOKEN }}"
+        --skip-duplicate
+
+    - name: Keep only the last 10 versions
+      uses: actions/delete-package-versions@v5
+      with:
+        package-name: PackageGuard
+        package-type: nuget
+        min-versions-to-keep: 10
+
   publish-test-results:
     name: "Publish Tests Results"
     needs: [ build ]
