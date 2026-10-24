@@ -30,7 +30,8 @@ packageguard explain Newtonsoft.Json 13.0.3 --path <path-to-solution-file-or-pro
 - **Policy verdict** - whether the package is `ALLOWED` or `DENIED`, naming the specific allow/deny rule that
   decided it (a package entry, a license entry, a feed entry, or the prerelease flag) and, when the rule came
   from a discovered `packageguard.config.json` or `.packageguard/config.json` file, which file it was. If
-  different projects in the solution apply different policies, each gets its own verdict line.
+  different projects in the solution apply different policies, each gets its own verdict line. A `DENIED`
+  verdict is followed by a `Resolve` line that suggests how to fix it, such as adding a `riskExceptions` entry.
 - **Dependency path** - for NuGet packages, every direct dependency that transitively pulls the package in,
   down to the exact hop, plus which version range each requester asked for and what version was actually
   resolved. This is the part that turns "some package I've never heard of is blocking my build" into "go

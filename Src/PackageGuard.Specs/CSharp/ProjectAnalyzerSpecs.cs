@@ -264,9 +264,9 @@ public class ProjectAnalyzerSpecs
         // Arrange
         PolicyViolation[] violations =
         [
-            new("FluentAssertions", "8.11.0", "Unknown", ["A.csproj"], "nuget.org", "https://api.nuget.org/v3/index.json", "denied"),
-            new("FluentAssertions", "8.11.0", "Unknown", ["B.csproj"], "nuget.org", "https://api.nuget.org/v3/index.json", "denied"),
-            new("FluentAssertions", "8.11.0", "Unknown", ["B.csproj"], "nuget.org", "https://api.nuget.org/v3/index.json", "warned", IsWarning: true)
+            CreateViolation("A.csproj", "denied"),
+            CreateViolation("B.csproj", "denied"),
+            CreateViolation("B.csproj", "warned", isWarning: true)
         ];
 
         // Act
@@ -276,4 +276,16 @@ public class ProjectAnalyzerSpecs
         merged.Should().HaveCount(2);
         merged.Single(violation => !violation.IsWarning).Projects.Should().BeEquivalentTo("A.csproj", "B.csproj");
     }
+
+    private static PolicyViolation CreateViolation(string project, string reason, bool isWarning = false) => new()
+    {
+        PackageId = "FluentAssertions",
+        Version = "8.11.0",
+        License = "Unknown",
+        Projects = [project],
+        FeedName = "nuget.org",
+        FeedUrl = "https://api.nuget.org/v3/index.json",
+        Reason = reason,
+        IsWarning = isWarning
+    };
 }

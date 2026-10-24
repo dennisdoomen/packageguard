@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -31,7 +31,7 @@ public class PolicyDecisionSpecs
         };
 
         // Act
-        PolicyDecision decision = allowList.EvaluateAllow(CreatePackage());
+        PolicyDecision decision = allowList.EvaluateAllow(CreatePackage(name: "Newtonsoft.Json"));
 
         // Assert
         decision.IsMatch.Should().BeTrue();
@@ -50,7 +50,7 @@ public class PolicyDecisionSpecs
         };
 
         // Act
-        PolicyDecision decision = allowList.EvaluateAllow(CreatePackage());
+        PolicyDecision decision = allowList.EvaluateAllow(CreatePackage(license: "MIT"));
 
         // Assert
         decision.IsMatch.Should().BeTrue();
@@ -65,7 +65,7 @@ public class PolicyDecisionSpecs
         var allowList = new AllowList { Licenses = { "Apache-2.0" } };
 
         // Act
-        PolicyDecision decision = allowList.EvaluateAllow(CreatePackage());
+        PolicyDecision decision = allowList.EvaluateAllow(CreatePackage(license: "MIT"));
 
         // Assert
         decision.IsMatch.Should().BeFalse();
@@ -82,7 +82,7 @@ public class PolicyDecisionSpecs
         };
 
         // Act
-        PolicyDecision decision = denyList.EvaluateDeny(CreatePackage());
+        PolicyDecision decision = denyList.EvaluateDeny(CreatePackage(name: "Newtonsoft.Json"));
 
         // Assert
         decision.IsMatch.Should().BeTrue();
@@ -108,7 +108,7 @@ public class PolicyDecisionSpecs
     {
         // Arrange
         var allowList = new AllowList { Licenses = { "Apache-2.0" } };
-        PackageInfo package = CreatePackage();
+        PackageInfo package = CreatePackage(license: "MIT");
 
         // Act & Assert
         allowList.Allows(package).Should().Be(allowList.EvaluateAllow(package).IsMatch);
@@ -119,7 +119,7 @@ public class PolicyDecisionSpecs
     {
         // Arrange
         var denyList = new DenyList { Licenses = { "MIT" } };
-        PackageInfo package = CreatePackage();
+        PackageInfo package = CreatePackage(license: "MIT");
 
         // Act & Assert
         denyList.Denies(package).Should().Be(denyList.EvaluateDeny(package).IsMatch);
@@ -316,7 +316,7 @@ public class PolicyDecisionSpecs
     {
         // Arrange
         var exception = new RiskException { Package = "Newtonsoft.Json", Reason = "vetted" };
-        PackageInfo package = CreatePackage();
+        PackageInfo package = CreatePackage(name: "Newtonsoft.Json");
 
         // Act & Assert
         exception.Matches(package).Should().BeTrue();
@@ -327,7 +327,7 @@ public class PolicyDecisionSpecs
     {
         // Arrange
         var exception = new RiskException { Package = "SomeOtherPackage" };
-        PackageInfo package = CreatePackage();
+        PackageInfo package = CreatePackage(name: "Newtonsoft.Json");
 
         // Act & Assert
         exception.Matches(package).Should().BeFalse();
@@ -342,7 +342,7 @@ public class PolicyDecisionSpecs
             Package = "Newtonsoft.Json",
             ExpiresOn = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1)
         };
-        PackageInfo package = CreatePackage();
+        PackageInfo package = CreatePackage(name: "Newtonsoft.Json");
 
         // Act & Assert
         exception.Matches(package).Should().BeFalse();
@@ -353,7 +353,7 @@ public class PolicyDecisionSpecs
     {
         // Arrange
         var exception = new RiskException { Package = "Newtonsoft.Json", Versions = "[1.0.0,2.0.0)" };
-        PackageInfo package = CreatePackage(version: "13.0.3");
+        PackageInfo package = CreatePackage(name: "Newtonsoft.Json", version: "13.0.3");
 
         // Act & Assert
         exception.Matches(package).Should().BeFalse();
@@ -370,7 +370,7 @@ public class PolicyDecisionSpecs
         };
 
         // Act
-        PolicyDecision decision = warnList.EvaluateWarn(CreatePackage());
+        PolicyDecision decision = warnList.EvaluateWarn(CreatePackage(license: "MIT"));
 
         // Assert
         decision.IsMatch.Should().BeTrue();
@@ -388,9 +388,163 @@ public class PolicyDecisionSpecs
     {
         // Arrange
         var warnList = new WarnList { Licenses = { "GPL-3.0" } };
-        PackageInfo package = CreatePackage();
+        PackageInfo package = CreatePackage(license: "MIT");
 
         // Act & Assert
         warnList.Warns(package).Should().Be(warnList.EvaluateWarn(package).IsMatch);
+    }
+
+    [TestMethod]
+    public void Suggests_changing_the_allow_list_for_a_license_violation_without_mentioning_risk_exceptions()
+    {
+        // Arrange
+        var allowList = new AllowList { Licenses = { "Apache-2.0" } };
+
+        // Act
+        PolicyDecision decision = allowList.EvaluateAllow(CreatePackage(license: "MIT"));
+
+        // Assert
+        decision.Resolution.Should().Contain("allow section").And.Contain("riskExceptions do not exempt");
+    }
+
+    [TestMethod]
+    public void Suggests_a_version_in_range_for_a_package_outside_its_allowed_version_range()
+    {
+        // Arrange
+        var allowList = new AllowList { Packages = { new PackageSelector("Newtonsoft.Json", "[14.0.0,)") } };
+
+        // Act
+        PolicyDecision decision = allowList.EvaluateAllow(CreatePackage(name: "Newtonsoft.Json", version: "13.0.3"));
+
+        // Assert
+        decision.Resolution.Should().Contain("[14.0.0,)");
+    }
+
+    [TestMethod]
+    public void Suggests_a_stable_version_for_a_prerelease_package_the_allow_list_does_not_allow()
+    {
+        // Arrange
+        var allowList = new AllowList { Prerelease = false };
+
+        // Act
+        PolicyDecision decision = allowList.EvaluateAllow(CreatePackage(version: "14.0.0-beta.1"));
+
+        // Assert
+        decision.Resolution.Should().Contain("stable version").And.Contain("allow section");
+    }
+
+    [TestMethod]
+    public void Suggests_removing_the_deny_entry_or_using_another_package_for_a_denied_package()
+    {
+        // Arrange
+        var denyList = new DenyList { Packages = { new PackageSelector("Newtonsoft.Json") } };
+
+        // Act
+        PolicyDecision decision = denyList.EvaluateDeny(CreatePackage(name: "Newtonsoft.Json"));
+
+        // Assert
+        decision.Resolution.Should().Contain("Newtonsoft.Json").And.Contain("deny section").And.NotContain("riskExceptions");
+    }
+
+    [TestMethod]
+    public void Names_the_configuration_file_that_introduced_the_deny_entry()
+    {
+        // Arrange
+        var denyList = new DenyList
+        {
+            Packages = { new PackageSelector("Newtonsoft.Json") { SourceFile = "src/.packageguard/config.json" } }
+        };
+
+        // Act
+        PolicyDecision decision = denyList.EvaluateDeny(CreatePackage(name: "Newtonsoft.Json"));
+
+        // Assert
+        decision.Resolution.Should().Contain("deny section of src/.packageguard/config.json");
+    }
+
+    [TestMethod]
+    public void Suggests_removing_the_deny_entry_or_using_another_package_for_a_denied_license()
+    {
+        // Arrange
+        var denyList = new DenyList { Licenses = { "MIT" } };
+
+        // Act
+        PolicyDecision decision = denyList.EvaluateDeny(CreatePackage(license: "MIT"));
+
+        // Assert
+        decision.Resolution.Should().Contain("different license").And.NotContain("riskExceptions");
+    }
+
+    [TestMethod]
+    public void Suggests_a_stable_version_for_a_prerelease_package_the_deny_list_denies()
+    {
+        // Arrange
+        var denyList = new DenyList { Prerelease = true };
+
+        // Act
+        PolicyDecision decision = denyList.EvaluateDeny(CreatePackage(version: "14.0.0-beta.1"));
+
+        // Assert
+        decision.Resolution.Should().Contain("stable version").And.Contain("deny section");
+    }
+
+    [TestMethod]
+    public void Suggests_a_risk_exception_for_a_package_denied_by_a_risk_gate()
+    {
+        // Arrange
+        var denyList = new DenyList { DenyUnsigned = true };
+        PackageInfo package = CreatePackage();
+        package.IsPackageSigned = false;
+
+        // Act
+        PolicyDecision decision = denyList.EvaluateRiskDeny(package);
+
+        // Assert
+        decision.Resolution.Should().Contain("riskExceptions").And.Contain("expiresOn");
+    }
+
+    [TestMethod]
+    public void Suggests_an_older_version_instead_of_an_upgrade_for_a_package_that_is_too_new()
+    {
+        // Arrange
+        var denyList = new DenyList { MinPackageAgeDays = { ["nuget"] = 14 } };
+        PackageInfo package = CreatePackage();
+        package.PublishedAt = DateTimeOffset.UtcNow.AddDays(-2);
+
+        // Act
+        PolicyDecision decision = denyList.EvaluateRiskDeny(package);
+
+        // Assert
+        decision.Resolution.Should().Contain("older version").And.Contain("riskExceptions").And.NotContain("Upgrade");
+    }
+
+    [TestMethod]
+    public void Suggests_a_vulnerability_exception_for_a_package_denied_by_a_vulnerability_gate()
+    {
+        // Arrange
+        var denyList = new DenyList { MaxOsvSeverityScore = 7.0 };
+        PackageInfo package = CreatePackage();
+        package.MaxVulnerabilitySeverity = 9.8;
+
+        // Act
+        PolicyDecision decision = denyList.EvaluateRiskDeny(package);
+
+        // Assert
+        decision.Resolution.Should().Contain("vulnerabilityExceptions");
+    }
+
+    [TestMethod]
+    public void Suggests_a_vulnerability_exception_for_a_package_with_a_known_exploited_vulnerability()
+    {
+        // Arrange
+        var denyList = new DenyList { DenyKnownExploited = true };
+        PackageInfo package = CreatePackage();
+        package.Vulnerabilities = [new OsvVulnerabilityRecord { Id = "GHSA-x", Aliases = ["CVE-2024-0001"], IsKnownExploited = true }];
+
+        // Act
+        PolicyDecision decision = denyList.EvaluateRiskDeny(package);
+
+        // Assert
+        decision.Resolution.Should().Contain("vulnerabilityExceptions");
     }
 }

@@ -6,6 +6,13 @@ namespace PackageGuard.Core.Policy;
 
 public class DenyList : PackagePolicy
 {
+    private const string RiskExceptionResolution =
+        "Upgrade or replace the package, or add it to the riskExceptions section of your config. " +
+        "Set expiresOn to make the exception temporary";
+
+    private const string VulnerabilityExceptionResolution =
+        "Upgrade to a version without these vulnerabilities, or add them to the vulnerabilityExceptions section of your config";
+
     /// <summary>
     /// Gets or sets a value indicating whether to deny all prerelease packages regardless of package name.
     /// </summary>
@@ -85,7 +92,12 @@ public class DenyList : PackagePolicy
         // Check if prerelease packages are denied
         if (Prerelease && NuGetVersion.Parse(package.Version).IsPrerelease)
         {
-            return new PolicyDecision(true, "prerelease packages are denied by policy");
+            return new PolicyDecision
+            {
+                IsMatch = true,
+                Reason = "prerelease packages are denied by policy",
+                Resolution = "Use a stable version, or set prerelease to false in the deny section of your config"
+            };
         }
 
         if (Licenses.Any())
@@ -96,7 +108,14 @@ public class DenyList : PackagePolicy
             if (matchingLicense is not null)
             {
                 LicenseSourceFiles.TryGetValue(matchingLicense, out string? licenseSourceFile);
-                return new PolicyDecision(true, $"matches deny list license entry \"{matchingLicense}\"", licenseSourceFile);
+                return new PolicyDecision
+                {
+                    IsMatch = true,
+                    Reason = $"matches deny list license entry \"{matchingLicense}\"",
+                    SourceFile = licenseSourceFile,
+                    Resolution = $"Use a package with a different license, or remove \"{matchingLicense}\" from the deny " +
+                                 $"section of {DescribeConfigurationFile(licenseSourceFile)}"
+                };
             }
         }
 
@@ -105,11 +124,22 @@ public class DenyList : PackagePolicy
             if (package.Name.MatchesWildcard(selector.Id) &&
                 (selector.VersionRange is null || package.SatisfiesRange(package.Name, selector.VersionRange)))
             {
-                return new PolicyDecision(true, $"matches deny list package entry \"{selector.Id}\"", selector.SourceFile);
+                return new PolicyDecision
+                {
+                    IsMatch = true,
+                    Reason = $"matches deny list package entry \"{selector.Id}\"",
+                    SourceFile = selector.SourceFile,
+                    Resolution = $"Use a different package or version, or remove \"{selector.Id}\" from the deny " +
+                                 $"section of {DescribeConfigurationFile(selector.SourceFile)}"
+                };
             }
         }
 
-        return new PolicyDecision(false, "no deny list rule matched");
+        return new PolicyDecision
+        {
+            IsMatch = false,
+            Reason = "no deny list rule matched"
+        };
     }
 
     /// <summary>
@@ -121,53 +151,53 @@ public class DenyList : PackagePolicy
     {
         if (MaxOverallRisk is { } maxOverallRisk && package.RiskScore > maxOverallRisk)
         {
-            return new PolicyDecision(true,
+            return DenyByRiskRule(
                 $"overall risk score {package.RiskScore:0.#} exceeds the maximum of {maxOverallRisk:0.#}");
         }
 
         if (MaxLegalRisk is { } maxLegalRisk && package.RiskDimensions.LegalRisk > maxLegalRisk)
         {
-            return new PolicyDecision(true,
+            return DenyByRiskRule(
                 $"legal risk score {package.RiskDimensions.LegalRisk:0.#} exceeds the maximum of {maxLegalRisk:0.#}");
         }
 
         if (MaxSecurityRisk is { } maxSecurityRisk && package.RiskDimensions.SecurityRisk > maxSecurityRisk)
         {
-            return new PolicyDecision(true,
+            return DenyByRiskRule(
                 $"security risk score {package.RiskDimensions.SecurityRisk:0.#} exceeds the maximum of {maxSecurityRisk:0.#}");
         }
 
         if (MaxOperationalRisk is { } maxOperationalRisk && package.RiskDimensions.OperationalRisk > maxOperationalRisk)
         {
-            return new PolicyDecision(true,
+            return DenyByRiskRule(
                 $"operational risk score {package.RiskDimensions.OperationalRisk:0.#} exceeds the maximum of {maxOperationalRisk:0.#}");
         }
 
         if (MaxOsvSeverityScore is { } maxOsvSeverityScore && package.MaxVulnerabilitySeverity > maxOsvSeverityScore)
         {
-            return new PolicyDecision(true,
+            return DenyByVulnerabilityRule(
                 $"highest known OSV severity {package.MaxVulnerabilitySeverity:0.#} exceeds the maximum of {maxOsvSeverityScore:0.#}");
         }
 
         if (DenyKnownExploited && package.KnownExploitedCveIds is { Length: > 0 } exploitedCveIds)
         {
-            return new PolicyDecision(true,
+            return DenyByVulnerabilityRule(
                 $"has vulnerabilities on the CISA Known Exploited Vulnerabilities list ({string.Join(", ", exploitedCveIds)})");
         }
 
         if (DenyUnsigned && package.IsPackageSigned == false)
         {
-            return new PolicyDecision(true, "package is not signed");
+            return DenyByRiskRule("package is not signed");
         }
 
         if (DenyDeprecated && package.IsDeprecated == true)
         {
-            return new PolicyDecision(true, "package is deprecated");
+            return DenyByRiskRule("package is deprecated");
         }
 
         if (DenyWithoutRepository && string.IsNullOrWhiteSpace(package.RepositoryUrl))
         {
-            return new PolicyDecision(true, "package does not declare a repository URL");
+            return DenyByRiskRule("package does not declare a repository URL");
         }
 
         if (MinPackageAgeDays.TryGetValue(package.GetPackageEcosystem(), out int minAgeDays) && package.PublishedAt is { } publishedAt)
@@ -175,11 +205,47 @@ public class DenyList : PackagePolicy
             double ageDays = (DateTimeOffset.UtcNow - publishedAt).TotalDays;
             if (ageDays < minAgeDays)
             {
-                return new PolicyDecision(true,
-                    $"published {ageDays:0.#} day(s) ago, which is less than the minimum age of {minAgeDays} day(s)");
+                return new PolicyDecision
+                {
+                    IsMatch = true,
+                    Reason = $"published {ageDays:0.#} day(s) ago, which is less than the minimum age of {minAgeDays} day(s)",
+                    Resolution = $"Use an older version, wait until this version is {minAgeDays} day(s) old, or add it to the " +
+                                 "riskExceptions section of your config. Set expiresOn to make the exception temporary"
+                };
             }
         }
 
-        return new PolicyDecision(false, "no risk-based deny list rule matched");
+        return new PolicyDecision
+        {
+            IsMatch = false,
+            Reason = "no risk-based deny list rule matched"
+        };
+    }
+
+    /// <summary>
+    /// Denies a package by a risk-based rule, which upgrading, replacing or a <see cref="RiskException"/> resolves.
+    /// </summary>
+    private static PolicyDecision DenyByRiskRule(string reason)
+    {
+        return new PolicyDecision
+        {
+            IsMatch = true,
+            Reason = reason,
+            Resolution = RiskExceptionResolution
+        };
+    }
+
+    /// <summary>
+    /// Denies a package by a rule about known vulnerabilities, which upgrading or a <see cref="VulnerabilityException"/>
+    /// resolves.
+    /// </summary>
+    private static PolicyDecision DenyByVulnerabilityRule(string reason)
+    {
+        return new PolicyDecision
+        {
+            IsMatch = true,
+            Reason = reason,
+            Resolution = VulnerabilityExceptionResolution
+        };
     }
 }

@@ -363,16 +363,17 @@ namespace PackageGuard.Core.Policy
     }
     public class PolicyViolation : System.IEquatable<PackageGuard.Core.Policy.PolicyViolation>
     {
-        public PolicyViolation(string PackageId, string Version, string License, string[] Projects, string FeedName, string FeedUrl, string Reason = "", bool IsWarning = false, bool IsMalicious = false) { }
-        public string FeedName { get; init; }
-        public string FeedUrl { get; init; }
+        public PolicyViolation() { }
+        public required string FeedName { get; init; }
+        public required string FeedUrl { get; init; }
         public bool IsMalicious { get; init; }
         public bool IsWarning { get; init; }
-        public string License { get; init; }
-        public string PackageId { get; init; }
-        public string[] Projects { get; init; }
+        public required string License { get; init; }
+        public required string PackageId { get; init; }
+        public required string[] Projects { get; init; }
         public string Reason { get; init; }
-        public string Version { get; init; }
+        public string Resolution { get; init; }
+        public required string Version { get; init; }
     }
     public class ProjectPolicy
     {

@@ -206,7 +206,12 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
 
             RiskException? riskException = policy.FindApplicableRiskException(package);
             PolicyDecision riskDenyDecision = riskException is not null
-                ? new PolicyDecision(false, DescribeRiskException(riskException), riskException.SourceFile)
+                ? new PolicyDecision
+                {
+                    IsMatch = false,
+                    Reason = DescribeRiskException(riskException),
+                    SourceFile = riskException.SourceFile
+                }
                 : policy.DenyList.EvaluateRiskDeny(package);
 
             bool isViolation = !allowDecision.IsMatch || denyDecision.IsMatch || riskDenyDecision.IsMatch;
@@ -237,6 +242,11 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
 
             string label = showPerProject ? $"Status ({Path.GetFileNameWithoutExtension(project)}):" : "Status:  ";
             AnsiConsole.MarkupLine($"  {label} [{statusColor}]{status}[/] ({Markup.Escape(reason)})");
+
+            if (isViolation && decisive.Resolution.Length > 0)
+            {
+                AnsiConsole.MarkupLine($"  Resolve:  {Markup.Escape(decisive.Resolution)}");
+            }
         }
     }
 

@@ -153,16 +153,17 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
             if (!allowDecision.IsMatch || denyDecision.IsMatch)
             {
                 PolicyDecision decision = denyDecision.IsMatch ? denyDecision : allowDecision;
-                violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(),
-                    package.Source, package.SourceUrl, decision.Reason));
+                violations.Add(PolicyViolation.FromDecision(package, package.Projects.ToArray(), decision));
             }
             else
             {
                 PolicyDecision warnDecision = policy.WarnList.EvaluateWarn(package);
                 if (warnDecision.IsMatch)
                 {
-                    violations.Add(new PolicyViolation(package.Name, package.Version, package.License!, package.Projects.ToArray(),
-                        package.Source, package.SourceUrl, warnDecision.Reason, IsWarning: true));
+                    violations.Add(PolicyViolation.FromDecision(package, package.Projects.ToArray(), warnDecision) with
+                    {
+                        IsWarning = true
+                    });
                 }
             }
         }
