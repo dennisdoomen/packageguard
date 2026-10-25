@@ -90,4 +90,19 @@ public class ProjectPolicy
     /// currently applies, exempting it from <see cref="DenyList"/>'s risk-based rules.
     /// </summary>
     internal bool IsExcludedFromRiskDenial(PackageInfo package) => FindApplicableRiskException(package) is not null;
+
+    /// <summary>
+    /// Updates <see cref="PackageInfo.IsLicensePolicyCompatible"/> by checking the license of <paramref name="package"/>
+    /// against the allowed and denied licenses, ANDing the result with any previously recorded compatibility value.
+    /// </summary>
+    internal void UpdateLicenseCompatibility(PackageInfo package)
+    {
+        bool allowlistCompatible = AllowList.Licenses.Count == 0 ||
+                                   LicenseExpression.FindAllowingEntries(package.License, AllowList.Licenses).Count > 0;
+
+        bool denylistCompatible = LicenseExpression.FindRestrictingEntries(package.License, DenyList.Licenses).Count == 0;
+
+        package.IsLicensePolicyCompatible ??= true;
+        package.IsLicensePolicyCompatible &= allowlistCompatible && denylistCompatible;
+    }
 }
