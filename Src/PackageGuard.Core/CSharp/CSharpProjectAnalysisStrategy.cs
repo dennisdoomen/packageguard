@@ -158,10 +158,10 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
     /// </summary>
     private static void UpdateLicensePolicyCompatibility(PackageInfo package, ProjectPolicy policy)
     {
-        bool allowlistCompatible = !policy.AllowList.Licenses.Any() ||
-                                   policy.AllowList.Licenses.Contains(package.License!, StringComparer.OrdinalIgnoreCase);
+        bool allowlistCompatible = policy.AllowList.Licenses.Count == 0 ||
+                                   LicenseExpression.FindAllowingEntries(package.License, policy.AllowList.Licenses).Count > 0;
 
-        bool denylistCompatible = !policy.DenyList.Licenses.Contains(package.License!, StringComparer.OrdinalIgnoreCase);
+        bool denylistCompatible = LicenseExpression.FindRestrictingEntries(package.License, policy.DenyList.Licenses).Count == 0;
 
         bool compatible = allowlistCompatible && denylistCompatible;
         package.IsLicensePolicyCompatible ??= true;

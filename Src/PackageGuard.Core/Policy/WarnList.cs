@@ -34,21 +34,15 @@ public class WarnList : PackagePolicy
             };
         }
 
-        if (Licenses.Any())
+        IReadOnlyList<string> matchingLicenses = LicenseExpression.FindRestrictingEntries(package.License, Licenses);
+        if (matchingLicenses.Count > 0)
         {
-            string? matchingLicense = Licenses.FirstOrDefault(license =>
-                license.Equals(package.License, StringComparison.OrdinalIgnoreCase));
-
-            if (matchingLicense is not null)
+            return new PolicyDecision
             {
-                LicenseSourceFiles.TryGetValue(matchingLicense, out string? licenseSourceFile);
-                return new PolicyDecision
-                {
-                    IsMatch = true,
-                    Reason = $"matches warn list license entry \"{matchingLicense}\"",
-                    SourceFile = licenseSourceFile
-                };
-            }
+                IsMatch = true,
+                Reason = LicenseExpression.DescribeMatch("warn list", matchingLicenses, package.License),
+                SourceFile = FindLicenseSourceFiles(matchingLicenses)
+            };
         }
 
         foreach (PackageSelector selector in Packages)

@@ -65,6 +65,16 @@ public class LicenseClassifierSpecs
     }
 
     [TestMethod]
+    public void Classifies_an_expression_by_the_license_that_applies()
+    {
+        LicenseClassifier.Classify("MIT OR GPL-3.0-only").Should().Be(LicenseCategory.Permissive);
+        LicenseClassifier.Classify("LGPL-3.0-only OR AGPL-3.0-only").Should().Be(LicenseCategory.WeakCopyleft);
+        LicenseClassifier.Classify("MIT AND GPL-3.0-only").Should().Be(LicenseCategory.StrongCopyleft);
+        LicenseClassifier.Classify("MIT AND SomethingElse").Should().Be(LicenseCategory.Unknown);
+        LicenseClassifier.Classify("GPL-3.0").Should().Be(LicenseCategory.StrongCopyleft);
+    }
+
+    [TestMethod]
     public void Only_copyleft_categories_are_reported_as_copyleft()
     {
         LicenseClassifier.IsCopyleft(LicenseCategory.Permissive).Should().BeFalse();

@@ -100,23 +100,18 @@ public class DenyList : PackagePolicy
             };
         }
 
-        if (Licenses.Any())
+        IReadOnlyList<string> matchingLicenses = LicenseExpression.FindRestrictingEntries(package.License, Licenses);
+        if (matchingLicenses.Count > 0)
         {
-            string? matchingLicense = Licenses.FirstOrDefault(license =>
-                license.Equals(package.License, StringComparison.OrdinalIgnoreCase));
-
-            if (matchingLicense is not null)
+            string? licenseSourceFiles = FindLicenseSourceFiles(matchingLicenses);
+            return new PolicyDecision
             {
-                LicenseSourceFiles.TryGetValue(matchingLicense, out string? licenseSourceFile);
-                return new PolicyDecision
-                {
-                    IsMatch = true,
-                    Reason = $"matches deny list license entry \"{matchingLicense}\"",
-                    SourceFile = licenseSourceFile,
-                    Resolution = $"Use a package with a different license, or remove \"{matchingLicense}\" from the deny " +
-                                 $"section of {DescribeConfigurationFile(licenseSourceFile)}"
-                };
-            }
+                IsMatch = true,
+                Reason = LicenseExpression.DescribeMatch("deny list", matchingLicenses, package.License),
+                SourceFile = licenseSourceFiles,
+                Resolution = $"Use a package with a different license, or remove {LicenseExpression.JoinQuoted(matchingLicenses, "or")} " +
+                             $"from the deny section of {DescribeConfigurationFile(licenseSourceFiles)}"
+            };
         }
 
         foreach (PackageSelector selector in Packages)
