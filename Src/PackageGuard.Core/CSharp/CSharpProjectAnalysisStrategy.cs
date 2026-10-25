@@ -126,7 +126,7 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
 
         foreach (PackageInfo package in packages)
         {
-            UpdateLicensePolicyCompatibility(package, policy);
+            policy.UpdateLicenseCompatibility(package);
 
             PolicyDecision allowDecision = policy.AllowList.EvaluateAllow(package);
             PolicyDecision denyDecision = policy.DenyList.EvaluateDeny(package);
@@ -150,22 +150,6 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
         }
 
         return violations.ToArray();
-    }
-
-    /// <summary>
-    /// Updates <see cref="PackageInfo.IsLicensePolicyCompatible"/> by checking the package license against
-    /// the policy allow/deny license lists, ANDing the result with any previously recorded compatibility value.
-    /// </summary>
-    private static void UpdateLicensePolicyCompatibility(PackageInfo package, ProjectPolicy policy)
-    {
-        bool allowlistCompatible = policy.AllowList.Licenses.Count == 0 ||
-                                   LicenseExpression.FindAllowingEntries(package.License, policy.AllowList.Licenses).Count > 0;
-
-        bool denylistCompatible = LicenseExpression.FindRestrictingEntries(package.License, policy.DenyList.Licenses).Count == 0;
-
-        bool compatible = allowlistCompatible && denylistCompatible;
-        package.IsLicensePolicyCompatible ??= true;
-        package.IsLicensePolicyCompatible &= compatible;
     }
 
     /// <summary>

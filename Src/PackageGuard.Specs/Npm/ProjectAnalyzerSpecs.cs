@@ -484,4 +484,73 @@ public class ProjectAnalyzerSpecs
         // Assert
         violations.Should().BeEmpty();
     }
+
+    [TestMethod]
+    public async Task Marks_an_npm_package_with_a_denied_license_as_incompatible_with_the_policy()
+    {
+        // Arrange
+        var project = ChainablePath.Current / "TestCases" / "NpmApp";
+
+        var analyzer = new ProjectAnalyzer(licenseFetcher)
+        {
+            Logger = ConsoleTestLogger.Create("Test")
+        };
+
+        // Act
+        AnalysisResult result = await analyzer.ExecuteAnalysisWithRisk(project, new AnalyzerSettings(), _ => new ProjectPolicy
+        {
+            DenyList = new DenyList
+            {
+                Licenses = ["MIT"]
+            }
+        });
+
+        // Assert
+        result.Packages.Single(p => p.Name == "cookie").IsLicensePolicyCompatible.Should().BeFalse();
+    }
+
+    [TestMethod]
+    [TestCategory("Integration")]
+    public async Task Adds_legal_risk_to_an_npm_package_with_a_license_that_is_incompatible_with_the_policy()
+    {
+        // Arrange
+        var project = ChainablePath.Current / "TestCases" / "NpmApp";
+
+        var analyzer = new ProjectAnalyzer(licenseFetcher)
+        {
+            Logger = ConsoleTestLogger.Create("Test")
+        };
+
+        var settings = new AnalyzerSettings
+        {
+            ReportRisk = true
+        };
+
+        // Act
+        AnalysisResult allowedResult = await analyzer.ExecuteAnalysisWithRisk(project, settings, _ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["MIT"]
+            }
+        }, SelectCookie);
+
+        AnalysisResult deniedResult = await analyzer.ExecuteAnalysisWithRisk(project, settings, _ => new ProjectPolicy
+        {
+            DenyList = new DenyList
+            {
+                Licenses = ["MIT"]
+            }
+        }, SelectCookie);
+
+        // Assert
+        PackageInfo allowedCookie = allowedResult.Packages.Single(p => p.Name == "cookie");
+        PackageInfo deniedCookie = deniedResult.Packages.Single(p => p.Name == "cookie");
+
+        deniedCookie.RiskDimensions.LegalRisk.Should().BeGreaterThan(allowedCookie.RiskDimensions.LegalRisk);
+        deniedCookie.RiskDimensions.LegalRiskRationale.Should()
+            .Contain("License is incompatible with configured policy (+3.0)");
+    }
+
+    private static PackageInfo[] SelectCookie(PackageInfo[] packages) => packages.Where(p => p.Name == "cookie").ToArray();
 }

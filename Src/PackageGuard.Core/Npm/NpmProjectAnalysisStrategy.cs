@@ -147,6 +147,8 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
                 continue;
             }
 
+            policy.UpdateLicenseCompatibility(package);
+
             PolicyDecision allowDecision = policy.AllowList.EvaluateAllow(package);
             PolicyDecision denyDecision = policy.DenyList.EvaluateDeny(package);
 
