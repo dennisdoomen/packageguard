@@ -54,25 +54,10 @@ public class ExplainCommandSettings : CommandSettings
     [CommandOption("-a|--github-api-key|--githubapikey")]
     public string? GitHubApiKey { get; set; } = Environment.GetEnvironmentVariable("GITHUB_API_KEY");
 
-    [Description("Maintains a cache of the package information to speed up future explain and analyze runs.")]
-    [CommandOption("--use-caching|--usecaching")]
-    [DefaultValue(false)]
-    public bool UseCaching { get; set; }
-
     [Description(
-        "Overrides the file path where analysis data is cached. Defaults to the \"<workingdirectory>/.packageguard/cache.bin\"")]
+        "Overrides the file path of the cache that explain reads from, if it exists. Explain never updates the cache. Defaults to the \"<workingdirectory>/.packageguard/cache.bin\"")]
     [CommandOption("--cache-file-path|--cachefilepath")]
     public string CacheFilePath { get; set; } = ChainablePath.Current / ".packageguard" / "cache.bin";
-
-    [Description("Ignore cached risk-related package data and rebuild it from upstream sources.")]
-    [CommandOption("--refresh-risk-cache|--refreshriskcache")]
-    [DefaultValue(false)]
-    public bool RefreshRiskCache { get; set; }
-
-    [Description("Maximum age in hours for cached risk-related package data before it's refreshed.")]
-    [CommandOption("--risk-cache-max-age-hours|--riskcachemaxagehours")]
-    [DefaultValue(24)]
-    public int RiskCacheMaxAgeHours { get; set; } = 24;
 
     [Description("Explicitly enable or disable scanning for .csproj, .sln or .slnx files")]
     [CommandOption("--nuget")]
@@ -101,7 +86,8 @@ public class ExplainCommandSettings : CommandSettings
 
     /// <summary>
     /// Converts the CLI settings into an <see cref="AnalyzerSettings"/> instance used by the core analysis
-    /// pipeline. Risk reporting is always enabled, since <c>explain</c> always shows the risk breakdown.
+    /// pipeline. Risk reporting is always enabled, since <c>explain</c> always shows the risk breakdown, and the
+    /// cache is always used when it exists but never updated.
     /// </summary>
     public AnalyzerSettings ToCoreSettings()
     {
@@ -112,14 +98,13 @@ public class ExplainCommandSettings : CommandSettings
             InteractiveRestore = Interactive,
             CacheFilePath = CacheFilePath,
             NpmPackageManager = NpmPackageManager,
-            UseCaching = UseCaching,
+            UseCaching = true,
+            ReadOnlyCache = true,
             NpmExePath = NpmExePath,
             NpmProjectPath = NpmProjectPath,
             ScanNuGet = ScanNuGet,
             ReportRisk = true,
-            GitHubApiKey = GitHubApiKey,
-            RefreshRiskCache = RefreshRiskCache,
-            RiskCacheMaxAge = TimeSpan.FromHours(Math.Max(0, RiskCacheMaxAgeHours))
+            GitHubApiKey = GitHubApiKey
         };
     }
 

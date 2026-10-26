@@ -1,4 +1,3 @@
-using System;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
@@ -27,12 +26,9 @@ public class ExplainCommandSettingsSpecs
             SkipRestore = true,
             Interactive = false,
             CacheFilePath = "cache.bin",
-            UseCaching = true,
             NpmExePath = "npm.exe",
             ScanNuGet = false,
-            GitHubApiKey = "token",
-            RefreshRiskCache = true,
-            RiskCacheMaxAgeHours = 6
+            GitHubApiKey = "token"
         };
 
         AnalyzerSettings coreSettings = settings.ToCoreSettings();
@@ -41,21 +37,17 @@ public class ExplainCommandSettingsSpecs
         coreSettings.SkipRestore.Should().BeTrue();
         coreSettings.InteractiveRestore.Should().BeFalse();
         coreSettings.CacheFilePath.Should().Be("cache.bin");
-        coreSettings.UseCaching.Should().BeTrue();
         coreSettings.NpmExePath.Should().Be("npm.exe");
         coreSettings.ScanNuGet.Should().BeFalse();
         coreSettings.GitHubApiKey.Should().Be("token");
-        coreSettings.RefreshRiskCache.Should().BeTrue();
-        coreSettings.RiskCacheMaxAge.Should().Be(TimeSpan.FromHours(6));
     }
 
     [TestMethod]
-    public void Never_produces_a_negative_risk_cache_max_age()
+    public void Always_reads_the_cache_but_never_updates_it()
     {
-        var settings = new ExplainCommandSettings { RiskCacheMaxAgeHours = -5 };
+        AnalyzerSettings coreSettings = new ExplainCommandSettings().ToCoreSettings();
 
-        AnalyzerSettings coreSettings = settings.ToCoreSettings();
-
-        coreSettings.RiskCacheMaxAge.Should().Be(TimeSpan.Zero);
+        coreSettings.UseCaching.Should().BeTrue();
+        coreSettings.ReadOnlyCache.Should().BeTrue();
     }
 }

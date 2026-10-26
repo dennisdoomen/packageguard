@@ -668,6 +668,33 @@ public class ProjectAnalyzerSpecs
     }
 
     [TestMethod]
+    public async Task Does_not_create_a_cache_when_the_cache_is_read_only()
+    {
+        // Arrange
+        var current = ChainablePath.Current;
+        (current / ".packageguard").DeleteFileOrDirectory();
+
+        var analyzer = new ProjectAnalyzer(licenseFetcher);
+        var projectPath = current / "TestCases" / "SimpleApp" / "SimpleApp.csproj";
+
+        // Act
+        await analyzer.ExecuteAnalysis(projectPath, new AnalyzerSettings
+        {
+            UseCaching = true,
+            ReadOnlyCache = true
+        }, _ => new ProjectPolicy
+        {
+            AllowList = new AllowList
+            {
+                Licenses = ["mit", "Apache-2.0"],
+            }
+        });
+
+        // Assert
+        (current / ".packageguard" / "cache.bin").FileExists.Should().BeFalse();
+    }
+
+    [TestMethod]
     public async Task Can_reuse_a_cache_from_an_earlier_run()
     {
         // Arrange

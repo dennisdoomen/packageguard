@@ -35,6 +35,12 @@ public class AnalyzerSettings
     public bool UseCaching { get; init; }
 
     /// <summary>
+    /// When <c>true</c> together with <see cref="UseCaching"/>, cached package data is always reused regardless of its
+    /// age or <see cref="RefreshRiskCache"/>, and the cache files are never written.
+    /// </summary>
+    public bool ReadOnlyCache { get; init; }
+
+    /// <summary>
     /// Specifies the file path where analysis cache data is stored if <see cref="UseCaching"/> is to <c>true</c>.
     /// </summary>
     public string CacheFilePath { get; init; } = ChainablePath.Current / ".packageguard" / "cache.bin";
