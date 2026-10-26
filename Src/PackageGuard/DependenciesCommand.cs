@@ -62,13 +62,16 @@ public sealed class DependenciesCommand(ILogger logger) : AsyncCommand<Dependenc
         {
             AnsiConsole.MarkupLine("");
             AnsiConsole.MarkupLine($"[bold]Redundant package references ({redundancies.Length})[/]");
+            AnsiConsole.MarkupLine("  [green3_1]✓[/] safe to remove   [yellow1]![/] changes the resolved version");
+
+            // One shared width keeps the provider column aligned across all projects.
+            int idWidth = redundancies.Max(f => f.PackageId.Length);
             foreach (IGrouping<string, DependencyFinding> project in redundancies.GroupBy(f => f.Project).OrderBy(g => g.Key))
             {
-                ReportProject(project);
+                ReportProject(project, idWidth);
             }
 
             AnsiConsole.MarkupLine("");
-            AnsiConsole.MarkupLine("  [green3_1]✓[/] safe to remove   [yellow1]![/] changes the resolved version");
             AnsiConsole.MarkupLine(
                 "[grey]  Based on the restore graph, not your source code. A package can be redundant here and still be used directly in code.[/]");
         }
@@ -84,7 +87,7 @@ public sealed class DependenciesCommand(ILogger logger) : AsyncCommand<Dependenc
         }
     }
 
-    private static void ReportProject(IGrouping<string, DependencyFinding> project)
+    private static void ReportProject(IGrouping<string, DependencyFinding> project, int idWidth)
     {
         // The same finding in several target frameworks is printed once, with all frameworks listed.
         var rows = project
@@ -94,12 +97,13 @@ public sealed class DependenciesCommand(ILogger logger) : AsyncCommand<Dependenc
             .ToArray();
 
         string frameworks = string.Join(", ", rows.SelectMany(r => r.Frameworks.Split(", ")).Distinct().Order());
+        AnsiConsole.MarkupLine("");
         AnsiConsole.MarkupLine($"  [bold]{Markup.Escape(project.Key)}[/] [grey]({Markup.Escape(frameworks)})[/]");
 
         // A grid keeps multi-line provider lists aligned under their own column.
         var grid = new Grid();
         grid.AddColumn(new GridColumn().NoWrap().PadLeft(4).PadRight(1));
-        grid.AddColumn(new GridColumn().NoWrap().PadLeft(0).PadRight(2));
+        grid.AddColumn(new GridColumn().NoWrap().Width(idWidth).PadLeft(0).PadRight(2));
         grid.AddColumn(new GridColumn().PadLeft(0).PadRight(0));
 
         bool mixedFrameworks = rows.Any(r => r.Frameworks != frameworks);
