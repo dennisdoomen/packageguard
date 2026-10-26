@@ -342,7 +342,7 @@ public class PackageInfoSpecs
 
         PackageInfo[] cachedPackages =
         [
-            new PackageInfo
+            new()
             {
                 Name = "Bogus",
                 Version = "2.0.0",
