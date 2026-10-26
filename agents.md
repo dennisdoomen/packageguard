@@ -43,10 +43,10 @@ dotnet run --project Src/PackageGuard -- . --config-path .packageguard/config.js
 
 `explain` looks up a package (fuzzy name matching supported) and reports its license/feed, the policy rule
 (and configuration file) that allowed or denied it, its NuGet dependency path(s) and version-resolution
-detail, and its risk breakdown:
+detail, and its risk breakdown. It always reads the cache (`.packageguard/cache.bin`) when one exists, and never updates it:
 
 ```bash
-dotnet run --project Src/PackageGuard -- explain Newtonsoft.Json --path . --use-caching
+dotnet run --project Src/PackageGuard -- explain Newtonsoft.Json --path .
 ```
 
 ### Accept API snapshot changes

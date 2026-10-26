@@ -24,6 +24,11 @@ internal sealed class PackageCacheStore(ILogger logger)
 
     public async Task PersistAsync(AnalyzerSettings settings, PackageInfoCollection packages)
     {
+        if (settings.ReadOnlyCache)
+        {
+            return;
+        }
+
         if (settings.UseCaching)
         {
             await packages.WriteToCache(settings.CacheFilePath);

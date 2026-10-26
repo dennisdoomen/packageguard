@@ -335,6 +335,43 @@ public class PackageInfoSpecs
     }
 
     [TestMethod]
+    public async Task Read_only_cache_reuses_expired_cached_packages()
+    {
+        // Arrange
+        var source = new SourceRepository(new PackageSource("https://nuget.org"), Array.Empty<INuGetResourceProvider>());
+
+        PackageInfo[] cachedPackages =
+        [
+            new PackageInfo
+            {
+                Name = "Bogus",
+                Version = "2.0.0",
+                SourceUrl = source.PackageSource.Source,
+                CacheUpdatedAt = DateTimeOffset.UtcNow.AddDays(-30)
+            }
+        ];
+
+        await using (FileStream fileStream = new(cachePath, FileMode.Create, FileAccess.Write))
+        {
+            await MemoryPackSerializer.SerializeAsync(fileStream, cachedPackages);
+        }
+
+        // Act
+        var currentCollection = new PackageInfoCollection(NullLogger.Instance, new AnalyzerSettings
+        {
+            ReportRisk = true,
+            ReadOnlyCache = true,
+            RefreshRiskCache = true,
+            RiskCacheMaxAge = TimeSpan.FromHours(24)
+        });
+
+        await currentCollection.TryInitializeFromCache(cachePath);
+
+        // Assert
+        currentCollection.Find("Bogus", "2.0.0", [source]).Should().NotBeNull();
+    }
+
+    [TestMethod]
     public void Adding_the_same_package_twice_reuses_the_canonical_instance()
     {
         // Arrange

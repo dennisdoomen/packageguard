@@ -362,7 +362,7 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
     /// </summary>
     private bool ShouldReuseCachedPackage(PackageInfo package)
     {
-        if (settings?.ReportRisk != true)
+        if (settings?.ReportRisk != true || settings.ReadOnlyCache)
         {
             return true;
         }
