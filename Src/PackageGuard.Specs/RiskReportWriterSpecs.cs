@@ -289,6 +289,52 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
+    public async Task Should_mark_packages_with_incomplete_GitHub_data_as_inconclusive()
+    {
+        var incompletePackage = new PackageInfo
+        {
+            Name = "Contoso.RateLimited",
+            Version = "1.0.0",
+            Source = "nuget",
+            RiskScore = 45,
+            HasIncompleteGitHubRiskData = true,
+            RiskDimensions = new RiskDimensions()
+        };
+
+        var completePackage = new PackageInfo
+        {
+            Name = "Contoso.Complete",
+            Version = "1.0.0",
+            Source = "nuget",
+            RiskScore = 45,
+            RiskDimensions = new RiskDimensions()
+        };
+
+        RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
+            Path.Combine(reportDirectory, "PackageGuard.sln"),
+            [incompletePackage, completePackage]);
+
+        string html = await File.ReadAllTextAsync(reportPaths.HtmlPath);
+        html.Should().Contain("<h2>Inconclusive results</h2>");
+        html.Should().Contain("repositories of 1 package,");
+        html.Should().Contain("Some GitHub repository data could not be retrieved. The signals that are missing");
+
+        string sarif = await File.ReadAllTextAsync(reportPaths.SarifPath);
+        using JsonDocument document = JsonDocument.Parse(sarif);
+        JsonElement[] results = document.RootElement.GetProperty("runs")[0].GetProperty("results").EnumerateArray().ToArray();
+
+        JsonElement incompleteResult = results.Single(result =>
+            result.GetProperty("properties").GetProperty("packageName").GetString() == "Contoso.RateLimited");
+        incompleteResult.GetProperty("properties").GetProperty("inconclusive").GetBoolean().Should().BeTrue();
+        incompleteResult.GetProperty("message").GetProperty("text").GetString().Should().EndWith(
+            "Inconclusive: some GitHub repository data could not be retrieved.");
+
+        JsonElement completeResult = results.Single(result =>
+            result.GetProperty("properties").GetProperty("packageName").GetString() == "Contoso.Complete");
+        completeResult.GetProperty("properties").TryGetProperty("inconclusive", out _).Should().BeFalse();
+    }
+
+    [TestMethod]
     public async Task Should_write_generated_report_names_inside_explicit_directory()
     {
         string explicitDirectory = Path.Combine(reportDirectory, "custom-output");

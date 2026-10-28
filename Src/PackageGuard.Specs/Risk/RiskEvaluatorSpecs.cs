@@ -1105,4 +1105,56 @@ internal class RiskEvaluatorSpecs
             .And.NotContain(item => item.Contains("trusted NuGet package signature"))
             .And.NotContain(item => item.Contains("reproducible-build"));
     }
+
+    [TestMethod]
+    internal void Should_not_count_documentation_that_GitHub_did_not_report_on_as_missing()
+    {
+        // Arrange
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT",
+            HasIncompleteGitHubRiskData = true
+        };
+
+        // Act
+        riskEvaluator.EvaluateRisk(package);
+
+        // Assert
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.StartsWith("Inconclusive: some GitHub repository data could not be retrieved"))
+            .And.Contain("Could not determine whether a README exists because GitHub data is incomplete (+0.0)")
+            .And.Contain("Could not determine whether a CONTRIBUTING guide exists because GitHub data is incomplete (+0.0)")
+            .And.Contain("Could not determine whether a SECURITY policy exists because GitHub data is incomplete (+0.0)")
+            .And.Contain(
+                "Could not determine whether a CHANGELOG or release notes exist because GitHub data is incomplete (+0.0)")
+            .And.NotContain(item => item.Contains("README is missing"))
+            .And.NotContain(item => item.Contains("CONTRIBUTING guide is missing"))
+            .And.NotContain(item => item.Contains("SECURITY policy is missing"))
+            .And.NotContain(item => item.Contains("Low contributor count"));
+    }
+
+    [TestMethod]
+    internal void Should_still_count_documentation_as_missing_when_GitHub_data_is_complete()
+    {
+        // Arrange
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var package = new PackageInfo
+        {
+            Name = "TestPackage",
+            Version = "1.0.0",
+            License = "MIT"
+        };
+
+        // Act
+        riskEvaluator.EvaluateRisk(package);
+
+        // Assert
+        package.RiskDimensions.OperationalRiskRationale.Should()
+            .Contain(item => item.Contains("README is missing"))
+            .And.Contain(item => item.Contains("CONTRIBUTING guide is missing"))
+            .And.NotContain(item => item.StartsWith("Inconclusive"));
+    }
 }

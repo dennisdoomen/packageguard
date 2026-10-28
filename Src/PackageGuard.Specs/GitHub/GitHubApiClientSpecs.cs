@@ -91,6 +91,47 @@ public class GitHubApiClientSpecs
     }
 
     [TestMethod]
+    public async Task Does_not_report_an_optional_request_skipped_to_save_the_budget_as_a_failure()
+    {
+        // Arrange
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() =>
+            ScriptedResponse.WithRateLimit(ScriptedResponse.Json("{}"), remaining: 12));
+
+        using var client = new GitHubApiClient(NullLogger.Instance, apiKey: null, responseCache: null, handler);
+        await client.GetJsonAsync(Url);
+
+        using GitHubRequestFailureScope failures = GitHubRequestFailureScope.Begin();
+
+        // Act
+        using JsonDocument optional = await client.GetJsonAsync("https://api.github.com/repos/acme/widget/issues/1/timeline",
+            GitHubRequestImportance.Optional);
+
+        // Assert
+        optional.Should().BeNull();
+        failures.HasFailures.Should().BeFalse("dropping refinements when the budget runs low is by design");
+    }
+
+    [TestMethod]
+    public async Task Reports_an_essential_request_that_the_spent_budget_prevents_as_a_failure()
+    {
+        // Arrange
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() =>
+            ScriptedResponse.PrimaryRateLimited(TimeSpan.FromMinutes(45)));
+
+        using var client = new GitHubApiClient(NullLogger.Instance, apiKey: null, responseCache: null, handler);
+        await client.GetJsonAsync(Url);
+
+        using GitHubRequestFailureScope failures = GitHubRequestFailureScope.Begin();
+
+        // Act
+        using JsonDocument essential = await client.GetJsonAsync("https://api.github.com/repos/acme/gadget");
+
+        // Assert
+        essential.Should().BeNull();
+        failures.HasFailures.Should().BeTrue();
+    }
+
+    [TestMethod]
     public async Task Serves_a_repeated_request_from_the_response_it_already_received()
     {
         // Arrange

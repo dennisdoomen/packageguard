@@ -16,7 +16,7 @@ internal sealed partial class GitHubRepositoryRiskData
     public DateTimeOffset? OwnerCreatedAt { get; init; }
 
     /// <summary>The total number of non-bot contributors.</summary>
-    public int ContributorCount { get; init; }
+    public int? ContributorCount { get; init; }
 
     /// <summary>The fraction of total contributions made by the top contributor.</summary>
     public double? TopContributorShare { get; init; }
@@ -28,19 +28,19 @@ internal sealed partial class GitHubRepositoryRiskData
     public int? RecentMaintainerCount { get; init; }
 
     /// <summary>Indicates whether the repository has a README file.</summary>
-    public bool HasReadme { get; init; }
+    public bool? HasReadme { get; init; }
 
     /// <summary>Indicates whether the README appears to be a boilerplate default.</summary>
-    public bool HasDefaultReadme { get; init; }
+    public bool? HasDefaultReadme { get; init; }
 
     /// <summary>The date of the most recent commit that touched the README file.</summary>
     public DateTimeOffset? ReadmeUpdatedAt { get; init; }
 
     /// <summary>Indicates whether the repository has a CONTRIBUTING.md file.</summary>
-    public bool HasContributingGuide { get; init; }
+    public bool? HasContributingGuide { get; init; }
 
     /// <summary>Indicates whether the repository has a SECURITY.md file.</summary>
-    public bool HasSecurityPolicy { get; init; }
+    public bool? HasSecurityPolicy { get; init; }
 
     /// <summary>Indicates whether the security policy contains detailed contact and reporting information.</summary>
     public bool? HasDetailedSecurityPolicy { get; init; }
@@ -49,10 +49,10 @@ internal sealed partial class GitHubRepositoryRiskData
     public bool? HasCoordinatedDisclosure { get; init; }
 
     /// <summary>Indicates whether the repository has a CHANGELOG file.</summary>
-    public bool HasChangelog { get; init; }
+    public bool? HasChangelog { get; init; }
 
     /// <summary>Indicates whether the CHANGELOG appears to be a boilerplate default.</summary>
-    public bool HasDefaultChangelog { get; init; }
+    public bool? HasDefaultChangelog { get; init; }
 
     /// <summary>The date of the most recent commit that touched the CHANGELOG file.</summary>
     public DateTimeOffset? ChangelogUpdatedAt { get; init; }

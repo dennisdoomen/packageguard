@@ -23,6 +23,12 @@ internal sealed class OperationalRiskEvaluator : IEvaluateRiskDimension
         var risk = 0.0;
         var rationale = new List<string>();
 
+        if (package.HasIncompleteGitHubRiskData)
+        {
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                "Inconclusive: some GitHub repository data could not be retrieved, so signals may be missing", 0.0));
+        }
+
         foreach (IEvaluateRiskFactor factor in Factors)
         {
             RiskFactorContribution contribution = factor.Evaluate(package);

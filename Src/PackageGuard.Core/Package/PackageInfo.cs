@@ -618,6 +618,13 @@ public partial class PackageInfo
     public bool HasGitHubRiskData { get; set; }
 
     /// <summary>
+    /// Gets or sets whether some GitHub requests for the package's repository went unanswered, for instance because
+    /// the rate limit was exhausted. The signals those requests would have produced are left empty, which makes the
+    /// operational and security risk scores of the package inconclusive.
+    /// </summary>
+    public bool HasIncompleteGitHubRiskData { get; set; }
+
+    /// <summary>
     /// Gets or sets the target frameworks discovered in the package archive's <c>lib/</c> and <c>ref/</c> folders.
     /// This is populated by <see cref="NuGetPackageSigningRiskEnricher"/> during local archive inspection.
     /// </summary>
@@ -823,6 +830,7 @@ public partial class PackageInfo
     private void ClearRiskData()
     {
         HasGitHubRiskData = false;
+        HasIncompleteGitHubRiskData = false;
         HasOsvRiskData = false;
         HasSigningRiskData = false;
         HasValidatedLicenseUrl = false;
