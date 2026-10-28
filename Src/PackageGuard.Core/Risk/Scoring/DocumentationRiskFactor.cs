@@ -105,9 +105,7 @@ internal sealed class DocumentationRiskFactor : IEvaluateRiskFactor
     /// be determined.
     /// </summary>
     private static bool IsReleaseHistoryUnknown(PackageInfo package) =>
-        package.HasReleaseNotes is null ||
-        package.HasChangelog is null ||
-        (package.HasChangelog is true && package.HasDefaultChangelog is null);
+        package is { HasReleaseNotes: null } or { HasChangelog: null } or { HasChangelog: true, HasDefaultChangelog: null };
 
     /// <summary>
     /// Creates the rationale for a signal that GitHub did not provide, which therefore does not add any risk.
