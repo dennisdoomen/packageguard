@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -106,5 +107,39 @@ public class NuGetPackageAnalyzerSpecs
             NuGetVersion.Parse("1.0.0"), packages2);
 
         await Task.WhenAll(task1, task2);
+    }
+
+    [TestMethod]
+    public async Task Skips_a_feed_that_fails_and_tries_the_next_one()
+    {
+        // Arrange
+        ChainablePath projectPath = CreateProjectWithNuGetConfig(
+            """
+            <configuration>
+              <packageSources>
+                <clear />
+                <add key="broken" value="http://localhost:1/v3/index.json" />
+                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+              </packageSources>
+            </configuration>
+            """);
+
+        var analyzer = new NuGetPackageAnalyzer(nullLogger, new LicenseFetcher(nullLogger));
+        var packages = new PackageInfoCollection(nullLogger);
+
+        // Act
+        await analyzer.CollectPackageMetadata(projectPath, "NUnit", NuGetVersion.Parse("3.14.0"), packages);
+
+        // Assert
+        packages.Should().ContainSingle(package => package.Source == "nuget.org");
+    }
+
+    private static ChainablePath CreateProjectWithNuGetConfig(string nuGetConfig)
+    {
+        ChainablePath projectPath = ChainablePath.Temp / Path.GetRandomFileName();
+        Directory.CreateDirectory(projectPath);
+        File.WriteAllText(projectPath / "nuget.config", nuGetConfig);
+
+        return projectPath;
     }
 }

@@ -203,16 +203,7 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
             logger.LogDebug("Querying {SourceUrl} for {Name} {Version}", nuGetSource.PackageSource.Source, packageName,
                 packageVersion);
 
-            var metadataResource = await nuGetSource.GetResourceAsync<PackageMetadataResource>();
-
-            IEnumerable<IPackageSearchMetadata> packageSearchMetadatas = await metadataResource!.GetMetadataAsync(
-                packageName,
-                includePrerelease: true,
-                includeUnlisted: true,
-                sourceCacheContext: new SourceCacheContext(), NullLogger.Instance,
-                token: CancellationToken.None);
-
-            IPackageSearchMetadata[] packageMetadata = packageSearchMetadatas?.ToArray() ?? [];
+            IPackageSearchMetadata[] packageMetadata = await QueryPackageMetadata(nuGetSource, packageName, packageVersion);
 
             IPackageSearchMetadata? packageInfo =
                 packageMetadata.FirstOrDefault(p =>
@@ -264,6 +255,36 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Retrieves all versions of a package from a single NuGet source. A source that fails, for instance because it
+    /// rejects the credentials or is unreachable, is treated as not having the package, so the other sources still
+    /// get a chance.
+    /// </summary>
+    private async Task<IPackageSearchMetadata[]> QueryPackageMetadata(SourceRepository nuGetSource, string packageName,
+        NuGetVersion packageVersion)
+    {
+        try
+        {
+            var metadataResource = await nuGetSource.GetResourceAsync<PackageMetadataResource>();
+
+            IEnumerable<IPackageSearchMetadata> packageSearchMetadatas = await metadataResource!.GetMetadataAsync(
+                packageName,
+                includePrerelease: true,
+                includeUnlisted: true,
+                sourceCacheContext: new SourceCacheContext(), NullLogger.Instance,
+                token: CancellationToken.None);
+
+            return packageSearchMetadatas?.ToArray() ?? [];
+        }
+        catch (Exception ex) when (ex is HttpRequestException or FatalProtocolException)
+        {
+            logger.LogWarning("Could not query {SourceUrl} for {Name} {Version}: {Error}",
+                nuGetSource.PackageSource.Source, packageName, packageVersion, ex.Message);
+
+            return [];
+        }
     }
 
     /// <summary>
