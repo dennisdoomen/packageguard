@@ -1,12 +1,12 @@
 ---
-sidebar_position: 2
+sidebar_label: Installation
 ---
 
 # Installation
 
-The tool is available in two forms.
+PackageGuard runs on Windows, Linux and macOS, and needs the .NET 9.0 or 10.0 runtime. You can install it in two ways.
 
-## As a .NET Global Tool (recommended)
+## .NET global tool (recommended)
 
 Install it as [a NuGet tool package](https://www.nuget.org/packages/packageguard):
 
@@ -14,125 +14,30 @@ Install it as [a NuGet tool package](https://www.nuget.org/packages/packageguard
 dotnet tool install PackageGuard --global
 ```
 
-Then use `packageguard --help` to see the list of options.
+Then check that it works:
 
-## As a portable deployment
-
-Download the latest `PackageGuard-{version}.zip` from the [releases page](https://github.com/dennisdoomen/packageguard/releases/latest), extract it, and run it using `dotnet PackageGuard.dll`. This requires .NET 9.0 or later to be installed, but works on Windows, Linux, and macOS.
-
-## Command-line options
-
-This is the output of `packageguard --help`. Each command also has its own help, for example `packageguard dependencies --help`.
-
+```bash
+packageguard --help
 ```
-USAGE:
-    PackageGuard [path] [OPTIONS] [COMMAND]            # When installed as a global tool
-    dotnet PackageGuard.dll [path] [OPTIONS] [COMMAND] # When using the portable deployment
 
-ARGUMENTS:
-    [path]    The path to a directory containing a .sln/.slnx file and/or a
-              package.json, a specific .sln/.slnx file, a specific .csproj file,
-              or a specific package.json. Defaults to the current working
-              directory
+To update it later, run `dotnet tool update PackageGuard --global`.
 
-OPTIONS:
-                                      DEFAULT
-    -h, --help                                   Prints help information
-    -c, --config-path                            The path to the configuration
-                                                 file. Defaults to hierarchical
-                                                 discovery of
-                                                 packageguard.config.json or
-                                                 .packageguard/config.json files
-                                                 starting from the solution
-                                                 directory
-    -i, --restore-interactive         True       Allow enabling or disabling an
-                                                 interactive mode of "dotnet
-                                                 restore". Defaults to true
-        --ignore-violations                      Don't fail the analysis if any
-                                                 violations are found. Defaults
-                                                 to false
-        --treat-deny-as-warning                  Downgrade deny-list violations
-                                                 to warnings instead of failing
-                                                 the build. Defaults to true if
-                                                 the
-                                                 PACKAGEGUARD_DENY_AS_WARNING
-                                                 environment variable is set to
-                                                 anything other than "false", or
-                                                 false if it is unset
-    -f, --force-restore                          Force restoring the NuGet
-                                                 dependencies, even if the
-                                                 lockfile is up-to-date
-    -s, --skip-restore                           Prevent the restore operation
-                                                 from running, even if the lock
-                                                 file is missing or out-of-date
-    -a, --github-api-key                         GitHub API key to use for
-                                                 fetching package licenses. If
-                                                 not specified, you may run into
-                                                 GitHub's rate limiting issues
-        --use-caching                            Maintains a cache of the
-                                                 package information to speed up
-                                                 future analysis
-        --cache-file-path                        Overrides the file path where
-                                                 analysis data is cached.
-                                                 Defaults to the
-                                                 "<workingdirectory>/.packagegua
-                                                 rd/cache.bin"
-        --refresh-risk-cache                     Force --report-risk to rebuild
-                                                 risk-related package data
-                                                 instead of reusing cached risk
-                                                 entries
-        --risk-cache-max-age-hours    24         Maximum age in hours for cached
-                                                 risk-related package data
-                                                 before --report-risk refreshes
-                                                 it
-        --nuget                       True       Explicitly enable or disable
-                                                 scanning for .csproj, .sln or
-                                                 .slnx files
-        --npm                                    Explicitly specify the package
-                                                 manager to use (npm, yarn,
-                                                 pnpm), or None to disable NPM
-                                                 scanning entirely. If not
-                                                 specified, it will detect it
-                                                 automatically
-        --npm-path                               The directory, package.json or
-                                                 lock file of the npm, yarn or
-                                                 pnpm project, in case it is not
-                                                 in the same directory as the
-                                                 solution or project file
-        --npm-exe-path                           The path to the npm, yarn or
-                                                 pnpm executable. If not
-                                                 specified, the system PATH is
-                                                 used
-        --report-risk [PATH]                     Show a colored risk summary in
-                                                 the console and generate
-                                                 detailed HTML/SARIF risk
-                                                 reports. Optionally provide a
-                                                 directory or file path.
-                                                 Directories receive generated
-                                                 file names; explicit filenames
-                                                 are used directly and may
-                                                 overwrite prior files
-    -v, --verbose                                Enable verbose (debug-level)
-                                                 logging output. Combine with
-                                                 --report-risk to see individual
-                                                 HTTP calls to GitHub, OSV, and
-                                                 npm registries
-        --sbom                                   Generate a Software Bill of
-                                                 Materials for the resolved
-                                                 dependency graph, in the given
-                                                 format: cyclonedx or spdx.
-                                                 Requires --sbom-output
-        --sbom-output                            The output file path for the
-                                                 generated SBOM. Required when
-                                                 --sbom is specified
+## Portable version
 
-COMMANDS:
-    analyze              Analyzes NuGet/NPM dependencies against the configured
-                         allow/deny policies
-    explain <package>    Explains why a specific package is present and how it
-                         was evaluated against policy
-    dependencies         Finds redundant package references and version
-                         conflicts
-    init                 Scans the repository and scaffolds a configuration file
-                         from the licenses actually found
+Download the latest `PackageGuard-{version}.zip` from the [releases page](https://github.com/dennisdoomen/packageguard/releases/latest) and extract it. Run it with:
+
+```bash
+dotnet PackageGuard.dll --help
 ```
+
+## What else you need
+
+PackageGuard reads the packages that your package manager already resolved, so it needs the same tools you use to build:
+
+- **NuGet projects** need the .NET SDK, because PackageGuard runs `dotnet restore` when `project.assets.json` is missing or out of date.
+- **npm, pnpm and Yarn projects** need that package manager on the `PATH`, or its location passed with `--npm-exe-path`. PackageGuard uses it to create the lock file when there is none.
+- **License lookups and risk reports** call the GitHub API. Get a GitHub API key to avoid its rate limits. See [Caching and rate limits](./caching-and-rate-limits.md#github-rate-limits).
+
+## Next step
+
+Follow the [Quick start](./quick-start.md) to create a policy and run your first scan.

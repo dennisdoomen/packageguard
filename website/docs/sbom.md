@@ -1,12 +1,12 @@
 ---
-sidebar_position: 6
+sidebar_label: Software Bill of Materials
 ---
 
 # Software Bill of Materials (SBOM)
 
 PackageGuard can emit the resolved dependency graph as a standards-compliant SBOM, in either [CycloneDX](https://cyclonedx.org/) or [SPDX](https://spdx.dev/) JSON format, using the `--sbom` and `--sbom-output` flags:
 
-```
+```bash
 packageguard --sbom cyclonedx --sbom-output bom.json <path-to-project>
 packageguard --sbom spdx --sbom-output bom.spdx.json <path-to-project>
 ```
@@ -19,7 +19,7 @@ Both formats are built from the same resolved package data, so they always agree
 - **License evidence** - a license declared by the package's own metadata (NuGet/npm registry data) is recorded differently from one PackageGuard concluded from external evidence, such as a GitHub repository scan or a heuristic match against downloaded license text. CycloneDX records this as a license `acknowledgement` of `declared` or `concluded`; SPDX records it by populating either `licenseDeclared` or `licenseConcluded` (the other is `NOASSERTION`).
 - **Vulnerabilities** - combine `--sbom` with `--report-risk` to also populate a CycloneDX `vulnerabilities` section (or, for SPDX, a per-package annotation) from the same OSV data used for risk scoring. Without `--report-risk`, no vulnerability data is fetched or included.
 
-```
+```bash
 packageguard --sbom cyclonedx --sbom-output bom.json --report-risk <path-to-project>
 ```
 

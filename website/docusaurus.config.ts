@@ -115,16 +115,20 @@ const config: Config = {
           title: 'Documentation',
           items: [
             {
-              label: 'Installation',
-              to: '/docs/installation',
+              label: 'Quick start',
+              to: '/docs/quick-start',
             },
             {
-              label: 'Configuration',
+              label: 'Configuration file',
               to: '/docs/configuration',
             },
             {
-              label: 'Risk Metrics',
-              to: '/docs/risk-metrics',
+              label: 'CLI reference',
+              to: '/docs/cli-reference',
+            },
+            {
+              label: 'Roadmap',
+              to: '/docs/roadmap',
             },
           ],
         },

@@ -1,5 +1,5 @@
 ---
-sidebar_position: 4.6
+sidebar_label: Redundant references and version conflicts
 ---
 
 # Finding redundant references and version conflicts
@@ -12,7 +12,7 @@ problems that are about hygiene rather than policy:
 - **Version conflicts** - one package that resolves to different versions in different projects. This is a common
   cause of "works in one project, fails in another".
 
-```
+```bash
 packageguard dependencies --path <path-to-solution-file-or-project> --conflicts
 ```
 
@@ -61,4 +61,4 @@ not reported.
 ## In the risk report
 
 When you run `packageguard analyze` with `--report-risk`, the same findings appear in the HTML report as a separate
-**Dependency Hygiene** section. They do not affect the risk score. See [Risk Metrics](./risk-metrics.md).
+**Dependency Hygiene** section. They do not affect the risk score. See [Risk reports](./risk-metrics.md#dependency-hygiene).

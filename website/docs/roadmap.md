@@ -1,5 +1,5 @@
 ---
-sidebar_position: 8
+sidebar_label: Roadmap
 ---
 
 # Roadmap
@@ -30,7 +30,6 @@ free to upvote or comment on any of the linked issues if one of them matters to 
 
 **Policy and configuration**
 - [#218](https://github.com/dennisdoomen/packageguard/issues/218) Built-in policy presets that configurations can extend
-- [#217](https://github.com/dennisdoomen/packageguard/issues/217) Support SPDX license expressions (`OR`, `AND`, `WITH`) instead of plain identifiers
 - [#225](https://github.com/dennisdoomen/packageguard/issues/225) A feed provenance policy asserting which feed a package must come from
 - [#211](https://github.com/dennisdoomen/packageguard/issues/211) A baseline and suppression file so existing codebases can adopt PackageGuard incrementally
 
