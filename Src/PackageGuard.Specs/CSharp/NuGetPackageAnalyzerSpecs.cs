@@ -134,6 +134,41 @@ public class NuGetPackageAnalyzerSpecs
         packages.Should().ContainSingle(package => package.Source == "nuget.org");
     }
 
+    [TestMethod]
+    public async Task Only_queries_the_feeds_that_the_package_source_mapping_allows()
+    {
+        // Arrange
+        ChainablePath projectPath = CreateProjectWithNuGetConfig(
+            """
+            <configuration>
+              <packageSources>
+                <clear />
+                <add key="private" value="http://localhost:1/v3/index.json" />
+                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+              </packageSources>
+              <packageSourceMapping>
+                <packageSource key="private">
+                  <package pattern="NUnit" />
+                </packageSource>
+                <packageSource key="nuget.org">
+                  <package pattern="*" />
+                </packageSource>
+              </packageSourceMapping>
+            </configuration>
+            """);
+
+        var analyzer = new NuGetPackageAnalyzer(nullLogger, new LicenseFetcher(nullLogger));
+        var packages = new PackageInfoCollection(nullLogger);
+
+        // Act
+        await analyzer.CollectPackageMetadata(projectPath, "NUnit", NuGetVersion.Parse("3.14.0"), packages);
+        await analyzer.CollectPackageMetadata(projectPath, "Newtonsoft.Json", NuGetVersion.Parse("13.0.3"), packages);
+
+        // Assert
+        packages.Should().ContainSingle(package => package.Name == "Newtonsoft.Json",
+            "NUnit is mapped to the unreachable private feed only, even though nuget.org has it");
+    }
+
     private static ChainablePath CreateProjectWithNuGetConfig(string nuGetConfig)
     {
         ChainablePath projectPath = ChainablePath.Temp / Path.GetRandomFileName();

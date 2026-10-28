@@ -21,9 +21,9 @@ namespace PackageGuard.Core.CSharp;
 public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 {
     /// <summary>
-    /// Cache of resolved <see cref="SourceRepository"/> arrays, keyed by project directory path.
+    /// Cache of resolved NuGet sources and their package source mapping, keyed by project directory path.
     /// </summary>
-    private readonly Dictionary<string, SourceRepository[]> nuGetSourcesByProject = new();
+    private readonly Dictionary<string, ProjectNuGetSources> nuGetSourcesByProject = new();
 
     /// <summary>
     /// Synchronizes access to <see cref="nuGetSourcesByProject"/>, since metadata for multiple packages of the same
@@ -66,7 +66,7 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
     public async Task CollectPackageMetadata(string projectPath, string packageName, NuGetVersion packageVersion,
         PackageInfoCollection packages)
     {
-        SourceRepository[] projectNuGetSources = GetNuGetSources(projectPath);
+        SourceRepository[] projectNuGetSources = GetNuGetSources(projectPath).For(packageName);
 
         PackageInfo? package = packages.Find(packageName, packageVersion.ToNormalizedString(), projectNuGetSources);
         if (package is not null)
@@ -119,12 +119,12 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
     /// caching the result for subsequent calls with the same directory.
     /// </summary>
     /// <param name="projectDirectory">The directory from which NuGet settings are resolved.</param>
-    /// <returns>An array of <see cref="SourceRepository"/> instances available to the project.</returns>
-    private SourceRepository[] GetNuGetSources(string projectDirectory)
+    /// <returns>The NuGet sources available to the project, together with its package source mapping.</returns>
+    private ProjectNuGetSources GetNuGetSources(string projectDirectory)
     {
         lock (nuGetSourcesLock)
         {
-            if (!nuGetSourcesByProject.TryGetValue(projectDirectory, out SourceRepository[]? sources))
+            if (!nuGetSourcesByProject.ContainsKey(projectDirectory))
             {
                 logger.LogInformation("Finding NuGet sources");
 
@@ -158,9 +158,9 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
                 }
 
                 var providers = Repository.Provider.GetCoreV3();
-                sources = packageSources.Select(s => new SourceRepository(s, providers)).ToArray();
-
-                nuGetSourcesByProject[projectDirectory] = sources;
+                nuGetSourcesByProject[projectDirectory] = new ProjectNuGetSources(
+                    packageSources.Select(s => new SourceRepository(s, providers)).ToArray(),
+                    PackageSourceMapping.GetPackageSourceMapping(settings));
             }
 
             return nuGetSourcesByProject[projectDirectory];
@@ -284,6 +284,31 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
                 nuGetSource.PackageSource.Source, packageName, packageVersion, ex.Message);
 
             return [];
+        }
+    }
+
+    /// <summary>
+    /// The NuGet sources configured for a project, together with the package source mapping that limits which of
+    /// those sources may provide a particular package.
+    /// </summary>
+    private sealed record ProjectNuGetSources(SourceRepository[] Sources, PackageSourceMapping Mapping)
+    {
+        /// <summary>
+        /// Returns the sources that may provide <paramref name="packageName"/>, in their configured order. Without
+        /// package source mapping, all sources qualify.
+        /// </summary>
+        public SourceRepository[] For(string packageName)
+        {
+            if (!Mapping.IsEnabled)
+            {
+                return Sources;
+            }
+
+            IReadOnlyList<string> mappedSourceNames = Mapping.GetConfiguredPackageSources(packageName);
+
+            return Sources
+                .Where(source => mappedSourceNames.Contains(source.PackageSource.Name, StringComparer.OrdinalIgnoreCase))
+                .ToArray();
         }
     }
 
