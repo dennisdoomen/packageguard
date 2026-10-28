@@ -214,6 +214,10 @@ internal sealed class GitHubApiClient : IDisposable
     /// Requests <paramref name="url"/> and returns the parsed response, or <see langword="null"/> when the resource
     /// does not exist, the request failed, or the rate limit budget no longer allows it.
     /// </summary>
+    /// <remarks>
+    /// Every outcome other than a response or a missing resource is reported to the open
+    /// <see cref="GitHubRequestFailureScope"/>, so callers can tell a missing resource from an unanswered request.
+    /// </remarks>
     /// <param name="url">The absolute GitHub API URL to request.</param>
     /// <param name="importance">How valuable the request is when the budget runs low.</param>
     /// <param name="fields">The properties the caller reads; the rest of the response is dropped before it is cached.</param>
@@ -236,6 +240,7 @@ internal sealed class GitHubApiClient : IDisposable
         catch (JsonException ex)
         {
             logger.LogDebug(ex, "GitHub returned a malformed response for {Url}", url);
+            GitHubRequestFailureScope.ReportFailure();
             return null;
         }
     }
@@ -258,8 +263,14 @@ internal sealed class GitHubApiClient : IDisposable
             return alreadyFetched;
         }
 
+        if (responseCache.IsKnownToBeMissing(url))
+        {
+            return null;
+        }
+
         if (!ShouldAttempt(url, importance))
         {
+            GitHubRequestFailureScope.ReportFailure();
             return null;
         }
 
@@ -273,17 +284,19 @@ internal sealed class GitHubApiClient : IDisposable
 
             if (!await WaitBeforeRetryAsync(url, result, attempt, cancellationToken))
             {
+                GitHubRequestFailureScope.ReportFailure();
                 return null;
             }
         }
 
         logger.LogDebug("Giving up on {Url} after {Attempts} attempts", url, MaxAttempts);
+        GitHubRequestFailureScope.ReportFailure();
         return null;
     }
 
     /// <summary>
-    /// Returns <see langword="false"/> when the request should not even be attempted, because the budget is spent,
-    /// the budget is down to its reserve and the request is optional, or the resource is known to be missing.
+    /// Returns <see langword="false"/> when the request should not even be attempted, because the budget is spent or
+    /// the budget is down to its reserve and the request is optional.
     /// </summary>
     private bool ShouldAttempt(string url, GitHubRequestImportance importance)
     {
@@ -300,7 +313,7 @@ internal sealed class GitHubApiClient : IDisposable
             return false;
         }
 
-        return !responseCache.IsKnownToBeMissing(url);
+        return true;
     }
 
     /// <summary>

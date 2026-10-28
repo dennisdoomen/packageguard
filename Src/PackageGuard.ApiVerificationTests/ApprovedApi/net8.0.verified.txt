@@ -207,6 +207,7 @@ namespace PackageGuard.Core.Package
         public bool? HasDetailedSecurityPolicy { get; set; }
         public bool? HasFlakyWorkflowPattern { get; set; }
         public bool HasGitHubRiskData { get; set; }
+        public bool HasIncompleteGitHubRiskData { get; set; }
         public bool? HasModernTargetFrameworkSupport { get; set; }
         public bool? HasNativeBinaryAssets { get; set; }
         public bool HasOsvRiskData { get; set; }

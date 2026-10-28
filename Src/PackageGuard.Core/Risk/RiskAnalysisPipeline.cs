@@ -124,11 +124,13 @@ internal sealed class RiskAnalysisPipeline(ILogger logger, GetPolicyByProject ge
     /// <summary>
     /// Checks every package against the risk-based deny rules of the policy of each project that references
     /// it, skipping packages covered by a currently-applicable <see cref="RiskException"/>. Requires
-    /// <paramref name="packages"/> to have already been scored by the risk pipeline.
+    /// <paramref name="packages"/> to have already been scored by the risk pipeline. Warns about the packages that
+    /// pass those rules while some of their GitHub data is missing, since their scores may be too low.
     /// </summary>
     internal PolicyViolation[] EvaluateRiskBasedViolations(PackageInfo[] packages)
     {
         List<PolicyViolation> violations = new();
+        List<PackageInfo> inconclusivePackages = new();
 
         foreach (PackageInfo package in packages)
         {
@@ -151,24 +153,41 @@ internal sealed class RiskAnalysisPipeline(ILogger logger, GetPolicyByProject ge
                 continue;
             }
 
-            foreach (string projectPath in package.Projects)
+            PolicyDecision[] decisions = EvaluateRiskDenyRules(package);
+            PolicyDecision? denial = decisions.FirstOrDefault(decision => decision.IsMatch);
+            if (denial is not null)
             {
-                ProjectPolicy policy = getPolicyByProject(projectPath);
-                if (!policy.DenyList.HasRiskPolicies || policy.IsExcludedFromRiskDenial(package))
-                {
-                    continue;
-                }
-
-                PolicyDecision decision = policy.DenyList.EvaluateRiskDeny(package);
-                if (decision.IsMatch)
-                {
-                    violations.Add(PolicyViolation.FromDecision(package, package.Projects.ToArray(), decision));
-                    break;
-                }
+                violations.Add(PolicyViolation.FromDecision(package, package.Projects.ToArray(), denial));
+            }
+            else if (decisions.Length > 0 && package.HasIncompleteGitHubRiskData)
+            {
+                inconclusivePackages.Add(package);
             }
         }
 
+        WarnAboutInconclusivePackages(inconclusivePackages);
         return violations.ToArray();
+    }
+
+    /// <summary>
+    /// Evaluates the risk-based deny rules of the policy of each project that uses <paramref name="package"/>,
+    /// skipping the policies without such rules and those with a risk exception for the package.
+    /// </summary>
+    private PolicyDecision[] EvaluateRiskDenyRules(PackageInfo package) =>
+        package.Projects
+            .Select(projectPath => getPolicyByProject(projectPath))
+            .Where(policy => policy.DenyList.HasRiskPolicies && !policy.IsExcludedFromRiskDenial(package))
+            .Select(policy => policy.DenyList.EvaluateRiskDeny(package))
+            .ToArray();
+
+    private void WarnAboutInconclusivePackages(List<PackageInfo> packages)
+    {
+        if (packages.Count > 0)
+        {
+            logger.LogWarning(
+                "Could not retrieve all GitHub data for {Packages}, so their risk scores may be too low to exceed the risk limits",
+                string.Join(", ", packages.Select(package => $"{package.Name} {package.Version}")));
+        }
     }
 
     /// <summary>
