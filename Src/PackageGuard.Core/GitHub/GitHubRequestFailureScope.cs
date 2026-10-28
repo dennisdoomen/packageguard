@@ -2,8 +2,8 @@ namespace PackageGuard.Core.GitHub;
 
 /// <summary>
 /// Records whether any GitHub request made within the scope came back without an answer, because the rate limit
-/// budget was spent, the request was skipped to save that budget, or GitHub kept failing. A resource that does not
-/// exist is an answer and does not count as a failure.
+/// budget was spent or GitHub kept failing. A resource that does not exist is an answer and does not count as a
+/// failure, and neither does an optional request that was skipped by design to save the budget.
 /// </summary>
 /// <remarks>
 /// Scopes flow with the asynchronous call that opened them and nest: a failure marks the innermost scope and every

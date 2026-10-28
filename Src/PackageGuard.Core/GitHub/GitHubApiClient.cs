@@ -215,8 +215,9 @@ internal sealed class GitHubApiClient : IDisposable
     /// does not exist, the request failed, or the rate limit budget no longer allows it.
     /// </summary>
     /// <remarks>
-    /// Every outcome other than a response or a missing resource is reported to the open
-    /// <see cref="GitHubRequestFailureScope"/>, so callers can tell a missing resource from an unanswered request.
+    /// Every outcome other than a response, a missing resource, or an optional request skipped to save the budget is
+    /// reported to the open <see cref="GitHubRequestFailureScope"/>, so callers can tell a missing resource from an
+    /// unanswered request.
     /// </remarks>
     /// <param name="url">The absolute GitHub API URL to request.</param>
     /// <param name="importance">How valuable the request is when the budget runs low.</param>
@@ -270,7 +271,12 @@ internal sealed class GitHubApiClient : IDisposable
 
         if (!ShouldAttempt(url, importance))
         {
-            GitHubRequestFailureScope.ReportFailure();
+            // Dropping an optional request to save the budget is by design, and leaves only a refinement unknown.
+            if (importance == GitHubRequestImportance.Essential)
+            {
+                GitHubRequestFailureScope.ReportFailure();
+            }
+
             return null;
         }
 
