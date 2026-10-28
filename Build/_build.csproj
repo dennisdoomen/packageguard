@@ -19,7 +19,7 @@
     <PackageReference Include="Fallout.Utilities.IO.Compression" Version="10.4.0" />
     <PackageReference Include="SharpCompress" Version="0.50.7" />
     <!-- Pins the transitive dependency of Fallout to the version that fixes GHSA-7hqp-7c5m-4vq6 -->
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.13" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.14" />
   </ItemGroup>
 
 </Project>
