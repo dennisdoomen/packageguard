@@ -1,8 +1,8 @@
 ---
-sidebar_position: 2.5
+sidebar_label: Creating a policy with init
 ---
 
-# Getting started with `init`
+# Creating a policy with `init`
 
 Adopting PackageGuard usually starts with an empty configuration file and a question you can't answer yet:
 which licenses should you allow? The `init` command scans your repository first, so the question comes with
@@ -61,7 +61,7 @@ policy gradually, reporting violations without failing the build yet.
 
 ## Risk gates
 
-Optionally, `init` can also add [risk-based `deny` rules](./configuration.md#gating-on-risk-and-package-age)
+Optionally, `init` can also add [risk-based `deny` rules](./risk-gates.md#gating-on-risk-and-package-age)
 to the generated file. You are asked about it interactively, or you can pass `--risk-gates`:
 
 ```json
@@ -87,8 +87,8 @@ For scripted setup, CI, or project templates, skip the question with `--preset`:
 packageguard init --preset permissive-only
 ```
 
-The available presets are `permissive-only`, `no-network-copyleft`, and `oss-friendly`, matching the three
-questions above.
+The available presets are `permissive-only`, `no-network-copyleft` and `oss-friendly`. They match the three
+kinds of software above, in the same order.
 
 ## Options
 

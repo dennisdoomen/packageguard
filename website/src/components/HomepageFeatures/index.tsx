@@ -39,7 +39,7 @@ const FeatureList: FeatureItem[] = [
   {
     title: 'Hierarchical Configuration',
     emoji: '🗂️',
-    to: '/docs/configuration#hierarchical-configuration-discovery',
+    to: '/docs/configuration#where-packageguard-looks-for-configuration',
     description: (
       <>
         Put a repository-wide policy next to your solution and refine it per
@@ -63,7 +63,7 @@ const FeatureList: FeatureItem[] = [
   {
     title: 'Vulnerabilities and Supply Chain',
     emoji: '🚨',
-    to: '/docs/risk-metrics#security-risk',
+    to: '/docs/risk-metrics#vulnerabilities',
     description: (
       <>
         Read known vulnerabilities from OSV, including transitive ones. Check

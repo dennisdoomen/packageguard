@@ -1,5 +1,5 @@
 ---
-sidebar_position: 4.5
+sidebar_label: Explaining a package
 ---
 
 # Explaining a package
@@ -8,7 +8,7 @@ When a violation shows up on a package you've never heard of, three levels deep 
 normal scan output doesn't tell you what to do about it. The `explain` command answers "what is this, why is
 it here, and what did policy decide about it?" for a single package:
 
-```
+```bash
 packageguard explain Newtonsoft.Json --path <path-to-solution-file-or-project>
 ```
 
@@ -19,7 +19,7 @@ found in the solution, and PackageGuard suggests candidates when it can't resolv
 package resolved to more than one version across your projects, pass the version as a second argument to
 pick one:
 
-```
+```bash
 packageguard explain Newtonsoft.Json 13.0.3 --path <path-to-solution-file-or-project>
 ```
 
@@ -39,10 +39,14 @@ packageguard explain Newtonsoft.Json 13.0.3 --path <path-to-solution-file-or-pro
 - **Risk breakdown** - the same per-factor Legal/Security/Operational scores and rationale used by the
   [risk metrics](./risk-metrics.md) HTML report, shown inline.
 
-`explain` only fetches risk signals for the resolved package and its own dependencies - not every package
-used across the whole solution - so a single lookup stays fast even on a large codebase. Like the rest of
-PackageGuard, it also honors `--use-caching`: with a warm cache it runs close to instantly, which is what
-makes it worth reaching for interactively instead of only reading the HTML report.
+Unlike `analyze`, `explain` takes the path to your solution or project through the `--path` (`-p`) option,
+because its first argument is the package name.
+
+`explain` only fetches risk signals for the resolved package and its own dependencies, not for every package
+in the solution. A single lookup stays fast, even on a large codebase. It also reads the
+[cache](./caching-and-rate-limits.md#caching) if one exists, but never updates it. Run
+`packageguard . --use-caching` first, and `explain` runs almost instantly. That makes it useful to run
+interactively, instead of only reading the HTML report.
 
 **Known limitation:** dependency-path resolution is currently NuGet-only, for the same reason `--sbom`'s
 dependency graph is - npm, yarn, and pnpm lock-file parsing doesn't yet capture a real parent-child graph.

@@ -1,68 +1,36 @@
 ---
-sidebar_position: 1
+sidebar_label: Introduction
 slug: /
 ---
 
 # Introduction
 
-**PackageGuard** is a fully open-source CLI tool that keeps your open-source supply chain honest. It scans the **NuGet, npm, pnpm and Yarn** dependencies of your codebase, enforces allow- and deny-lists for licenses, packages and versions, scores every package's legal/security/operational risk, and can emit a standards-compliant SBOM — all from a single, cacheable command that fits into any CI pipeline.
-
-## What can it do?
-
-At a glance, PackageGuard can:
-
-- Scan **NuGet, npm, pnpm and Yarn** dependencies across an entire solution or codebase in one run, direct and transitive alike
-- Enforce **allow- and deny-lists** for open-source licenses (including SPDX expressions such as `MIT OR Apache-2.0`), specific packages, and package versions, discovered **hierarchically** across solution-, project- and repository-level configuration files
-- Resolve **licenses** from NuGet/npm metadata, GitHub repositories, and downloaded license text through a chain of fetchers, falling back gracefully when a source doesn't have an answer
-- **Explain** a single package on demand (`packageguard explain <package>`, with fuzzy name matching) - its dependency path, how its version was resolved, the exact policy rule and configuration file that allowed or denied it, and its risk breakdown
-- Find **redundant package references** and **version conflicts** with `packageguard dependencies` - a package that a referenced project or another package already brings in, or one that resolves to different versions in different projects - working offline from the restore output
-- Score every package's **risk** across three dimensions - Legal, Security and Operational - via `--report-risk`, weighing signals such as license compatibility, known vulnerabilities (OSV, with EPSS and CISA KEV exploit data), maintainer activity, package signing, release cadence, and dozens more, and list the dependency hygiene findings in the same report
-- **Block known malicious packages** (OSV `MAL-` advisories) in every risk run, and report vulnerabilities on their own in the HTML report, where each one can be marked as not applicable with a reason and a review date
-- Back every risk score with **evidence, not just a number**: each package card in the HTML report has a dedicated Evidence section with collapsible, collapsed-by-default panels naming the exact packages, versions, GHSA/OSV vulnerability ids and release dates behind its rationale, so you can see *why* a package scored the way it did without digging through logs
-- Produce a **colored console summary**, a **self-contained HTML report** you can open in a browser, and a **SARIF file** for surfacing violations and risk findings directly in GitHub code scanning
-- Generate a standards-compliant **Software Bill of Materials (SBOM)** in **CycloneDX** or **SPDX** JSON format via `--sbom`, complete with purls, declared-vs-concluded license evidence, and a direct/transitive dependency graph
-- Enrich that SBOM with **vulnerability data** from OSV when `--sbom` is combined with `--report-risk`
-- **Cache** package, license and risk data (`--use-caching`) - including GitHub responses and per-repository risk profiles - to keep repeated scans and CI runs fast, with configurable cache freshness (`--risk-cache-max-age-hours`, `--refresh-risk-cache`)
-- Run as a **.NET global tool** or a **portable, cross-platform** (Windows/Linux/macOS) deployment - no CI-specific plugin required
-
-The HTML risk report that `--report-risk` generates, here for PackageGuard itself:
+**PackageGuard** is an open-source command-line tool that checks the open-source packages your code depends on. It scans the **NuGet, npm, pnpm and Yarn** dependencies of your codebase, checks their licenses against your policy, and scores every package on legal, security and operational risk. It runs in one command, on your machine or in any CI pipeline, without an account.
 
 ![HTML risk report of PackageGuard](/img/risk-report.png)
 
-Every package gets its own details, with the legal, security and operational rationale behind its score:
+## What can it do?
 
-![Package details in the HTML risk report](/img/risk-report-package.png)
+- **Enforce a license and package policy.** Allow or deny licenses (including SPDX expressions such as `MIT OR Apache-2.0`), packages and versions, for direct and transitive dependencies alike. Put a policy next to your solution, and refine it per project. See [Configuration file](./configuration.md).
+- **Get you started.** `packageguard init` looks at the licenses you actually use and writes a policy that fits. See [Creating a policy with `init`](./init.md).
+- **Score risk.** Rate every package from 0 to 100, based on known vulnerabilities, exploit data, signing, maintainer activity, release cadence and dozens of other signals. Get a console summary, an HTML report and a SARIF file for GitHub code scanning. See [Risk reports](./risk-metrics.md).
+- **Block risky packages.** Fail the build on a risk threshold, a severe or actively exploited vulnerability, or a package version that was published only hours ago. Known malicious packages always fail the build. See [Risk gates and exceptions](./risk-gates.md).
+- **Explain a package.** `packageguard explain` shows why a package is in your project, which rule allowed or denied it, and its risk. See [Explaining a package](./explain.md).
+- **Clean up references.** `packageguard dependencies` finds package references you don't need, and packages that resolve to different versions in different projects. See [Redundant references and version conflicts](./dependencies.md).
+- **Generate an SBOM.** Write a Software Bill of Materials in CycloneDX or SPDX format. See [Software Bill of Materials](./sbom.md).
 
-Here is the `dependencies` command run on PackageGuard itself:
+## Why PackageGuard?
 
-![Console output of the dependencies command](/img/dependencies-output.png)
+Commercial tools for this are usually expensive, and have features that smaller companies may not need. PackageGuard tries to fill the gap between free tools like GitHub's Dependabot and commercial products like Black Duck and Snyk.
 
-## Commands
+## Where to start
 
-PackageGuard has four commands. Running `packageguard <path>` without a command is the same as `packageguard analyze`.
-
-| Command | What it does |
-| --- | --- |
-| `analyze` | Checks your NuGet and npm dependencies against the allow- and deny-lists, and optionally scores risk and generates an SBOM. See [Usage](./usage.md). |
-| `explain <package>` | Shows why a package is present and how it was evaluated. See [Explaining a package](./explain.md). |
-| `dependencies` | Finds redundant package references and version conflicts, offline. See [Redundant references and version conflicts](./dependencies.md). |
-| `init` | Scaffolds a configuration from the licenses you actually use. See [Getting started with `init`](./init.md). |
-
-## What's so special about that?
-
-I've noticed that the commercial solutions for this are usually very expensive and have functionality that smaller companies may not need. Hopefully this little tool fills the gap between tools like GitHub's Dependabot and expensive commercial products like Blackduck, SNYK and others.
+1. [Install PackageGuard](./installation.md)
+2. Follow the [Quick start](./quick-start.md) to create a policy and run your first scan
+3. [Add it to your CI pipeline](./ci-integration.md)
 
 ## Who created this?
 
 My name is Dennis Doomen and I'm a Microsoft MVP and Principal Consultant at [Aviva Solutions](https://avivasolutions.nl/) with 28 years of experience under my belt. As a software architect and/or lead developer, I specialize in designing full-stack enterprise solutions based on .NET as well as providing coaching on all aspects of designing, building, deploying and maintaining software systems. I'm the author of several open-source projects such as [Fluent Assertions](https://www.fluentassertions.com), [Reflectify](https://github.com/dennisdoomen/reflectify), [Liquid Projections](https://www.liquidprojections.net), and I've been maintaining [coding guidelines for C#](https://www.csharpcodingguidelines.com) since 2001.
 
 Contact me through [Email](mailto:dennis.doomen@avivasolutions.nl), [Bluesky](https://bsky.app/profile/dennisdoomen.com), [Twitter/X](https://twitter.com/ddoomen) or [Mastodon](https://mastodon.social/@ddoomen).
-
-## Where to next?
-
-- [Installation](./installation.md) - install the global tool or the portable deployment
-- [Configuration](./configuration.md) - define your allow- and deny-lists
-- [Usage](./usage.md) - run a scan and read the results
-- [Explaining a package](./explain.md) - see why a specific package is present and how it was evaluated
-- [Redundant references and version conflicts](./dependencies.md) - clean up package references you do not need
-- [Risk Metrics](./risk-metrics.md) - score packages on legal, security and operational risk

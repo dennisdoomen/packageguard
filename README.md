@@ -32,15 +32,20 @@
 
 **Visit the [official documentation website](https://packageguard.org/)** for the full guide to installing, configuring and running PackageGuard.
 
-- [Installation](https://packageguard.org/docs/installation) - install the global tool or the portable deployment
-- [Getting started with `init`](https://packageguard.org/docs/init) - scaffold a configuration from the licenses you actually use
-- [Configuration](https://packageguard.org/docs/configuration) - define your allow- and deny-lists
-- [Usage](https://packageguard.org/docs/usage) - run a scan and read the results
+- [Installation](https://packageguard.org/docs/installation) - install the global tool or the portable version
+- [Quick start](https://packageguard.org/docs/quick-start) - create a policy and run your first scan in five steps
+- [Creating a policy with `init`](https://packageguard.org/docs/init) - generate a configuration from the licenses you actually use
+- [Running a scan](https://packageguard.org/docs/usage) - run a scan and read the results
 - [Explaining a package](https://packageguard.org/docs/explain) - see why a specific package is present and how it was evaluated
 - [Redundant references and version conflicts](https://packageguard.org/docs/dependencies) - find package references you do not need
-- [Risk Metrics](https://packageguard.org/docs/risk-metrics) - score packages on legal, security and operational risk
+- [Risk reports](https://packageguard.org/docs/risk-metrics) - score packages on legal, security and operational risk
 - [Software Bill of Materials](https://packageguard.org/docs/sbom) - emit the dependency graph as CycloneDX or SPDX
-- [Caching and Rate Limits](https://packageguard.org/docs/caching-and-rate-limits) - make repeated scans fast and avoid GitHub throttling
+- [CI integration](https://packageguard.org/docs/ci-integration) - run PackageGuard in your build pipeline
+- [Caching and rate limits](https://packageguard.org/docs/caching-and-rate-limits) - make repeated scans fast and avoid GitHub rate limits
+- [Configuration file](https://packageguard.org/docs/configuration) - define your allow- and deny-lists
+- [Risk gates and exceptions](https://packageguard.org/docs/risk-gates) - fail the build on risk, vulnerabilities or package age
+- [Risk signals](https://packageguard.org/docs/risk-signals) - every signal behind the risk score
+- [CLI reference](https://packageguard.org/docs/cli-reference) - every command and option
 - [Roadmap](https://packageguard.org/docs/roadmap) - what's planned next
 
 ## About
