@@ -172,6 +172,7 @@ internal static class RiskHtmlReportWriter
             projectPath, generatedAt, overallZone, packages.Length, lowRiskCount, mediumRiskCount, highRiskCount, vulnerabilityCount,
             packages.Length > 0 ? CreatePackageAnchor(packages[0]) : null, dependencyFindings.Count > 0,
             criticalVulnerabilityCount, hasVulnerabilityDetails));
+        AppendInconclusiveNotice(builder, packages);
         AppendVulnerabilitiesSection(builder, packages);
         AppendPackageSummaryTable(builder, packages);
         AppendDependencyHygieneSection(builder, dependencyFindings);
@@ -252,6 +253,9 @@ internal static class RiskHtmlReportWriter
         builder.AppendLine("    .summary-blocks h2 { font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase; color: #64748b; }");
         builder.AppendLine("    .summary-blocks .status-grid { margin-top: 0; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }");
         builder.AppendLine("    .critical-pill { background: #7f1d1d; color: #ffffff; border: 1px solid #450a0a; }");
+        builder.AppendLine("    .inconclusive-card { border: 2px solid #f59e0b; background: #fffbeb; }");
+        builder.AppendLine(
+            "    .inconclusive-pill { background: #f1f5f9; color: #334155; border: 1px dashed #94a3b8; font-weight: 600; font-size: 0.85rem; }");
         builder.AppendLine("    code { font-family: Cascadia Code, Consolas, monospace; }");
         builder.AppendLine(
             "    @media print { body { background: #ffffff; } main { padding: 0; } .anchor-link { display: none; } .card { box-shadow: none; break-inside: avoid; } a { color: inherit; text-decoration: none; } }");
@@ -388,6 +392,38 @@ internal static class RiskHtmlReportWriter
     }
 
     /// <summary>
+    /// Warns that the scores of some packages are inconclusive, because GitHub did not answer every request for their
+    /// repositories. Their missing signals are left out of the score instead of counting as risks.
+    /// </summary>
+    private static void AppendInconclusiveNotice(StringBuilder builder, PackageInfo[] packages)
+    {
+        int count = packages.Count(package => package.HasIncompleteGitHubRiskData);
+        if (count == 0)
+        {
+            return;
+        }
+
+        string packageCount = count == 1 ? "1 package" : $"{count.ToString(CultureInfo.InvariantCulture)} packages";
+
+        builder.AppendLine("  <section class=\"card inconclusive-card\" id=\"inconclusive\">");
+        builder.AppendLine("    <h2>Inconclusive results</h2>");
+        builder.AppendLine(
+            $"    <p>GitHub did not answer every request for the repositories of {packageCount}, usually because the API rate limit ran out. " +
+            "The signals that could not be collected are left out of their scores, so those scores may change once the data is available. " +
+            "These packages are marked <span class=\"score-pill inconclusive-pill\">Inconclusive</span>. " +
+            "Run again after the rate limit resets, or pass a GitHub token through <code>--github-api-key</code> or the <code>GITHUB_API_KEY</code> environment variable.</p>");
+        builder.AppendLine("  </section>");
+    }
+
+    /// <summary>
+    /// Returns the marker shown next to the score of a package whose GitHub data is incomplete, or an empty string.
+    /// </summary>
+    private static string BuildInconclusiveMarker(PackageInfo package) =>
+        package.HasIncompleteGitHubRiskData
+            ? " <span class=\"score-pill inconclusive-pill\" title=\"Some GitHub repository data could not be retrieved\">Inconclusive</span>"
+            : "";
+
+    /// <summary>
     /// Lists every vulnerability in one table: the actively exploited (CISA KEV) ones in red, the other ones that still
     /// apply in yellow, and the ones that a policy exception marked as not applicable in green.
     /// </summary>
@@ -487,7 +523,7 @@ internal static class RiskHtmlReportWriter
             builder.AppendLine($"        <tr class=\"{rowClass}\">");
             builder.AppendLine($"          <td><a href=\"#{packageAnchor}\">{Encode(package.Name)}</a></td>");
             builder.AppendLine($"          <td><a href=\"#{packageAnchor}\">{Encode(package.Version)}</a></td>");
-            builder.AppendLine($"          <td>{BuildOverallScorePill(package.RiskScore)}</td>");
+            builder.AppendLine($"          <td>{BuildOverallScorePill(package.RiskScore)}{BuildInconclusiveMarker(package)}</td>");
             builder.AppendLine($"          <td>{BuildDimensionScorePill(package.RiskDimensions.LegalRisk)}</td>");
             builder.AppendLine($"          <td>{BuildDimensionScorePill(package.RiskDimensions.SecurityRisk)}</td>");
             builder.AppendLine($"          <td>{BuildDimensionScorePill(package.RiskDimensions.OperationalRisk)}</td>");
@@ -571,7 +607,13 @@ internal static class RiskHtmlReportWriter
             string vulnerabilityBadge = package.VulnerabilityCount > 0
                 ? $" {BuildVulnerabilityPill(package.VulnerabilityCount)} <span class=\"meta\">{(package.VulnerabilityCount == 1 ? "vulnerability" : "vulnerabilities")}</span>"
                 : "";
-            builder.AppendLine($"    <p>{BuildOverallScorePill(package.RiskScore)}{vulnerabilityBadge}</p>");
+            builder.AppendLine($"    <p>{BuildOverallScorePill(package.RiskScore)}{BuildInconclusiveMarker(package)}{vulnerabilityBadge}</p>");
+            if (package.HasIncompleteGitHubRiskData)
+            {
+                builder.AppendLine(
+                    "    <p class=\"meta\">Some GitHub repository data could not be retrieved. The signals that are missing are left out of the score instead of counting as risks.</p>");
+            }
+
             builder.AppendLine("    <p><a href=\"#top\">Back to report summary</a></p>");
             builder.AppendLine("    <h3>Risks</h3>");
             builder.AppendLine("    <div class=\"dimension-grid\">");
