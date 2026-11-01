@@ -65,6 +65,11 @@ PackageGuard publishes a [JSON schema](https://packageguard.org/schemas/config.j
 
 PackageGuard does not check the file against the schema when it runs. It silently ignores settings it doesn't know, so the schema is the easiest way to catch a misspelled setting.
 
+The schema is stricter than PackageGuard itself:
+
+- PackageGuard reads setting names in any casing, so `"MaxOverallRisk"` works too. The schema only accepts the camelCase names used on this site, such as `maxOverallRisk`.
+- PackageGuard also accepts numbers and booleans written as text, such as `"60"` or `"true"`. The schema expects real numbers and booleans.
+
 ## Where PackageGuard looks for configuration
 
 PackageGuard finds configuration files automatically, based on your solution and project structure. You can define a repository-wide policy at the solution level and add project-specific rules where you need them. It looks in this order:

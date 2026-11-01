@@ -120,7 +120,7 @@
               "default": false
             },
             "minPackageAgeDays": {
-              "description": "Denies a package version published fewer than the given number of days ago, per ecosystem.",
+              "description": "Denies a package version published fewer than the given number of days ago, per ecosystem (npm or nuget, not case-sensitive).",
               "type": "object",
               "properties": {
                 "npm": {
@@ -134,7 +134,13 @@
                   "minimum": 0
                 }
               },
-              "additionalProperties": false
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "propertyNames": {
+                "pattern": "^([nN][pP][mM]|[nN][uU][gG][eE][tT])$"
+              }
             }
           },
           "additionalProperties": false
@@ -203,7 +209,9 @@
             "properties": {
               "vulnerability": {
                 "description": "The OSV identifier of the vulnerability, or any of its aliases, such as a CVE- or GHSA- ID.",
-                "type": "string"
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
               },
               "package": {
                 "description": "An optional package name or wildcard pattern to limit the exception to. Defaults to every package.",
@@ -212,7 +220,9 @@
               },
               "reason": {
                 "description": "Why the vulnerability does not apply to you.",
-                "type": "string"
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
               },
               "reviewOn": {
                 "description": "The date (yyyy-MM-dd) on which to review the decision again. After this date, the vulnerability counts again.",

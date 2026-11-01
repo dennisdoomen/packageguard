@@ -134,6 +134,9 @@
       <None Include="..\..\Samples\config.json" Link="Schema\sample-config.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+      <None Include="..\..\.packageguard\config.json" Link="Schema\repo-config.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
     <ItemGroup>

@@ -20,10 +20,10 @@ namespace PackageGuard.Specs;
 public class ConfigurationSchemaSpecs
 {
     private static readonly string SchemaPath = Path.Combine(AppContext.BaseDirectory, "Schema", "config.schema.json");
-    private static readonly string SamplePath = Path.Combine(AppContext.BaseDirectory, "Schema", "sample-config.json");
 
-    // The schema registers itself globally by its $id, so it can only be loaded once.
-    private static readonly Lazy<JsonSchema> Schema = new(() => JsonSchema.FromText(File.ReadAllText(SchemaPath)));
+    // A private registry, because the global one refuses to register the same $id twice.
+    private static readonly Lazy<JsonSchema> Schema = new(() => JsonSchema.FromText(File.ReadAllText(SchemaPath),
+        new BuildOptions { SchemaRegistry = new SchemaRegistry() }));
 
     private static readonly JsonDocumentOptions JsonWithComments = new()
     {
@@ -58,21 +58,26 @@ public class ConfigurationSchemaSpecs
     }
 
     [TestMethod]
-    public void The_sample_configuration_is_valid()
+    [DataRow("Schema/sample-config.json", DisplayName = "Samples/config.json")]
+    [DataRow("Schema/repo-config.json", DisplayName = ".packageguard/config.json")]
+    [DataRow("TestCases/SlnxApp/config.json", DisplayName = "SlnxApp test case")]
+    public void An_existing_configuration_file_is_valid(string relativePath)
     {
         // Act
-        EvaluationResults results = Evaluate(File.ReadAllText(SamplePath));
+        EvaluationResults results = Evaluate(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, relativePath)));
 
         // Assert
         results.IsValid.Should().BeTrue(Describe(results));
     }
 
     [TestMethod]
-    public void The_configuration_generated_by_init_is_valid()
+    [DataRow(true, DisplayName = "With warnings and risk gates")]
+    [DataRow(false, DisplayName = "Without warnings and risk gates")]
+    public void The_configuration_generated_by_init_is_valid(bool includeWarningsAndRiskGates)
     {
         // Arrange
         string json = ConfigScaffolder.BuildConfigJson(SoftwareProfile.OpenSource, allowedLicenses: ["MIT", "LGPL-2.1-only"],
-            warnLicenses: ["LGPL-2.1-only"], includeRiskGates: true);
+            warnLicenses: includeWarningsAndRiskGates ? ["LGPL-2.1-only"] : [], includeRiskGates: includeWarningsAndRiskGates);
 
         // Act
         EvaluationResults results = Evaluate(json);
@@ -101,6 +106,9 @@ public class ConfigurationSchemaSpecs
         DisplayName = "Invalid date")]
     [DataRow("""{ "settings": { "vulnerabilityExceptions": [ { "vulnerability": "CVE-2024-0001" } ] } }""",
         DisplayName = "Missing reason and review date")]
+    [DataRow("""{ "settings": { "vulnerabilityExceptions": [ { "vulnerability": "CVE-2024-0001", "reason": "  ", "reviewOn": "2027-01-01" } ] } }""",
+        DisplayName = "Blank reason")]
+    [DataRow("""{ "settings": { "deny": { "minPackageAgeDays": { "pypi": 3 } } } }""", DisplayName = "Unknown ecosystem")]
     public void Flags_an_invalid_configuration(string json)
     {
         // Act
@@ -108,6 +116,16 @@ public class ConfigurationSchemaSpecs
 
         // Assert
         results.IsValid.Should().BeFalse();
+    }
+
+    [TestMethod]
+    public void Accepts_the_ecosystem_names_in_any_casing()
+    {
+        // Act
+        EvaluationResults results = Evaluate("""{ "settings": { "deny": { "minPackageAgeDays": { "NuGet": 3, "NPM": 14 } } } }""");
+
+        // Assert
+        results.IsValid.Should().BeTrue(Describe(results));
     }
 
     private static JsonNode LoadSchemaNode() => JsonNode.Parse(File.ReadAllText(SchemaPath))!;
@@ -133,8 +151,8 @@ public class ConfigurationSchemaSpecs
     }
 
     /// <summary>
-    /// Compares the public properties of <paramref name="type"/> (as camelCase JSON names) with the properties the
-    /// schema object declares, recursing into nested settings objects and arrays of them.
+    /// Compares the public properties of <paramref name="type"/> (as camelCase JSON names) and their JSON types with
+    /// the properties the schema object declares, recursing into nested settings objects and arrays of them.
     /// </summary>
     private static IEnumerable<string> FindDifferences(Type type, JsonNode schema, string path)
     {
@@ -156,8 +174,20 @@ public class ConfigurationSchemaSpecs
         foreach ((string name, PropertyInfo property) in typeProperties)
         {
             JsonNode propertySchema = schemaProperties[name];
+            if (propertySchema is null)
+            {
+                continue;
+            }
+
+            string expectedType = GetJsonType(property.PropertyType);
+            string actualType = propertySchema["type"]?.GetValue<string>();
+            if (actualType != expectedType)
+            {
+                yield return $"{path}.{name} has type {actualType} in the schema, but {property.PropertyType.Name} needs {expectedType}";
+            }
+
             Type propertyType = property.PropertyType.IsArray ? property.PropertyType.GetElementType()! : property.PropertyType;
-            if (propertySchema is null || !IsSettingsObject(propertyType))
+            if (!IsSettingsObject(propertyType))
             {
                 continue;
             }
@@ -171,6 +201,21 @@ public class ConfigurationSchemaSpecs
     }
 
     private static bool IsSettingsObject(Type type) => type.DeclaringType == typeof(PolicySettings);
+
+    private static string GetJsonType(Type type)
+    {
+        Type underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+
+        return underlyingType switch
+        {
+            _ when underlyingType == typeof(bool) => "boolean",
+            _ when underlyingType == typeof(int) => "integer",
+            _ when underlyingType == typeof(double) => "number",
+            _ when underlyingType == typeof(string) || underlyingType == typeof(DateOnly) => "string",
+            _ when underlyingType.IsArray => "array",
+            _ => "object"
+        };
+    }
 
     private static IEnumerable<string> FindPropertiesWithoutDescription(JsonNode schema, string path)
     {
