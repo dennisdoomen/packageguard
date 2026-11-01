@@ -15,7 +15,7 @@ internal static class ConfigScaffolder
     /// <summary>
     /// The URL of the JSON schema that describes the configuration file, so editors can offer completion and flag typos.
     /// </summary>
-    public const string SchemaUrl = "https://packageguard.org/schemas/config.json";
+    private const string SchemaUrl = "https://packageguard.org/schemas/config.json";
 
     /// <summary>
     /// Builds the full contents of the generated configuration file.
