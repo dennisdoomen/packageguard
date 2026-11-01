@@ -62,7 +62,7 @@ Please do:
 * Target the [Pull Request](https://help.github.com/articles/using-pull-requests) at the `main` branch.
 * Follow the style presented in the [Coding Guidelines for C#](https://csharpcodingguidelines.com/).
 * Ensure that changes are covered by a new or existing set of unit tests which follow the Arrange-Act-Assert syntax.
-* Also the code coverage reported by the coveralls must be non-decreasing unless accepted by the authors.
+* Also the code coverage that octocov reports on the pull request must be non-decreasing unless accepted by the authors.
 * If the contribution changes the public API, the changes needs to be included by running [`AcceptApiChanges.ps1`](./AcceptApiChanges.ps1)/[`AcceptApiChanges.sh`](./AcceptApiChanges.sh) or using Rider's [Verify Support](https://plugins.jetbrains.com/plugin/17240-verify-support) plug-in.
 
 Please do not:

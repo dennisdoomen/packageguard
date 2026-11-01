@@ -122,4 +122,4 @@ All code must pass the analyzers without warnings before merging.
 
 - Target branch: `main` (GitHub Flow — no separate `develop` branch)
 - API surface changes: run `AcceptApiChanges.ps1` and commit the updated snapshots
-- Code coverage must not decrease (tracked via Coveralls)
+- Code coverage must not decrease (octocov reports the change as a comment on the pull request)
