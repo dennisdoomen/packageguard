@@ -79,6 +79,9 @@ data for each package, which works best with a GitHub API key. `init` itself doe
 these rules are only evaluated by your next `packageguard .` run. The file also contains a commented-out
 `riskExceptions` example, for packages whose risk you have decided to accept.
 
+The generated file starts with a `$schema` property, so your editor can complete and check the settings. See
+[Editor support](./configuration.md#editor-support).
+
 ## Non-interactive use
 
 For scripted setup, CI, or project templates, skip the question with `--preset`:
