@@ -48,7 +48,7 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
-    public async Task Should_write_companion_html_and_sarif_reports()
+    public async Task Companion_html_and_sarif_reports_are_written()
     {
         var package = new PackageInfo
         {
@@ -170,7 +170,7 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
-    public async Task Should_include_vulnerability_and_transitive_dependency_detail_lists_in_evidence_section()
+    public async Task The_evidence_section_lists_vulnerability_and_transitive_dependency_details()
     {
         var package = new PackageInfo
         {
@@ -223,7 +223,7 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
-    public async Task Should_show_all_evidence_detail_list_items_in_a_collapsed_by_default_panel()
+    public async Task All_evidence_details_are_shown_in_a_panel_that_is_collapsed_by_default()
     {
         string[] staleDetails = Enumerable.Range(1, 10)
             .Select(i => $"Package{i} 1.0.0 (last release 2020-01-01)")
@@ -259,7 +259,7 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
-    public async Task Should_distinguish_missing_and_unrecognized_licenses_in_detailed_report()
+    public async Task The_detailed_report_distinguishes_missing_and_unrecognized_licenses()
     {
         var missingLicensePackage = new PackageInfo
         {
@@ -289,7 +289,7 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
-    public async Task Should_write_generated_report_names_inside_explicit_directory()
+    public async Task Generated_report_names_are_written_inside_an_explicit_directory()
     {
         string explicitDirectory = Path.Combine(reportDirectory, "custom-output");
 
@@ -314,7 +314,7 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
-    public async Task Should_use_explicit_report_file_name_and_overwrite_existing_reports()
+    public async Task An_explicit_report_file_name_is_used_and_overwrites_existing_reports()
     {
         string explicitHtmlPath = Path.Combine(reportDirectory, "named-output", "custom-risk-report.html");
         string explicitSarifPath = Path.ChangeExtension(explicitHtmlPath, ".sarif");
@@ -341,7 +341,7 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
-    public async Task Should_list_dependency_findings_without_changing_the_risk_summary()
+    public async Task Dependency_findings_are_listed_without_changing_the_risk_summary()
     {
         DependencyFinding[] findings =
         [
@@ -362,7 +362,7 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
-    public async Task Should_encode_dependency_findings_in_the_html_report()
+    public async Task Dependency_findings_are_encoded_in_the_html_report()
     {
         string html = await WriteHtml([new DependencyFinding { Kind = DependencyFindingKind.RedundantViaPackage,
             Project = "<script>", PackageId = "A&B", Providers = ["C"] }]);
@@ -372,7 +372,7 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
-    public async Task Should_count_vulnerabilities_in_the_header_and_summary_table_without_showing_zero()
+    public async Task The_header_and_summary_table_count_vulnerabilities_but_hide_zero()
     {
         RiskReportPaths paths = await RiskHtmlReportWriter.WriteAsync(
             Path.Combine(reportDirectory, "PackageGuard.sln"),
@@ -398,7 +398,7 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
-    public async Task Should_not_repeat_the_header_counts_or_show_the_static_html_note()
+    public async Task The_header_counts_are_not_repeated_and_the_static_html_note_is_hidden()
     {
         string html = await WriteHtml([]);
 
@@ -407,7 +407,7 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
-    public async Task Should_link_to_the_main_sections_and_show_vulnerabilities_and_risks_in_package_details()
+    public async Task The_report_links_to_the_main_sections_and_shows_vulnerabilities_and_risks_per_package()
     {
         RiskReportPaths paths = await RiskHtmlReportWriter.WriteAsync(
             Path.Combine(reportDirectory, "PackageGuard.sln"),
