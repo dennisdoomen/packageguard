@@ -13,7 +13,7 @@ namespace PackageGuard.Core.Risk.Enrichment;
 internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
 {
     /// <summary>In-flight load tasks per repository API root, preventing duplicate concurrent fetches.</summary>
-    private static readonly Dictionary<string, Task<GitHubRepositoryRiskData?>> InFlightLoads =
+    private static readonly Dictionary<string, Task<Tracked<GitHubRepositoryRiskData?>>> InFlightLoads =
         new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Lock for thread-safe access to the in-flight loads.</summary>
@@ -107,14 +107,16 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
             return;
         }
 
-        GitHubRepositoryRiskData? cached = await GetRepositoryRiskDataAsync(repositoryApiRoot);
-        if (cached is null)
+        Tracked<GitHubRepositoryRiskData?> load = await GetRepositoryRiskDataAsync(repositoryApiRoot);
+        package.HasIncompleteGitHubRiskData = !load.IsComplete;
+        if (load.Value is null)
         {
             return;
         }
 
-        ApplyOwnerAndDocumentationData(package, cached);
-        ApplyActivityAndWorkflowData(package, cached);
+        ApplyOwnerAndDocumentationData(package, load.Value);
+        ApplyActivityAndWorkflowData(package, load.Value);
+        package.HasGitHubRiskData = load.IsComplete;
     }
 
     /// <summary>Applies owner, contributor, documentation, and issue data from cached GitHub data.</summary>
@@ -180,41 +182,52 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         package.VerifiedCommitRatio = cached.VerifiedCommitRatio;
         package.MedianMaintainerActivityDays = cached.MedianMaintainerActivityDays;
         package.PublishedAt ??= cached.LastReleaseAt;
-        package.HasGitHubRiskData = true;
     }
 
-    /// <summary>Returns cached or loads and caches risk data for the given API root.</summary>
-    private async Task<GitHubRepositoryRiskData?> GetRepositoryRiskDataAsync(string repositoryApiRoot)
+    /// <summary>
+    /// Returns cached or loads risk data for the given API root, caching it only when every request got an answer.
+    /// An incomplete profile leaves the signals it could not collect empty, so that the next run tries again.
+    /// </summary>
+    private async Task<Tracked<GitHubRepositoryRiskData?>> GetRepositoryRiskDataAsync(string repositoryApiRoot)
     {
-        Task<GitHubRepositoryRiskData?> loadTask;
+        Task<Tracked<GitHubRepositoryRiskData?>> loadTask;
 
         if (repositoryCache.TryGet(repositoryApiRoot, out GitHubRepositoryRiskData? cached))
         {
-            return cached;
+            return new Tracked<GitHubRepositoryRiskData?>(cached, IsComplete: true);
         }
 
         lock (CacheLock)
         {
             if (!InFlightLoads.TryGetValue(repositoryApiRoot, out loadTask!))
             {
-                loadTask = LoadAsync(repositoryApiRoot);
+                loadTask = TrackAsync(() => TryLoadDataAsync(repositoryApiRoot));
                 InFlightLoads[repositoryApiRoot] = loadTask;
             }
         }
 
-        GitHubRepositoryRiskData? loaded = await loadTask;
+        Tracked<GitHubRepositoryRiskData?> loaded = await loadTask;
 
         lock (CacheLock)
         {
             InFlightLoads.Remove(repositoryApiRoot);
         }
 
-        repositoryCache.Store(repositoryApiRoot, loaded);
+        if (loaded.IsComplete)
+        {
+            repositoryCache.Store(repositoryApiRoot, loaded.Value);
+        }
+        else
+        {
+            logger.LogDebug("Not caching the incomplete GitHub repository profile of {RepositoryApiRoot}",
+                repositoryApiRoot);
+        }
+
         return loaded;
     }
 
     /// <summary>Fetches all GitHub data for the repository and assembles a GitHubRepositoryRiskData record.</summary>
-    private async Task<GitHubRepositoryRiskData?> LoadAsync(string repositoryApiRoot)
+    private async Task<GitHubRepositoryRiskData?> TryLoadDataAsync(string repositoryApiRoot)
     {
         try
         {
@@ -256,8 +269,30 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         catch (Exception ex)
         {
             logger.LogDebug(ex, "Failed to fetch GitHub repository risk metadata from {RepositoryApiRoot}", repositoryApiRoot);
+            GitHubRequestFailureScope.ReportFailure();
             return null;
         }
+    }
+
+    /// <summary>
+    /// Runs <paramref name="fetch"/> and tells whether every GitHub request it made got an answer, so that a signal
+    /// can be left unknown instead of being read as absent.
+    /// </summary>
+    private static async Task<Tracked<T>> TrackAsync<T>(Func<Task<T>> fetch)
+    {
+        using GitHubRequestFailureScope failures = GitHubRequestFailureScope.Begin();
+
+        T value = await fetch();
+        return new Tracked<T>(value, !failures.HasFailures);
+    }
+
+    /// <summary>A value fetched from GitHub, together with whether all requests behind it got an answer.</summary>
+    /// <param name="Value">The fetched value, which falls back to its defaults for the requests that failed.</param>
+    /// <param name="IsComplete">Indicates whether every request behind the value got an answer.</param>
+    private sealed record Tracked<T>(T Value, bool IsComplete)
+    {
+        /// <summary>Returns the value, or <see langword="null"/> when a request behind it got no answer.</summary>
+        public T? KnownValue => IsComplete ? Value : default;
     }
 
     /// <summary>Fans out all parallel data fetches and assembles the final GitHubRepositoryRiskData record.</summary>
@@ -267,10 +302,11 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         RepositoryOwnerContext ownerContext)
     {
         Task<GitHubReleaseData> releaseDataTask = GetReleaseDataAsync(repositoryApiRoot);
-        Task<GitHubReadmeData> readmeTask = TryGetReadmeDataAsync(repositoryApiRoot);
-        Task<string[]> rootFilesTask = GetRootFilesAsync(repositoryApiRoot, defaultBranch);
+        Task<Tracked<GitHubReadmeData>> readmeTask = TrackAsync(() => TryGetReadmeDataAsync(repositoryApiRoot));
+        Task<Tracked<string[]>> rootFilesTask = TrackAsync(() => GetRootFilesAsync(repositoryApiRoot, defaultBranch));
         Task<GitHubActivityData> activityTask = GetActivityDataAsync(repositoryApiRoot, ownerContext);
-        Task<GitHubContributorData> contributorDataTask = GetContributorDataAsync(repositoryApiRoot);
+        Task<Tracked<GitHubContributorData>> contributorDataTask =
+            TrackAsync(() => GetContributorDataAsync(repositoryApiRoot));
         Task<GitHubCommitHealthData> commitHealthTask = GetCommitHealthDataAsync(repositoryApiRoot, defaultBranch);
         Task<GitHubWorkflowData> workflowDataTask = GetWorkflowDataAsync(repositoryApiRoot, defaultBranch);
         Task<GitHubBranchProtectionData> branchProtectionTask =
@@ -278,14 +314,16 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         Task<GitHubScorecardData> scorecardTask =
             TryGetScorecardDataAsync(ownerContext.OwnerLogin, ownerContext.RepositoryName);
 
-        string[] rootFiles = await rootFilesTask;
-        Task<GitHubChangelogData> changelogTask = GetChangelogDataAsync(repositoryApiRoot, defaultBranch, rootFiles);
-        Task<GitHubSecurityPolicyData> securityPolicyTask =
-            GetSecurityPolicyDataAsync(repositoryApiRoot, defaultBranch, rootFiles);
-        Task<GitHubWorkflowFileSignals> workflowFileSignalsTask =
+        Tracked<string[]> trackedRootFiles = await rootFilesTask;
+        string[] rootFiles = trackedRootFiles.Value;
+        Task<Tracked<GitHubChangelogData>> changelogTask =
+            TrackAsync(() => GetChangelogDataAsync(repositoryApiRoot, defaultBranch, rootFiles));
+        Task<Tracked<GitHubSecurityPolicyData>> securityPolicyTask =
+            TrackAsync(() => GetSecurityPolicyDataAsync(repositoryApiRoot, defaultBranch, rootFiles));
+        Task<Tracked<GitHubWorkflowFileSignals>> workflowFileSignalsTask =
             rootFiles.Contains(".github", StringComparer.OrdinalIgnoreCase)
-                ? GetWorkflowFileSignalsAsync(repositoryApiRoot, defaultBranch, rootFiles)
-                : Task.FromResult(new GitHubWorkflowFileSignals());
+                ? TrackAsync(() => GetWorkflowFileSignalsAsync(repositoryApiRoot, defaultBranch, rootFiles))
+                : Task.FromResult(new Tracked<GitHubWorkflowFileSignals>(new GitHubWorkflowFileSignals(), true));
 
         string? readmeFileName =
             rootFiles.FirstOrDefault(file => file.StartsWith("README", StringComparison.OrdinalIgnoreCase));
@@ -301,37 +339,47 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
             changelogTask, securityPolicyTask, workflowFileSignalsTask, readmeUpdatedTask, changelogUpdatedTask);
 
         GitHubReleaseData releaseData = await releaseDataTask;
-        GitHubReadmeData readmeData = await readmeTask;
+        Tracked<GitHubReadmeData> readmeData = await readmeTask;
         GitHubActivityData activityData = await activityTask;
         GitHubIssueData issueData = activityData.IssueData;
-        GitHubContributorData contributorData = await contributorDataTask;
+        Tracked<GitHubContributorData> contributorData = await contributorDataTask;
         GitHubCommitHealthData commitHealthData = await commitHealthTask;
         GitHubPullRequestQualityData pullRequestQualityData = activityData.PullRequestQualityData;
         GitHubWorkflowData workflowData = await workflowDataTask;
         GitHubBranchProtectionData branchProtectionData = await branchProtectionTask;
-        GitHubChangelogData changelogData = await changelogTask;
-        GitHubSecurityPolicyData securityPolicyData = await securityPolicyTask;
-        GitHubWorkflowFileSignals workflowFileSignals = await workflowFileSignalsTask;
+        Tracked<GitHubChangelogData> changelogData = await changelogTask;
+        Tracked<GitHubSecurityPolicyData> securityPolicyData = await securityPolicyTask;
+        Tracked<GitHubWorkflowFileSignals> trackedWorkflowFileSignals = await workflowFileSignalsTask;
         GitHubScorecardData scorecardData = await scorecardTask;
+
+        // A file found through the root listing is only known when both the listing and the file could be read.
+        bool rootFilesKnown = trackedRootFiles.IsComplete;
+        GitHubReadmeData? readme = readmeData.KnownValue;
+        GitHubContributorData? contributors = contributorData.KnownValue;
+        // The listing alone shows whether a changelog exists, but telling whether it is a default one needs its content.
+        GitHubChangelogData? changelog = rootFilesKnown ? changelogData.KnownValue : null;
+        GitHubSecurityPolicyData? securityPolicy = rootFilesKnown ? securityPolicyData.KnownValue : null;
+        GitHubWorkflowFileSignals? workflowFileSignals = rootFilesKnown ? trackedWorkflowFileSignals.KnownValue : null;
 
         return new GitHubRepositoryRiskData
         {
             CanonicalUrl = ownerContext.CanonicalUrl,
             OwnerIsOrganization = ownerContext.OwnerIsOrganization,
             OwnerCreatedAt = ownerContext.OwnerCreatedAt,
-            ContributorCount = contributorData.ContributorCount,
-            TopContributorShare = contributorData.TopContributorShare,
-            TopTwoContributorShare = contributorData.TopTwoContributorShare,
+            ContributorCount = contributors?.ContributorCount,
+            TopContributorShare = contributorData.Value.TopContributorShare,
+            TopTwoContributorShare = contributorData.Value.TopTwoContributorShare,
             RecentMaintainerCount = commitHealthData.RecentMaintainerCount,
-            HasReadme = readmeData.Exists,
-            HasDefaultReadme = readmeData.IsDefault,
+            HasReadme = readme?.Exists,
+            HasDefaultReadme = readme?.IsDefault,
             ReadmeUpdatedAt = await readmeUpdatedTask,
-            HasContributingGuide = rootFiles.Contains("CONTRIBUTING.md", StringComparer.OrdinalIgnoreCase),
-            HasSecurityPolicy = securityPolicyData.Exists,
-            HasDetailedSecurityPolicy = securityPolicyData.IsDetailed,
-            HasCoordinatedDisclosure = securityPolicyData.HasCoordinatedDisclosure,
-            HasChangelog = changelogData.Exists,
-            HasDefaultChangelog = changelogData.IsDefault,
+            HasContributingGuide =
+                rootFilesKnown ? rootFiles.Contains("CONTRIBUTING.md", StringComparer.OrdinalIgnoreCase) : null,
+            HasSecurityPolicy = securityPolicy?.Exists,
+            HasDetailedSecurityPolicy = securityPolicy?.IsDetailed,
+            HasCoordinatedDisclosure = securityPolicy?.HasCoordinatedDisclosure,
+            HasChangelog = rootFilesKnown ? changelogData.Value.Exists : null,
+            HasDefaultChangelog = changelog?.IsDefault,
             ChangelogUpdatedAt = await changelogUpdatedTask,
             OpenBugIssueCount = issueData.OpenBugIssueCount,
             StaleCriticalBugIssueCount = issueData.StaleCriticalBugIssueCount,
@@ -351,15 +399,15 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
             WorkflowFailureRate = workflowData.FailureRate,
             HasFlakyWorkflowPattern = workflowData.HasFlakyPattern,
             RequiredStatusCheckCount = branchProtectionData.RequiredStatusCheckCount,
-            WorkflowPlatformCount = workflowFileSignals.PlatformCount,
-            HasCoverageWorkflowSignal = workflowFileSignals.HasCoverageSignal,
+            WorkflowPlatformCount = workflowFileSignals?.PlatformCount,
+            HasCoverageWorkflowSignal = workflowFileSignals?.HasCoverageSignal,
             HasReproducibleBuildSignal =
-                workflowFileSignals.HasReproducibleBuildSignal || scorecardData.BinaryArtifactsScore >= 8.0,
-            HasDependencyUpdateAutomation = workflowFileSignals.HasDependencyUpdateAutomation,
-            HasTestSignal = workflowFileSignals.HasTestSignal,
+                scorecardData.BinaryArtifactsScore >= 8.0 ? true : workflowFileSignals?.HasReproducibleBuildSignal,
+            HasDependencyUpdateAutomation = workflowFileSignals?.HasDependencyUpdateAutomation,
+            HasTestSignal = workflowFileSignals?.HasTestSignal,
             OpenSsfScore = scorecardData.Score,
             HasBranchProtection = branchProtectionData.IsProtected ?? scorecardData.HasBranchProtection,
-            HasProvenanceAttestation = workflowFileSignals.HasProvenanceAttestation,
+            HasProvenanceAttestation = workflowFileSignals?.HasProvenanceAttestation,
             HasVerifiedReleaseSignature = releaseData.HasVerifiedReleaseSignature,
             HasVerifiedPublisher = ownerContext.OwnerIsOrganization,
             HasReleaseNotes = releaseData.HasReleaseNotes,

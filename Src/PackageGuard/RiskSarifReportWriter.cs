@@ -196,6 +196,15 @@ internal static class RiskSarifReportWriter
             properties["knownExploitedVulnerabilities"] = exploitedCveIds;
         }
 
+        if (package.HasIncompleteGitHubRiskData)
+        {
+            properties["inconclusive"] = true;
+        }
+
+        string inconclusiveNote = package.HasIncompleteGitHubRiskData
+            ? " Inconclusive: some GitHub repository data could not be retrieved."
+            : "";
+
         return new SarifResult
         {
             RuleId = ruleId,
@@ -207,7 +216,8 @@ internal static class RiskSarifReportWriter
                     $"Legal {package.RiskDimensions.LegalRisk.ToString("0.0", CultureInfo.InvariantCulture)}/10, " +
                     $"Security {package.RiskDimensions.SecurityRisk.ToString("0.0", CultureInfo.InvariantCulture)}/10, " +
                     $"Operational {package.RiskDimensions.OperationalRisk.ToString("0.0", CultureInfo.InvariantCulture)}/10. " +
-                    $"Used by: {string.Join(", ", GetDisplayProjectPaths(package))}."
+                    $"Used by: {string.Join(", ", GetDisplayProjectPaths(package))}." +
+                    inconclusiveNote
             },
             PartialFingerprints = new Dictionary<string, string>
             {
