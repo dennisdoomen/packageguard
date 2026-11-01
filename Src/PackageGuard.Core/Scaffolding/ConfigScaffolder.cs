@@ -6,11 +6,16 @@ namespace PackageGuard.Core.Scaffolding;
 /// Renders the JSON configuration file written by <c>packageguard init</c>: a <c>settings.allow.licenses</c>
 /// allow list for the chosen <see cref="SoftwareProfile"/>, an optional <c>warn</c> section for tolerated
 /// copyleft licenses, and optional risk gates in the <c>deny</c> section, annotated with comments that explain
-/// each part.
+/// each part. The file starts with a <c>$schema</c> property that points to the published JSON schema.
 /// </summary>
 internal static class ConfigScaffolder
 {
     private const string Indent = "    ";
+
+    /// <summary>
+    /// The URL of the JSON schema that describes the configuration file, so editors can offer completion and flag typos.
+    /// </summary>
+    private const string SchemaUrl = "https://packageguard.org/schemas/config.json";
 
     /// <summary>
     /// Builds the full contents of the generated configuration file.
@@ -29,6 +34,7 @@ internal static class ConfigScaffolder
         var builder = new StringBuilder();
 
         builder.AppendLine("{");
+        builder.AppendLine($"{Indent}\"$schema\": \"{SchemaUrl}\",");
         AppendHeaderComment(builder, profile);
         builder.AppendLine($"{Indent}\"settings\": {{");
 

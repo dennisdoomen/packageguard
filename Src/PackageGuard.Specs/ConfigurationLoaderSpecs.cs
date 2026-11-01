@@ -63,6 +63,30 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
+    public void Ignores_the_schema_property()
+    {
+        // Arrange
+        ChainablePath path = tempDir / "with-schema.json";
+        File.WriteAllText(path,
+            """
+            {
+                "$schema": "https://packageguard.org/schemas/config.json",
+                "settings": {
+                    "allow": {
+                        "licenses": ["MIT"]
+                    }
+                }
+            }
+            """);
+
+        // Act
+        ProjectPolicy policy = configurationLoader.GetConfigurationFromConfigPath(path);
+
+        // Assert
+        policy.AllowList.Licenses.Should().BeEquivalentTo("MIT");
+    }
+
+    [TestMethod]
     public void Can_parse_the_configuration_file()
     {
         // Arrange

@@ -1,0 +1,253 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://packageguard.org/schemas/config.json",
+  "title": "PackageGuard configuration",
+  "description": "The policy that PackageGuard checks your NuGet and npm dependencies against. See https://packageguard.org/configuration",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "description": "The JSON schema that describes this file.",
+      "type": "string"
+    },
+    "settings": {
+      "description": "The allow, deny and warn rules, the risk and vulnerability exceptions, and the feeds to ignore.",
+      "type": "object",
+      "properties": {
+        "allow": {
+          "description": "Packages, licenses and feeds that are allowed. When this section lists licenses or packages, everything else is a violation.",
+          "type": "object",
+          "properties": {
+            "packages": {
+              "description": "Packages that are always allowed, whatever their license. Supports the wildcards * and ?, and an optional NuGet version (range) after a /, such as \"MyPackage/[7.0.0,8.0.0)\".",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "licenses": {
+              "description": "SPDX license identifiers or expressions that are allowed, such as \"MIT\" or \"Apache-2.0\". Not case-sensitive.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "feeds": {
+              "description": "Wildcard patterns that match the name or URL of a feed. Every package from a matching feed is allowed.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "prerelease": {
+              "description": "Whether pre-release versions, such as 1.0.2-beta.2, are allowed.",
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "deny": {
+          "description": "Packages and licenses that are denied, and the risk gates. A deny rule always takes precedence over an allow rule.",
+          "type": "object",
+          "properties": {
+            "packages": {
+              "description": "Packages that are denied. Supports the wildcards * and ?, and an optional NuGet version (range) after a /, such as \"MyPackage/[7.0.0,8.0.0)\".",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "licenses": {
+              "description": "SPDX license identifiers or expressions that are denied. Not case-sensitive.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "prerelease": {
+              "description": "Whether to deny all pre-release versions, such as 1.0.2-beta.2.",
+              "type": "boolean",
+              "default": false
+            },
+            "maxOverallRisk": {
+              "description": "Denies a package whose overall risk score (0-100) is higher than this value.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "maxLegalRisk": {
+              "description": "Denies a package whose legal risk score (0-10) is higher than this value.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "maxSecurityRisk": {
+              "description": "Denies a package whose security risk score (0-10) is higher than this value.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "maxOperationalRisk": {
+              "description": "Denies a package whose operational risk score (0-10) is higher than this value.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "maxOsvSeverityScore": {
+              "description": "Denies a package whose highest known OSV vulnerability severity (CVSS score, 0-10) is higher than this value. For example, 7.0 denies anything rated High or above.",
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "denyKnownExploited": {
+              "description": "Denies a package that has a vulnerability on the CISA Known Exploited Vulnerabilities (KEV) list.",
+              "type": "boolean",
+              "default": false
+            },
+            "denyUnsigned": {
+              "description": "Denies packages that aren't signed. Packages for which signing can't be checked, such as npm packages, are never denied by this rule.",
+              "type": "boolean",
+              "default": false
+            },
+            "denyDeprecated": {
+              "description": "Denies packages that their registry marks as deprecated.",
+              "type": "boolean",
+              "default": false
+            },
+            "denyWithoutRepository": {
+              "description": "Denies packages that don't declare a repository URL.",
+              "type": "boolean",
+              "default": false
+            },
+            "minPackageAgeDays": {
+              "description": "Denies a package version published fewer than the given number of days ago, per ecosystem (npm or nuget, not case-sensitive).",
+              "type": "object",
+              "properties": {
+                "npm": {
+                  "description": "The minimum age in days of an npm package version.",
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "nuget": {
+                  "description": "The minimum age in days of a NuGet package version.",
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "propertyNames": {
+                "pattern": "^([nN][pP][mM]|[nN][uU][gG][eE][tT])$"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "warn": {
+          "description": "Packages and licenses that are reported as a warning instead of failing the build. A deny rule takes precedence over a warn rule.",
+          "type": "object",
+          "properties": {
+            "packages": {
+              "description": "Packages that cause a warning. Supports the wildcards * and ?, and an optional NuGet version (range) after a /, such as \"MyPackage/[7.0.0,8.0.0)\".",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "licenses": {
+              "description": "SPDX license identifiers or expressions that cause a warning. Not case-sensitive.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "prerelease": {
+              "description": "Whether to warn about pre-release versions, such as 1.0.2-beta.2.",
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "riskExceptions": {
+          "description": "Packages that are excluded from the risk-based deny rules. They have no effect on the package and license rules.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "package": {
+                "description": "The name of the package, or a wildcard pattern.",
+                "type": "string"
+              },
+              "versions": {
+                "description": "An optional NuGet version or version range, such as \"[1.0.0,2.0.0)\". Without it, the exception applies to every version.",
+                "type": "string"
+              },
+              "reason": {
+                "description": "Why the risk of this package is accepted.",
+                "type": "string"
+              },
+              "expiresOn": {
+                "description": "An optional date (yyyy-MM-dd) after which the exception no longer applies.",
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "package"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "vulnerabilityExceptions": {
+          "description": "Vulnerabilities that you analyzed and decided do not apply to you.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "vulnerability": {
+                "description": "The OSV identifier of the vulnerability, or any of its aliases, such as a CVE- or GHSA- ID.",
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "package": {
+                "description": "An optional package name or wildcard pattern to limit the exception to. Defaults to every package.",
+                "type": "string",
+                "default": "*"
+              },
+              "reason": {
+                "description": "Why the vulnerability does not apply to you.",
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
+              },
+              "reviewOn": {
+                "description": "The date (yyyy-MM-dd) on which to review the decision again. After this date, the vulnerability counts again.",
+                "type": "string",
+                "format": "date"
+              }
+            },
+            "required": [
+              "vulnerability",
+              "reason",
+              "reviewOn"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ignoredFeeds": {
+          "description": "The names or URLs of NuGet feeds that PackageGuard should never access.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
