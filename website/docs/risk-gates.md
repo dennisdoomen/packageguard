@@ -41,6 +41,8 @@ Besides package identity and license, the `deny` section of your [configuration 
 
 Setting any of these rules makes PackageGuard collect risk data for that project, even without `--report-risk`. Without that data there is nothing to check the rules against. Collecting risk data makes a run slower, and works best with a [GitHub API key](./caching-and-rate-limits.md#github-rate-limits).
 
+If GitHub does not answer every request for a package, for example because the rate limit ran out, the signals it could not collect stay unknown and do not add risk. Such a package can stay under the risk limits only because its data is incomplete, so PackageGuard logs a warning that names it. The next run tries again.
+
 A build can pass today and fail tomorrow, because a new CVE was published or a risk score changed. That is expected when you gate on live risk data. Use [risk exceptions](#risk-exceptions) for packages whose risk you have accepted.
 
 Known malicious packages (OSV `MAL-` advisories) always fail the run whenever risk data is collected. You don't need a rule for that. See [Risk reports](./risk-metrics.md#malicious-packages).

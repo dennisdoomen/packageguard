@@ -4,6 +4,7 @@ permissions:
   contents: write
   security-events: write
   actions: write
+  pull-requests: write
 
 on:
   push:
@@ -46,12 +47,17 @@ jobs:
       with:
         files: "TestResults/reports/lcov.info"
 
-    - name: coveralls
-      uses: coverallsapp/github-action@v2
+    - name: Report code coverage
+      uses: k1LoW/octocov-action@v1
       if: steps.check_files.outputs.files_exists == 'true'
+
+    # Picked up by the deploy-docs workflow, which publishes it as https://packageguard.org/coverage.svg for the README
+    - name: Upload coverage badge
+      if: steps.check_files.outputs.files_exists == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/upload-artifact@v7
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        file: TestResults/reports/lcov.info
+        name: coverage-badge
+        path: TestResults/reports/coverage.svg
 
     - name: Upload SARIF file
       uses: github/codeql-action/upload-sarif@v4

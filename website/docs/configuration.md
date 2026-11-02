@@ -14,6 +14,7 @@ A configuration file looks like this:
 
 ```json
 {
+    "$schema": "https://packageguard.org/schemas/config.json",
     "settings": {
         "allow": {
           "prerelease": false,
@@ -57,6 +58,17 @@ Deny rules always take precedence over allow rules. A package that matches the `
 :::
 
 Configuration files may contain comments. Both `// line` and `/* block */` comments are ignored, so you can explain why a license or package is allowed or denied.
+
+## Editor support
+
+PackageGuard publishes a [JSON schema](https://packageguard.org/schemas/config.json) for the configuration file. Add a `$schema` property at the top of the file, as in the example above, and editors such as Visual Studio Code, Visual Studio and Rider will complete the setting names, show what each setting does, and flag typos such as `maxOveralRisk`. PackageGuard itself ignores the `$schema` property. [`packageguard init`](./init.md) adds it for you.
+
+PackageGuard does not check the file against the schema when it runs. It silently ignores settings it doesn't know, so the schema is the easiest way to catch a misspelled setting.
+
+The schema is stricter than PackageGuard itself:
+
+- PackageGuard reads setting names in any casing, so `"MaxOverallRisk"` works too. The schema only accepts the camelCase names used on this site, such as `maxOverallRisk`.
+- PackageGuard also accepts numbers and booleans written as text, such as `"60"` or `"true"`. The schema expects real numbers and booleans.
 
 ## Where PackageGuard looks for configuration
 

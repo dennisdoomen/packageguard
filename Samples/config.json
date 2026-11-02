@@ -1,4 +1,5 @@
 {
+    "$schema": "https://packageguard.org/schemas/config.json",
     "settings": {
         "allow": {
             "prerelease": false,

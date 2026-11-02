@@ -12,6 +12,7 @@
       <PackageReference Include="FakeItEasy" Version="9.0.1" />
       <PackageReference Include="FluentAssertions" Version="8.11.0" />
       <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
+      <PackageReference Include="JsonSchema.Net" Version="9.5.0" />
       <PackageReference Include="coverlet.collector" Version="10.1.0" PrivateAssets="all">
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
@@ -122,6 +123,18 @@
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
       <None Update="TestCases\NpmPrivateRegistryApp\package.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="..\..\website\static\schemas\config.json" Link="Schema\config.schema.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Include="..\..\Samples\config.json" Link="Schema\sample-config.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      <None Include="..\..\.packageguard\config.json" Link="Schema\repo-config.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
     </ItemGroup>
