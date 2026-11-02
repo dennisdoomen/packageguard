@@ -142,6 +142,7 @@ internal sealed class RiskAnalysisPipeline(ILogger logger, GetPolicyByProject ge
                     PackageId = package.Name,
                     Version = package.Version,
                     License = package.License ?? "",
+                    LicenseUrl = package.LicenseUrl ?? "",
                     Projects = package.Projects.ToArray(),
                     FeedName = package.Source,
                     FeedUrl = package.SourceUrl,

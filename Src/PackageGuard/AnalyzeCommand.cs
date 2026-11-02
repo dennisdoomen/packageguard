@@ -195,6 +195,7 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         {
             logger.LogInformation("{Id} {Version} [{Label}]", violation.PackageId, violation.Version, getLabel(violation));
             logger.LogInformation("- License: {License}", violation.License);
+            WriteLicenseInfoUrl(logger, violation);
             logger.LogInformation("- Feed: {Source} ({Url})", violation.FeedName, violation.FeedUrl);
 
             if (!string.IsNullOrWhiteSpace(violation.Reason))
@@ -218,6 +219,17 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
             }
 
             AnsiConsole.MarkupLine("");
+        }
+    }
+
+    /// <summary>
+    /// Writes the URL with more information about the license on its own line, so that terminals can make it clickable.
+    /// </summary>
+    private static void WriteLicenseInfoUrl(ILogger logger, PolicyViolation violation)
+    {
+        if (RiskHtmlReportWriter.TryGetLicenseInfoUrl(violation.License, violation.LicenseUrl) is { } url)
+        {
+            logger.LogInformation("- License info: {Url}", url);
         }
     }
 

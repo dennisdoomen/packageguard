@@ -721,15 +721,15 @@ internal static class RiskHtmlReportWriter
     /// Returns a URL with more information about the license of the package. A single SPDX identifier links to
     /// its page on spdx.org. Otherwise, the package's own license URL is used when it is a valid web address.
     /// </summary>
-    private static string? TryGetLicenseInfoUrl(PackageInfo package)
+    internal static string? TryGetLicenseInfoUrl(string? license, string? licenseUrl)
     {
-        string? license = package.License?.Trim();
+        license = license?.Trim();
         if (!string.IsNullOrEmpty(license) && IsSingleSpdxIdentifier(license))
         {
             return $"https://spdx.org/licenses/{Uri.EscapeDataString(license)}.html";
         }
 
-        if (Uri.TryCreate(package.LicenseUrl, UriKind.Absolute, out Uri? licenseUri) &&
+        if (Uri.TryCreate(licenseUrl, UriKind.Absolute, out Uri? licenseUri) &&
             (licenseUri.Scheme is "http" or "https"))
         {
             return licenseUri.ToString();
@@ -776,7 +776,7 @@ internal static class RiskHtmlReportWriter
             yield return ("Used by", string.Join(", ", displayProjectPaths));
         }
 
-        yield return new DetailEntry("License", FormatLicenseDisplay(package), Url: TryGetLicenseInfoUrl(package));
+        yield return new DetailEntry("License", FormatLicenseDisplay(package), Url: TryGetLicenseInfoUrl(package.License, package.LicenseUrl));
 
         if (package.IsDeprecated != null)
         {

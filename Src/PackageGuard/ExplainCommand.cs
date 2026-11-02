@@ -165,6 +165,10 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
         AnsiConsole.MarkupLine($"[bold]{Markup.Escape(package.Name)} {Markup.Escape(package.Version)}[/]");
         string licenseSuffix = package.License is not null ? $" ({DescribeLicenseEvidence(package.LicenseEvidence)})" : "";
         AnsiConsole.MarkupLine($"  License:  {Markup.Escape(package.License ?? "Unknown")}{licenseSuffix}");
+        if (RiskHtmlReportWriter.TryGetLicenseInfoUrl(package.License, package.LicenseUrl) is { } licenseInfoUrl)
+        {
+            AnsiConsole.MarkupLine($"  Info:     {Markup.Escape(licenseInfoUrl)}");
+        }
         AnsiConsole.MarkupLine($"  Feed:     {Markup.Escape(package.Source)} ({Markup.Escape(package.SourceUrl)})");
 
         ExplainVerdict(package, getPolicy);

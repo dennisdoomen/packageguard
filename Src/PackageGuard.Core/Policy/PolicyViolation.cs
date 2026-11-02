@@ -18,6 +18,7 @@ public record PolicyViolation
             PackageId = package.Name,
             Version = package.Version,
             License = package.License ?? "",
+            LicenseUrl = package.LicenseUrl ?? "",
             Projects = projects,
             FeedName = package.Source,
             FeedUrl = package.SourceUrl,
@@ -40,6 +41,11 @@ public record PolicyViolation
     /// The license of the package. It is "Unknown" or an empty string when the license could not be determined.
     /// </summary>
     public required string License { get; init; }
+
+    /// <summary>
+    /// The URL of the license text as declared by the package, or an empty string if there is none.
+    /// </summary>
+    public string LicenseUrl { get; init; } = "";
 
     /// <summary>
     /// The projects that reference the package.
