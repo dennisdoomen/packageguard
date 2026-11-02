@@ -35,7 +35,7 @@ internal class NuGetPackageSigningRiskEnricherSpecs
     }
 
     [TestMethod]
-    internal async Task Should_mark_package_as_signed_when_signature_file_exists()
+    internal async Task A_package_with_a_signature_file_is_signed()
     {
         string packagePath = CreatePackageArchive("Test.Package", "1.0.0", signed: true);
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
@@ -53,7 +53,7 @@ internal class NuGetPackageSigningRiskEnricherSpecs
     }
 
     [TestMethod]
-    internal async Task Should_mark_package_as_unsigned_when_signature_file_is_missing()
+    internal async Task A_package_without_a_signature_file_is_unsigned()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
         var package = new PackageInfo
@@ -70,7 +70,7 @@ internal class NuGetPackageSigningRiskEnricherSpecs
     }
 
     [TestMethod]
-    internal async Task Should_leave_signing_status_unknown_when_package_archive_is_missing()
+    internal async Task The_signing_status_of_a_missing_package_archive_is_unknown()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
         var package = new PackageInfo
@@ -86,7 +86,7 @@ internal class NuGetPackageSigningRiskEnricherSpecs
     }
 
     [TestMethod]
-    internal async Task Should_leave_verified_publisher_unset_when_package_is_unsigned()
+    internal async Task An_unsigned_package_has_no_verified_publisher()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
         var package = new PackageInfo
@@ -106,7 +106,7 @@ internal class NuGetPackageSigningRiskEnricherSpecs
     }
 
     [TestMethod]
-    internal async Task Should_not_overwrite_verified_publisher_already_set_by_another_enricher()
+    internal async Task A_verified_publisher_set_by_another_enricher_is_kept()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
         var package = new PackageInfo
@@ -124,7 +124,7 @@ internal class NuGetPackageSigningRiskEnricherSpecs
     }
 
     [TestMethod]
-    internal async Task Should_detect_native_binary_assets()
+    internal async Task Native_binary_assets_are_detected()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
         var package = new PackageInfo
@@ -141,7 +141,7 @@ internal class NuGetPackageSigningRiskEnricherSpecs
     }
 
     [TestMethod]
-    internal async Task Should_treat_net10_target_frameworks_as_modern()
+    internal async Task Net10_target_frameworks_are_modern()
     {
         var enricher = new NuGetPackageSigningRiskEnricher(NullLogger.Instance, testDirectory);
         var package = new PackageInfo

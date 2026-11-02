@@ -14,7 +14,7 @@ namespace PackageGuard.Specs;
 internal class RiskEvaluatorSpecs
 {
     [TestMethod]
-    internal void Should_evaluate_legal_risk_for_unknown_license()
+    internal void Unknown_license_adds_legal_risk()
     {
         // Arrange
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
@@ -34,7 +34,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_evaluate_legal_risk_for_permissive_license()
+    internal void Permissive_license_has_low_legal_risk()
     {
         // Arrange
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
@@ -55,7 +55,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_evaluate_legal_risk_for_restrictive_license()
+    internal void Restrictive_license_has_high_legal_risk()
     {
         // Arrange
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
@@ -75,7 +75,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_evaluate_security_risk_based_on_repository_url()
+    internal void A_missing_repository_url_increases_security_risk()
     {
         // Arrange
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
@@ -103,7 +103,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_calculate_overall_risk_score()
+    internal void The_overall_risk_is_a_weighted_sum_of_the_dimensions()
     {
         // Arrange
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
@@ -127,7 +127,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_legal_risk_for_invalid_license_url_and_policy_incompatibility()
+    internal void An_invalid_license_url_and_policy_incompatibility_add_legal_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -150,7 +150,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_security_risk_for_vulnerabilities_and_dependency_depth()
+    internal void Vulnerabilities_and_dependency_depth_add_security_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -183,7 +183,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_operational_risk_for_poor_repository_hygiene_and_low_popularity()
+    internal void Poor_repository_hygiene_and_low_popularity_add_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -227,7 +227,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_new_security_and_operational_signals()
+    internal void Repository_and_release_signals_add_security_and_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -312,7 +312,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_operational_risk_for_issue_closure_and_workflow_quality_signals()
+    internal void Issue_closure_and_workflow_quality_signals_add_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -361,7 +361,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_easy_and_medium_quality_metric_signals()
+    internal void Release_and_maintenance_quality_signals_add_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -445,7 +445,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_not_flag_major_release_ratio_when_releases_stay_on_same_major_line()
+    internal void Releases_on_the_same_major_line_do_not_count_as_major_jumps()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -470,7 +470,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_treat_release_notes_as_a_valid_changelog_replacement()
+    internal void Release_notes_are_a_valid_replacement_for_a_changelog()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -498,7 +498,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_evaluate_legal_risk_for_mpl_as_weak_copyleft()
+    internal void Mpl_is_a_weak_copyleft_license()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -519,7 +519,7 @@ internal class RiskEvaluatorSpecs
     [TestMethod]
     [DataRow("LGPL-2.1-only")]
     [DataRow("LGPL-3.0-or-later")]
-    internal void Should_evaluate_legal_risk_for_lgpl_as_weak_copyleft(string license)
+    internal void Lgpl_is_a_weak_copyleft_license(string license)
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -556,7 +556,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_evaluate_legal_risk_for_agpl_as_restrictive()
+    internal void Agpl_is_a_restrictive_license()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -575,7 +575,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_not_penalize_a_dual_license_with_a_permissive_option()
+    internal void A_dual_license_with_a_permissive_option_is_not_penalized()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -593,7 +593,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_security_risk_when_package_signature_is_missing()
+    internal void A_missing_package_signature_adds_security_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -612,7 +612,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_apply_higher_security_risk_for_dependency_chain_deeper_than_20()
+    internal void A_dependency_chain_deeper_than_20_adds_more_security_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var deepPackage = new PackageInfo
@@ -644,7 +644,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_security_risk_for_abandoned_transitive_dependencies()
+    internal void Abandoned_transitive_dependencies_add_security_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -663,7 +663,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_only_score_stale_transitive_dependencies_in_operational_risk_not_security_risk()
+    internal void Stale_transitive_dependencies_only_add_operational_risk()
     {
         // Arrange
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
@@ -689,7 +689,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_only_score_abandoned_and_unmaintained_critical_transitive_dependencies_in_security_risk_not_operational_risk()
+    internal void Abandoned_and_unmaintained_critical_transitive_dependencies_only_add_security_risk()
     {
         // Arrange
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
@@ -722,7 +722,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_security_risk_when_owner_account_is_less_than_one_year_old()
+    internal void An_owner_account_younger_than_one_year_adds_security_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -741,7 +741,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_security_risk_for_packages_with_native_binary_assets()
+    internal void Native_binary_assets_add_security_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -761,7 +761,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_security_risk_when_coordinated_disclosure_is_absent()
+    internal void The_absence_of_coordinated_disclosure_adds_security_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var packageWithoutDisclosure = new PackageInfo
@@ -793,7 +793,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_operational_risk_for_high_prerelease_release_ratio()
+    internal void A_high_prerelease_ratio_adds_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -818,7 +818,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_operational_risk_for_rapid_release_corrections()
+    internal void Rapid_release_corrections_add_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -843,7 +843,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_operational_risk_for_release_older_than_12_but_not_24_months()
+    internal void A_release_between_12_and_24_months_old_adds_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -870,7 +870,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_operational_risk_for_elevated_but_not_long_mean_release_interval()
+    internal void An_elevated_mean_release_interval_adds_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -898,7 +898,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_operational_risk_for_stale_readme_and_changelog()
+    internal void A_stale_readme_and_changelog_add_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -931,7 +931,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_operational_risk_for_very_few_active_maintainers()
+    internal void Very_few_active_maintainers_add_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -956,7 +956,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_operational_risk_for_limited_package_popularity()
+    internal void Limited_package_popularity_adds_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -981,7 +981,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_operational_risk_for_version_update_lag_between_90_and_365_days()
+    internal void A_version_update_lag_between_90_and_365_days_adds_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -1011,7 +1011,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_add_operational_risk_for_moderate_openssf_score()
+    internal void A_moderate_openssf_score_adds_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -1036,7 +1036,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_not_ask_for_a_license_url_when_the_package_declares_its_license()
+    internal void A_declared_license_needs_no_license_url()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -1055,7 +1055,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_score_the_age_of_the_last_release_in_the_operational_dimension_only()
+    internal void The_age_of_the_last_release_only_adds_operational_risk()
     {
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
         var package = new PackageInfo
@@ -1076,7 +1076,7 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
-    internal void Should_score_supply_chain_signals_in_the_security_dimension_only()
+    internal void Supply_chain_signals_only_add_security_risk()
     {
         // Arrange
         var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
