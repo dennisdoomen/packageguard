@@ -7,10 +7,16 @@ on:
     paths:
       - 'website/**'
       - '.github/workflows/deploy-docs.yml'
+  # Redeploy after every build of main, to publish its latest coverage badge
+  workflow_run:
+    workflows: [ Build ]
+    types: [ completed ]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -21,6 +27,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     defaults:
       run:
         working-directory: website
@@ -40,6 +47,15 @@ jobs:
 
       - name: Build website
         run: npm run build
+
+      # Uploaded by the build workflow. A missing badge must not block the documentation.
+      - name: Add coverage badge of main
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow build.yml --branch main --event push --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+          gh run download "$run_id" --repo "$GITHUB_REPOSITORY" --name coverage-badge --dir build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5

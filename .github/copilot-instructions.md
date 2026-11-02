@@ -53,7 +53,7 @@ Tests should:
 - Follow the **Arrange-Act-Assert** pattern
 - Use **FluentAssertions** for assertions
 - Use **Verify** for snapshot testing where appropriate
-- Maintain or increase code coverage (tracked via Coveralls)
+- Maintain or increase code coverage (octocov reports the change as a comment on the pull request)
 
 ### Running PackageGuard
 
