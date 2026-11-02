@@ -229,7 +229,8 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
     {
         if (RiskHtmlReportWriter.TryGetLicenseInfoUrl(violation.License, violation.LicenseUrl) is { } url)
         {
-            logger.LogInformation("- License info: {Url}", url);
+            // Spectre prints a real terminal hyperlink where supported, and the plain URL elsewhere
+            AnsiConsole.MarkupLine($"- License info: [link={Markup.Escape(url)}]{Markup.Escape(url)}[/]");
         }
     }
 
