@@ -194,7 +194,7 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         foreach (var violation in violations)
         {
             logger.LogInformation("{Id} {Version} [{Label}]", violation.PackageId, violation.Version, getLabel(violation));
-            logger.LogInformation("- License: {License}", violation.License);
+            logger.LogInformation("- License: {License}", FormatLicense(violation));
             logger.LogInformation("- Feed: {Source} ({Url})", violation.FeedName, violation.FeedUrl);
 
             if (!string.IsNullOrWhiteSpace(violation.Reason))
@@ -219,6 +219,24 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
 
             AnsiConsole.MarkupLine("");
         }
+    }
+
+    /// <summary>
+    /// Returns the license name as a terminal hyperlink to more information about it. Terminals without hyperlink
+    /// support get the name followed by the plain URL, and a license without a known URL is returned as is.
+    /// </summary>
+    private static string FormatLicense(PolicyViolation violation)
+    {
+        string license = violation.License ?? "Unknown";
+        if (RiskHtmlReportWriter.TryGetLicenseInfoUrl(violation.License, violation.LicenseUrl) is not { } url)
+        {
+            return license;
+        }
+
+        // An OSC 8 escape sequence makes a real terminal hyperlink where supported.
+        return AnsiConsole.Profile.Capabilities.Links
+            ? $"\u001b]8;;{url}\u001b\\{license}\u001b]8;;\u001b\\"
+            : $"{license} ({url})";
     }
 
     /// <summary>

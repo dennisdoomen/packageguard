@@ -259,6 +259,48 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
+    public async Task Can_link_a_known_license_to_its_spdx_page_and_others_to_their_license_url()
+    {
+        var spdxPackage = new PackageInfo
+        {
+            Name = "Contoso.Spdx",
+            Version = "1.0.0",
+            Source = "nuget",
+            License = "Apache-2.0",
+            LicenseUrl = "https://example.com/ignored",
+            RiskDimensions = new RiskDimensions()
+        };
+
+        var expressionPackage = new PackageInfo
+        {
+            Name = "Contoso.Expression",
+            Version = "1.0.0",
+            Source = "nuget",
+            License = "MIT OR Apache-2.0",
+            LicenseUrl = "https://example.com/license",
+            RiskDimensions = new RiskDimensions()
+        };
+
+        RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
+            Path.Combine(reportDirectory, "PackageGuard.sln"),
+            [spdxPackage, expressionPackage]);
+
+        string html = await File.ReadAllTextAsync(reportPaths.HtmlPath);
+        html.Should().Contain("<a href=\"https://spdx.org/licenses/Apache-2.0.html\" target=\"_blank\"");
+        html.Should().Contain("<a href=\"https://example.com/license\" target=\"_blank\"");
+        html.Should().NotContain("https://example.com/ignored");
+    }
+
+    [TestMethod]
+    public void Does_not_link_an_unknown_license_without_a_license_url()
+    {
+        RiskHtmlReportWriter.TryGetLicenseInfoUrl("Unknown", null).Should().BeNull();
+        RiskHtmlReportWriter.TryGetLicenseInfoUrl(null, "ftp://example.com/license").Should().BeNull();
+        RiskHtmlReportWriter.TryGetLicenseInfoUrl("Custom", "https://example.com/license")
+            .Should().Be("https://example.com/license");
+    }
+
+    [TestMethod]
     public async Task The_detailed_report_distinguishes_missing_and_unrecognized_licenses()
     {
         var missingLicensePackage = new PackageInfo

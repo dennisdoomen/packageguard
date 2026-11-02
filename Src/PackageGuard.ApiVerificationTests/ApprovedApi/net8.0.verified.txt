@@ -371,6 +371,7 @@ namespace PackageGuard.Core.Policy
         public bool IsMalicious { get; init; }
         public bool IsWarning { get; init; }
         public required string License { get; init; }
+        public string LicenseUrl { get; init; }
         public required string PackageId { get; init; }
         public required string[] Projects { get; init; }
         public string Reason { get; init; }
