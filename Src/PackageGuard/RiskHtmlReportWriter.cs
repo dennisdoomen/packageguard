@@ -683,11 +683,12 @@ internal static class RiskHtmlReportWriter
     private static void AppendDetailListItem(StringBuilder builder, DetailEntry entry)
     {
         builder.AppendLine($"          <dt>{Encode(entry.Label)}</dt>");
+        string valueHtml = BuildValueHtml(entry);
 
         if (entry.Items is { Count: > 0 })
         {
             builder.AppendLine("          <dd>");
-            builder.AppendLine($"            {Encode(entry.Value)}");
+            builder.AppendLine($"            {valueHtml}");
             builder.AppendLine("            <details class=\"detail-toggle\">");
             builder.AppendLine(
                 $"              <summary>Show {entry.Items.Count} {(entry.Items.Count == 1 ? "item" : "items")}</summary>");
@@ -704,15 +705,54 @@ internal static class RiskHtmlReportWriter
         }
         else
         {
-            builder.AppendLine($"          <dd>{Encode(entry.Value)}</dd>");
+            builder.AppendLine($"          <dd>{valueHtml}</dd>");
         }
     }
+
+    /// <summary>
+    /// Returns the encoded value of an entry, wrapped in a link that opens in a new tab when the entry has a URL.
+    /// </summary>
+    private static string BuildValueHtml(DetailEntry entry) =>
+        entry.Url is null
+            ? Encode(entry.Value)
+            : $"<a href=\"{Encode(entry.Url)}\" target=\"_blank\" rel=\"noopener noreferrer\">{Encode(entry.Value)}</a>";
+
+    /// <summary>
+    /// Returns a URL with more information about the license of the package. A single SPDX identifier links to
+    /// its page on spdx.org. Otherwise, the package's own license URL is used when it is a valid web address.
+    /// </summary>
+    private static string? TryGetLicenseInfoUrl(PackageInfo package)
+    {
+        string? license = package.License?.Trim();
+        if (!string.IsNullOrEmpty(license) && IsSingleSpdxIdentifier(license))
+        {
+            return $"https://spdx.org/licenses/{Uri.EscapeDataString(license)}.html";
+        }
+
+        if (Uri.TryCreate(package.LicenseUrl, UriKind.Absolute, out Uri? licenseUri) &&
+            (licenseUri.Scheme is "http" or "https"))
+        {
+            return licenseUri.ToString();
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Returns <c>true</c> for a plain SPDX identifier such as <c>MIT</c> or <c>Apache-2.0</c>, and <c>false</c>
+    /// for expressions, free text and placeholders.
+    /// </summary>
+    private static bool IsSingleSpdxIdentifier(string license) =>
+        !license.Equals("Unknown", StringComparison.OrdinalIgnoreCase) &&
+        IsWellKnownLicense(license) &&
+        license.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '.' or '+');
 
     /// <summary>
     /// An evidence label/value pair, optionally accompanied by the full list of items (e.g. package names) behind
     /// the value, rendered as a collapsed-by-default panel.
     /// </summary>
-    private readonly record struct DetailEntry(string Label, string Value, IReadOnlyCollection<string>? Items = null)
+    private readonly record struct DetailEntry(string Label, string Value, IReadOnlyCollection<string>? Items = null,
+        string? Url = null)
     {
         public static implicit operator DetailEntry((string Label, string Value) pair) => new(pair.Label, pair.Value);
     }
@@ -736,7 +776,7 @@ internal static class RiskHtmlReportWriter
             yield return ("Used by", string.Join(", ", displayProjectPaths));
         }
 
-        yield return ("License", FormatLicenseDisplay(package));
+        yield return new DetailEntry("License", FormatLicenseDisplay(package), Url: TryGetLicenseInfoUrl(package));
 
         if (package.IsDeprecated != null)
         {

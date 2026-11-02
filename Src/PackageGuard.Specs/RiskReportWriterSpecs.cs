@@ -259,6 +259,39 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
+    public async Task Can_link_a_known_license_to_its_spdx_page_and_others_to_their_license_url()
+    {
+        var spdxPackage = new PackageInfo
+        {
+            Name = "Contoso.Spdx",
+            Version = "1.0.0",
+            Source = "nuget",
+            License = "Apache-2.0",
+            LicenseUrl = "https://example.com/ignored",
+            RiskDimensions = new RiskDimensions()
+        };
+
+        var expressionPackage = new PackageInfo
+        {
+            Name = "Contoso.Expression",
+            Version = "1.0.0",
+            Source = "nuget",
+            License = "MIT OR Apache-2.0",
+            LicenseUrl = "https://example.com/license",
+            RiskDimensions = new RiskDimensions()
+        };
+
+        RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
+            Path.Combine(reportDirectory, "PackageGuard.sln"),
+            [spdxPackage, expressionPackage]);
+
+        string html = await File.ReadAllTextAsync(reportPaths.HtmlPath);
+        html.Should().Contain("<a href=\"https://spdx.org/licenses/Apache-2.0.html\" target=\"_blank\"");
+        html.Should().Contain("<a href=\"https://example.com/license\" target=\"_blank\"");
+        html.Should().NotContain("https://example.com/ignored");
+    }
+
+    [TestMethod]
     public async Task Should_distinguish_missing_and_unrecognized_licenses_in_detailed_report()
     {
         var missingLicensePackage = new PackageInfo
