@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.RegularExpressions;
 
 namespace PackageGuard.Core.CSharp.FetchingStrategies;
@@ -26,6 +27,7 @@ internal static partial class LicenseTextClassifier
     /// </summary>
     public static string? Identify(string licenseText)
     {
+        licenseText = ExtractLicenseText(licenseText);
         string text = Normalize(licenseText);
 
         if (DualLicenseMarkers.Any(text.Contains))
@@ -78,6 +80,23 @@ internal static partial class LicenseTextClassifier
         return null;
     }
 
+    /// <summary>
+    /// Strips the HTML around the license text, for instance on the NuGet.org license page, so that only the license remains.
+    /// </summary>
+    private static string ExtractLicenseText(string content)
+    {
+        content = content.TrimStart('﻿');
+        if (!content.Contains("<html", StringComparison.OrdinalIgnoreCase))
+        {
+            return content;
+        }
+
+        Match licenseFile = LicenseFileContents().Match(content);
+        string body = licenseFile.Success ? licenseFile.Groups[1].Value : HtmlNoise().Replace(content, " ");
+
+        return WebUtility.HtmlDecode(HtmlTag().Replace(body, " ")).TrimStart('﻿', ' ', '\r', '\n');
+    }
+
     private static string GetHeader(string licenseText)
     {
         IEnumerable<string> lines = licenseText
@@ -88,6 +107,15 @@ internal static partial class LicenseTextClassifier
     }
 
     private static string Normalize(string text) => Whitespace().Replace(text, " ").Trim().ToLowerInvariant();
+
+    [GeneratedRegex("<pre[^>]*license-file-contents[^>]*>(.*?)</pre>", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
+    private static partial Regex LicenseFileContents();
+
+    [GeneratedRegex(@"<(script|style|head)\b.*?</\1>", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
+    private static partial Regex HtmlNoise();
+
+    [GeneratedRegex("<[^>]+>")]
+    private static partial Regex HtmlTag();
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex Whitespace();

@@ -101,6 +101,33 @@ public class LicenseTextClassifierSpecs
     }
 
     [TestMethod]
+    public void The_license_text_is_extracted_from_the_nuget_license_page()
+    {
+        // Arrange
+        const string page = "<!DOCTYPE html><html><head><title>NuGet Gallery | License of Some.Package 1.0.0</title></head>\n" +
+            "<body><nav>Packages</nav><nav>Upload</nav><nav>Statistics</nav><nav>Documentation</nav>\n" +
+            "<pre class=\"license-file-contents custom-license-container\">MICROSOFT SOFTWARE LICENSE TERMS\n" +
+            "MICROSOFT .NET LIBRARY</pre></body></html>";
+
+        // Act
+        string license = LicenseTextClassifier.Identify(page);
+
+        // Assert
+        license.Should().Be("Microsoft .NET Library License");
+    }
+
+    [TestMethod]
+    public void A_license_in_a_plain_html_page_is_recognized_without_the_markup()
+    {
+        // Act
+        string license = LicenseTextClassifier.Identify("<html><head><title>x</title></head><body><h1>MIT License</h1>" +
+            "<p>Permission is hereby granted, free of charge</p></body></html>");
+
+        // Assert
+        license.Should().Be("MIT");
+    }
+
+    [TestMethod]
     public void The_microsoft_net_library_license_is_recognized()
     {
         // Act
