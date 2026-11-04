@@ -20,29 +20,15 @@ public class UrlLicenseFetcher(ILogger logger) : IFetchLicense
                 logger.LogDebug("Fetching license text from {Url}", package.LicenseUrl);
                 string licenseText = await HttpClient.GetStringAsync(package.LicenseUrl);
 
-                if (licenseText.Contains("MIT license", StringComparison.OrdinalIgnoreCase))
+                string? license = LicenseTextClassifier.Identify(licenseText);
+                if (license is not null)
                 {
-                    package.License = "MIT";
-                    package.LicenseEvidence = LicenseEvidence.Concluded;
-                }
-                else if (licenseText.Contains("Apache License", StringComparison.OrdinalIgnoreCase))
-                {
-                    package.License = "Apache-2.0";
-                    package.LicenseEvidence = LicenseEvidence.Concluded;
-                }
-                else if (licenseText.Contains("GNU General Public License", StringComparison.OrdinalIgnoreCase))
-                {
-                    package.License = "GPL-3.0";
-                    package.LicenseEvidence = LicenseEvidence.Concluded;
-                }
-                else if (licenseText.Contains("MICROSOFT SOFTWARE LICENSE TERMS", StringComparison.OrdinalIgnoreCase))
-                {
-                    package.License = "Microsoft .NET Library License";
+                    package.License = license;
                     package.LicenseEvidence = LicenseEvidence.Concluded;
                 }
                 else
                 {
-                    logger.LogWarning("Did not detect any well-known licenses in {URL}", package.LicenseUrl);
+                    logger.LogWarning("Did not detect a single, unconditional well-known license in {URL}", package.LicenseUrl);
                 }
             }
             catch (HttpRequestException ex)
