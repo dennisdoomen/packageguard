@@ -10,6 +10,7 @@ namespace PackageGuard.Core.CSharp.FetchingStrategies;
 internal static partial class LicenseTextClassifier
 {
     private const int HeaderLineCount = 15;
+    private const int TitleLineCount = 3;
 
     private static readonly string[] DualLicenseMarkers =
     [
@@ -28,53 +29,47 @@ internal static partial class LicenseTextClassifier
     public static string? Identify(string licenseText)
     {
         licenseText = ExtractLicenseText(licenseText);
-        string text = Normalize(licenseText);
 
-        if (DualLicenseMarkers.Any(text.Contains))
+        if (DualLicenseMarkers.Any(Normalize(licenseText).Contains))
         {
             return null;
         }
 
-        string header = GetHeader(licenseText);
+        string header = GetHeader(licenseText, HeaderLineCount);
+        string title = GetHeader(licenseText, TitleLineCount);
 
-        string?[] candidates =
-        [
-            IdentifyMit(header),
-            IdentifyApache(header),
-            IdentifyGnu(header),
-            IdentifyMicrosoft(header)
-        ];
+        string?[] candidates = [IdentifyMit(header), IdentifyApache(header), IdentifyGnu(title), IdentifyMicrosoft(header)];
 
         string[] matches = candidates.OfType<string>().ToArray();
         return matches.Length == 1 ? matches[0] : null;
     }
 
-    private static string? IdentifyMit(string header) =>
-        header.Contains("mit license") || header.Contains("permission is hereby granted, free of charge")
-            ? "MIT"
-            : null;
+    // Only the title identifies MIT. The "Permission is hereby granted, free of charge" sentence also opens licenses such as
+    // JSON, BSL-1.0, X11, ICU and Unicode, which are not MIT.
+    private static string? IdentifyMit(string header) => header.Contains("mit license") ? "MIT" : null;
 
     private static string? IdentifyApache(string header) =>
-        header.Contains("apache license") && header.Contains("version 2.0") ? "Apache-2.0" : null;
+        ApacheTwoPointZero().IsMatch(header) ? "Apache-2.0" : null;
 
     private static string? IdentifyMicrosoft(string header) =>
         header.Contains("microsoft software license terms") ? "Microsoft .NET Library License" : null;
 
-    private static string? IdentifyGnu(string header)
+    // The GNU licenses are identified by the title only, since their preambles refer to each other.
+    private static string? IdentifyGnu(string title)
     {
-        if (header.Contains("gnu affero general public license"))
+        if (title.Contains("gnu affero general public license"))
         {
             return "AGPL-3.0";
         }
 
-        if (header.Contains("gnu lesser general public license") || header.Contains("gnu library general public license"))
+        if (title.Contains("gnu lesser general public license") || title.Contains("gnu library general public license"))
         {
-            return header.Contains("version 2.1") ? "LGPL-2.1" : header.Contains("version 3") ? "LGPL-3.0" : null;
+            return title.Contains("version 2.1") ? "LGPL-2.1" : title.Contains("version 3") ? "LGPL-3.0" : null;
         }
 
-        if (header.Contains("gnu general public license"))
+        if (title.Contains("gnu general public license"))
         {
-            return header.Contains("version 2") ? "GPL-2.0" : header.Contains("version 3") ? "GPL-3.0" : null;
+            return title.Contains("version 2") ? "GPL-2.0" : title.Contains("version 3") ? "GPL-3.0" : null;
         }
 
         return null;
@@ -92,27 +87,45 @@ internal static partial class LicenseTextClassifier
         }
 
         Match licenseFile = LicenseFileContents().Match(content);
-        string body = licenseFile.Success ? licenseFile.Groups[1].Value : HtmlNoise().Replace(content, " ");
+        string text = licenseFile.Success ? licenseFile.Groups[1].Value : GetPageTitle(content) + "\n" + GetPageBody(content);
 
-        return WebUtility.HtmlDecode(HtmlTag().Replace(body, " ")).TrimStart('﻿', ' ', '\r', '\n');
+        return WebUtility.HtmlDecode(HtmlTag().Replace(text, " ")).Trim('﻿', ' ', '\r', '\n');
     }
 
-    private static string GetHeader(string licenseText)
+    private static string GetPageTitle(string html)
+    {
+        Match title = PageTitle().Match(html);
+        return title.Success ? title.Groups[1].Value : string.Empty;
+    }
+
+    private static string GetPageBody(string html) =>
+        BlockBreak().Replace(HtmlNoise().Replace(html, " "), "\n");
+
+    private static string GetHeader(string licenseText, int lineCount)
     {
         IEnumerable<string> lines = licenseText
             .Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Take(HeaderLineCount);
+            .Take(lineCount);
 
         return Normalize(string.Join(' ', lines));
     }
 
     private static string Normalize(string text) => Whitespace().Replace(text, " ").Trim().ToLowerInvariant();
 
+    [GeneratedRegex(@"apache license,? (version )?2\.0")]
+    private static partial Regex ApacheTwoPointZero();
+
     [GeneratedRegex("<pre[^>]*license-file-contents[^>]*>(.*?)</pre>", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex LicenseFileContents();
 
+    [GeneratedRegex(@"<title[^>]*>(.*?)</title>", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
+    private static partial Regex PageTitle();
+
     [GeneratedRegex(@"<(script|style|head)\b.*?</\1>", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex HtmlNoise();
+
+    [GeneratedRegex(@"<(br|/?(p|div|h[1-6]|li|ul|ol|tr|table|pre|section|article|nav|header|footer))\b[^>]*>", RegexOptions.IgnoreCase)]
+    private static partial Regex BlockBreak();
 
     [GeneratedRegex("<[^>]+>")]
     private static partial Regex HtmlTag();

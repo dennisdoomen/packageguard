@@ -128,6 +128,91 @@ public class LicenseTextClassifierSpecs
     }
 
     [TestMethod]
+    public void The_full_gpl_2_text_is_recognized_even_though_its_preamble_mentions_the_lgpl()
+    {
+        // Arrange
+        string text = string.Join('\n',
+            "                    GNU GENERAL PUBLIC LICENSE",
+            "                       Version 2, June 1991",
+            "",
+            " Copyright (C) 1989, 1991 Free Software Foundation, Inc.,",
+            " 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA",
+            " Everyone is permitted to copy and distribute verbatim copies",
+            " of this license document, but changing it is not allowed.",
+            "",
+            "                            Preamble",
+            "",
+            "  The licenses for most software are designed to take away your",
+            "freedom to share and change it.  By contrast, the GNU General Public",
+            "License is intended to guarantee your freedom to share and change free",
+            "software.  This license applies to most of the Free Software",
+            "Foundation's software.  Some other FSF software is covered by",
+            "the GNU Lesser General Public License instead.");
+
+        // Act
+        string license = LicenseTextClassifier.Identify(text);
+
+        // Assert
+        license.Should().Be("GPL-2.0");
+    }
+
+    [TestMethod]
+    [DataRow("The JSON License\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\n" +
+        "The Software shall be used for Good, not Evil.")]
+    [DataRow("Boost Software License - Version 1.0 - August 17th, 2003\n\nPermission is hereby granted, free of charge, to any")]
+    [DataRow("Copyright (c) 2024 Someone\n\nPermission is hereby granted, free of charge, to any person obtaining a copy")]
+    public void A_license_that_only_shares_the_permission_sentence_with_mit_is_not_reported_as_mit(string text)
+    {
+        // Act
+        string license = LicenseTextClassifier.Identify(text);
+
+        // Assert
+        license.Should().BeNull();
+    }
+
+    [TestMethod]
+    public void An_apache_license_that_is_named_in_one_line_is_recognized()
+    {
+        // Act
+        string license = LicenseTextClassifier.Identify("Copyright 2020 Contoso\n\nLicensed under the Apache License 2.0.");
+
+        // Assert
+        license.Should().Be("Apache-2.0");
+    }
+
+    [TestMethod]
+    public void The_license_on_a_web_page_is_found_through_its_title_even_when_the_page_has_a_lot_of_navigation()
+    {
+        // Arrange
+        string navigation = string.Concat(Enumerable.Repeat("<li><a href=\"/x\">Menu item</a></li>\n", 40));
+        string page = "<!DOCTYPE html><html><head><title>The MIT License &#8211; Open Source Initiative</title></head><body>" +
+            "<ul>" + navigation + "</ul><h1>The MIT License</h1><p>Permission is hereby granted, free of charge</p>" +
+            "</body></html>";
+
+        // Act
+        string license = LicenseTextClassifier.Identify(page);
+
+        // Assert
+        license.Should().Be("MIT");
+    }
+
+    [TestMethod]
+    public void A_minified_web_page_that_only_mentions_mit_in_its_body_is_not_recognized()
+    {
+        // Arrange
+        const string page = "<html><head><title>Contoso</title></head><body><h1>Contoso Proprietary License Agreement</h1>" +
+            "<p>All rights reserved.</p><p>One.</p><p>Two.</p><p>Three.</p><p>Four.</p><p>Five.</p><p>Six.</p><p>Seven.</p>" +
+            "<p>Eight.</p><p>Nine.</p><p>Ten.</p><p>Eleven.</p><p>Twelve.</p><p>Third-party notices: this product includes " +
+            "software under the MIT license.</p></body></html>";
+
+        // Act
+        string license = LicenseTextClassifier.Identify(page);
+
+        // Assert
+        license.Should().BeNull();
+    }
+
+    [TestMethod]
     public void The_microsoft_net_library_license_is_recognized()
     {
         // Act
