@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core.Package;
 
@@ -17,8 +18,13 @@ public class UrlLicenseFetcher(ILogger logger) : IFetchLicense
         {
             try
             {
-                logger.LogDebug("Fetching license text from {Url}", package.LicenseUrl);
-                string licenseText = await HttpClient.GetStringAsync(package.LicenseUrl);
+                // A GitHub "blob" page is an HTML viewer around the file, so ask for the file itself.
+                string url = Regex.Replace(package.LicenseUrl,
+                    @"^https://github\.com/([^/]+/[^/]+)/blob/", "https://raw.githubusercontent.com/$1/",
+                    RegexOptions.IgnoreCase);
+
+                logger.LogDebug("Fetching license text from {Url}", url);
+                string licenseText = await HttpClient.GetStringAsync(url);
 
                 string? license = LicenseTextClassifier.Identify(licenseText);
                 if (license is not null)

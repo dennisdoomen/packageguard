@@ -169,6 +169,63 @@ public class NuGetPackageAnalyzerSpecs
             "NUnit is mapped to the unreachable private feed only, even though nuget.org has it");
     }
 
+    [TestMethod]
+    public async Task Identifies_the_license_from_the_license_file_a_package_ships()
+    {
+        // Arrange
+        ChainablePath packagesFolder = ChainablePath.Temp / Path.GetRandomFileName();
+        ChainablePath packageFolder = packagesFolder / "yamldotnet" / "12.0.1";
+        Directory.CreateDirectory(packageFolder);
+
+        File.WriteAllText(packageFolder / "yamldotnet.nuspec",
+            """
+            <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+              <metadata>
+                <id>YamlDotNet</id>
+                <version>12.0.1</version>
+                <license type="file">LICENSE.txt</license>
+              </metadata>
+            </package>
+            """);
+
+        File.WriteAllText(packageFolder / "LICENSE.txt",
+            "Copyright (c) 2008 Antoine Aubry and contributors\n\n" +
+            "Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated " +
+            "documentation files (the \"Software\"), to deal in the Software without restriction, including without " +
+            "limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the " +
+            "Software, and to permit persons to whom the Software is furnished to do so, subject to the following " +
+            "conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or " +
+            "substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, " +
+            "EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR " +
+            "PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, " +
+            "DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN " +
+            "CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.");
+
+        ChainablePath projectPath = CreateProjectWithNuGetConfig(
+            $"""
+            <configuration>
+              <config>
+                <add key="globalPackagesFolder" value="{packagesFolder}" />
+              </config>
+              <packageSources>
+                <clear />
+                <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+              </packageSources>
+            </configuration>
+            """);
+
+        var analyzer = new NuGetPackageAnalyzer(nullLogger, new LicenseFetcher(nullLogger, null, []));
+        var packages = new PackageInfoCollection(nullLogger);
+
+        // Act
+        await analyzer.CollectPackageMetadata(projectPath, "YamlDotNet", NuGetVersion.Parse("12.0.1"), packages);
+
+        // Assert
+        PackageInfo package = packages.Should().ContainSingle().Subject;
+        package.License.Should().Be("MIT");
+        package.LicenseEvidence.Should().Be(LicenseEvidence.Concluded);
+    }
+
     private static ChainablePath CreateProjectWithNuGetConfig(string nuGetConfig)
     {
         ChainablePath projectPath = ChainablePath.Temp / Path.GetRandomFileName();
