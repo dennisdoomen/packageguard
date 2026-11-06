@@ -35,6 +35,27 @@ public class LicenseFetcherSpecs
     }
 
     [TestMethod]
+    public async Task A_github_blob_license_url_is_read_from_the_raw_file()
+    {
+        // Arrange
+        var fetcher = new UrlLicenseFetcher(NullLogger.Instance);
+
+        var package = new PackageInfo
+        {
+            Name = "OneOf",
+            Version = "3.0.271",
+            LicenseUrl = "https://github.com/mcintyre321/OneOf/blob/master/licence.md"
+        };
+
+        // Act
+        await fetcher.FetchLicenseAsync(package);
+
+        // Assert
+        package.License.Should().Be("MIT");
+        package.LicenseEvidence.Should().Be(LicenseEvidence.Concluded);
+    }
+
+    [TestMethod]
     public async Task A_package_without_license_or_license_url_is_properly_handled()
     {
         // Arrange
