@@ -12,6 +12,19 @@ internal static partial class LicenseTextClassifier
     private const int HeaderLineCount = 15;
     private const int TitleLineCount = 3;
 
+    private const string MitBodyStart = "permission is hereby granted, free of charge";
+
+    private const string MitBody =
+        "permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated " +
+        "documentation files (the \"software\"), to deal in the software without restriction, including without limitation " +
+        "the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the software, and to " +
+        "permit persons to whom the software is furnished to do so, subject to the following conditions: the above copyright " +
+        "notice and this permission notice shall be included in all copies or substantial portions of the software. the " +
+        "software is provided \"as is\", without warranty of any kind, express or implied, including but not limited to the " +
+        "warranties of merchantability, fitness for a particular purpose and noninfringement. in no event shall the authors or " +
+        "copyright holders be liable for any claim, damages or other liability, whether in an action of contract, tort or " +
+        "otherwise, arising from, out of or in connection with the software or the use or other dealings in the software.";
+
     private static readonly string[] DualLicenseMarkers =
     [
         "split licensed",
@@ -38,7 +51,7 @@ internal static partial class LicenseTextClassifier
         string header = GetHeader(licenseText, HeaderLineCount);
         string title = GetHeader(licenseText, TitleLineCount);
 
-        string?[] candidates = [IdentifyMit(header), IdentifyApache(header), IdentifyGnu(title), IdentifyMicrosoft(header)];
+        string?[] candidates = [IdentifyMit(header) ?? IdentifyUntitledMit(licenseText), IdentifyApache(header), IdentifyGnu(title), IdentifyMicrosoft(header)];
 
         string[] matches = candidates.OfType<string>().ToArray();
         return matches.Length == 1 ? matches[0] : null;
@@ -47,6 +60,24 @@ internal static partial class LicenseTextClassifier
     // Only the title identifies MIT. The "Permission is hereby granted, free of charge" sentence also opens licenses such as
     // JSON, BSL-1.0, X11, ICU and Unicode, which are not MIT.
     private static string? IdentifyMit(string header) => header.Contains("mit license") ? "MIT" : null;
+
+    // Many projects ship the MIT text without its title, only a copyright line followed by the permission paragraph. Since that
+    // paragraph is shared with other licenses, the text only counts as MIT when everything after the copyright lines is word for
+    // word the MIT license body.
+    private static string? IdentifyUntitledMit(string licenseText)
+    {
+        string text = Normalize(licenseText.Replace('“', '"').Replace('”', '"'));
+        int start = text.IndexOf(MitBodyStart, StringComparison.Ordinal);
+        if (start < 0)
+        {
+            return null;
+        }
+
+        string preamble = text[..start];
+        bool onlyCopyright = preamble.Length == 0 || preamble.StartsWith("copyright") || preamble.StartsWith("(c)");
+
+        return onlyCopyright && text[start..] == MitBody ? "MIT" : null;
+    }
 
     private static string? IdentifyApache(string header) =>
         ApacheTwoPointZero().IsMatch(header) ? "Apache-2.0" : null;

@@ -7,6 +7,7 @@ using NuGet.Credentials;
 using NuGet.Protocol.Core.Types;
 using NuGet.Versioning;
 using PackageGuard.Core.Common;
+using PackageGuard.Core.CSharp.FetchingStrategies;
 using PackageGuard.Core.Package;
 using Pathy;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -96,6 +97,13 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
                 {
                     package.License = nuspecMetadata.License;
                     package.LicenseEvidence = LicenseEvidence.Declared;
+                }
+
+                // A license file in the package is not an SPDX declaration, but its text can still identify the license.
+                if (package.License is null && nuspecMetadata?.ConcludedLicense is not null)
+                {
+                    package.License = nuspecMetadata.ConcludedLicense;
+                    package.LicenseEvidence = LicenseEvidence.Concluded;
                 }
 
                 // If the license information is still not explicitly specified in the package,
@@ -374,6 +382,12 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
             license = string.IsNullOrWhiteSpace(expression) ? null : expression;
         }
 
+        string? concludedLicense = null;
+        if (licenseElement?.Attribute("type")?.Value.Equals("file", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            concludedLicense = ClassifyLicenseFile(nuspecPath, licenseElement.Value.Trim());
+        }
+
         string? repositoryUrl = document
             .Descendants()
             .FirstOrDefault(element => element.Name.LocalName == "repository")
@@ -382,7 +396,29 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
 
         return new NuspecMetadata(
             License: license,
-            RepositoryUrl: string.IsNullOrWhiteSpace(repositoryUrl) ? null : repositoryUrl);
+            RepositoryUrl: string.IsNullOrWhiteSpace(repositoryUrl) ? null : repositoryUrl,
+            ConcludedLicense: concludedLicense);
+    }
+
+    /// <summary>
+    /// Identifies the license in the file that the package ships next to its .nuspec, or returns <see langword="null"/>
+    /// when the file is missing or does not clearly contain one well-known license.
+    /// </summary>
+    private static string? ClassifyLicenseFile(string nuspecPath, string licenseFileName)
+    {
+        string? directory = Path.GetDirectoryName(nuspecPath);
+        if (directory is null || licenseFileName.Length == 0)
+        {
+            return null;
+        }
+
+        string licensePath = Path.GetFullPath(Path.Combine(directory, licenseFileName));
+        bool insidePackage = licensePath.StartsWith(Path.GetFullPath(directory) + Path.DirectorySeparatorChar,
+            StringComparison.OrdinalIgnoreCase);
+
+        return insidePackage && File.Exists(licensePath)
+            ? LicenseTextClassifier.Identify(File.ReadAllText(licensePath))
+            : null;
     }
 
     /// <summary>
@@ -413,5 +449,5 @@ public class NuGetPackageAnalyzer(ILogger logger, LicenseFetcher licenseFetcher)
     /// <summary>
     /// Holds the license expression and repository URL extracted from a .nuspec file.
     /// </summary>
-    private sealed record NuspecMetadata(string? License, string? RepositoryUrl);
+    private sealed record NuspecMetadata(string? License, string? RepositoryUrl, string? ConcludedLicense = null);
 }
