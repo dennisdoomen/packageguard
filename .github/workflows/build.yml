@@ -5,6 +5,7 @@ permissions:
   security-events: write
   actions: write
   pull-requests: write
+  id-token: write # Required for NuGet trusted publishing (OIDC)
 
 on:
   push:
@@ -32,10 +33,18 @@ jobs:
       with:
         version: 10
 
+    # Exchanges the GitHub OIDC token for a short-lived NuGet API key, so no long-lived secret is needed.
+    - name: Log in to NuGet.org (trusted publishing)
+      id: nuget_login
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: NuGet/login@v1
+      with:
+        user: ${{ vars.NUGET_USER }}
+
     - name: Run Fallout
       run: ./build.ps1
       env:
-        NuGetApiKey: ${{ secrets.NUGETAPIKEY }}
+        NuGetApiKey: ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
         # Read both by the build, for the GitHubApiKey parameter, and by the integration tests, to authenticate
         # against api.github.com. Unauthenticated callers get 60 requests per hour, shared with every other job on
         # the runner's IP.
