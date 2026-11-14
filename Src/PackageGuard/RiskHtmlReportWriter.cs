@@ -27,6 +27,21 @@ internal static class RiskHtmlReportWriter
     private static readonly UTF8Encoding Utf8WithoutBom = new(false);
 
     /// <summary>
+    /// Matches a <c>{{name}}</c> placeholder in the embedded page template.
+    /// </summary>
+    private static readonly Regex TemplatePlaceholderPattern = new(@"\{\{(?<name>\w+)\}\}", RegexOptions.Compiled);
+
+    /// <summary>
+    /// The HTML skeleton of the report, with placeholders for the title, the styles and the content.
+    /// </summary>
+    private static readonly string PageTemplate = ReadEmbeddedResource("risk-report.html");
+
+    /// <summary>
+    /// The style sheet that is embedded in every report, so the report stays a single self-contained file.
+    /// </summary>
+    private static readonly string StyleSheet = ReadEmbeddedResource("risk-report.css").TrimEnd();
+
+    /// <summary>
     /// Writes HTML and SARIF risk reports for <paramref name="packages"/> to the resolved output path and
     /// returns the resulting file paths.
     /// </summary>
@@ -167,7 +182,6 @@ internal static class RiskHtmlReportWriter
             _ => "Low"
         };
 
-        AppendHtmlHead(builder, projectPath);
         AppendMaliciousPackagesSection(builder, packages);
         AppendReportHeader(builder, new ReportHeaderContext(
             projectPath, generatedAt, overallZone, packages.Length, lowRiskCount, mediumRiskCount, highRiskCount, vulnerabilityCount,
@@ -179,91 +193,35 @@ internal static class RiskHtmlReportWriter
         AppendDependencyHygieneSection(builder, dependencyFindings);
         AppendPackageDetailSections(builder, packages);
 
-        builder.AppendLine("</main>");
-        builder.AppendLine("</body>");
-        builder.AppendLine("</html>");
-        return builder.ToString();
+        return RenderPage(projectPath, builder.ToString().TrimEnd());
     }
 
-    private static void AppendHtmlHead(StringBuilder builder, string projectPath)
+    /// <summary>
+    /// Fills the embedded page template with the title, the embedded style sheet and the generated
+    /// <paramref name="content"/>.
+    /// </summary>
+    private static string RenderPage(string projectPath, string content)
     {
-        builder.AppendLine("<!DOCTYPE html>");
-        builder.AppendLine("<html lang=\"en\">");
-        builder.AppendLine("<head>");
-        builder.AppendLine("  <meta charset=\"utf-8\">");
-        builder.AppendLine("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
-        builder.AppendLine($"  <title>{Encode(ChainablePath.From(projectPath).Name)} - PackageGuard Risk Report</title>");
-        builder.AppendLine("  <style>");
-        builder.AppendLine(
-            "    body { font-family: Segoe UI, Arial, sans-serif; margin: 0; background: #f8fafc; color: #0f172a; }");
-        builder.AppendLine("    main { max-width: 1920px; margin: 0 auto; padding: 24px; }");
-        builder.AppendLine("    h1, h2, h3 { margin-top: 0; }");
-        builder.AppendLine("    a { color: #1d4ed8; }");
-        builder.AppendLine(
-            "    .card { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08); }");
-        builder.AppendLine("    .summary-table { width: 100%; border-collapse: collapse; }");
-        builder.AppendLine(
-            "    .summary-table th, .summary-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }");
-        builder.AppendLine("    .summary-table tr.summary-low { background: #f0fdf4; }");
-        builder.AppendLine("    .summary-table tr.summary-medium { background: #fffbeb; }");
-        builder.AppendLine("    .summary-table tr.summary-high { background: #fef2f2; }");
-        builder.AppendLine(
-            "    .score-pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font-weight: 600; }");
-        builder.AppendLine("    .risk-low { background: #dcfce7; color: #166534; border: 1px solid #86efac; }");
-        builder.AppendLine("    .risk-medium { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }");
-        builder.AppendLine("    .risk-high { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }");
-        builder.AppendLine(
-            "    .vuln-pill { background: #f3e8ff; color: #6b21a8; border: 1px solid #d8b4fe; }");
-        builder.AppendLine(
-            "    .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 16px; }");
-        builder.AppendLine(
-            "    .status-card { border: 1px solid #cbd5e1; border-radius: 10px; padding: 14px; background: #f8fafc; }");
-        builder.AppendLine("    .status-value { font-size: 1.4rem; font-weight: 700; margin: 0 0 6px; }");
-        builder.AppendLine(
-            "    .dimension-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px; }");
-        builder.AppendLine(
-            "    .anchor-link { margin-left: 10px; text-decoration: none; color: #94a3b8; opacity: 0; transition: opacity 0.15s; }");
-        builder.AppendLine("    h2:hover .anchor-link, .anchor-link:focus { opacity: 1; }");
-        builder.AppendLine("    .jump-links { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 12px 0 0; }");
-        builder.AppendLine("    .card table + h3 { margin-top: 24px; }");
-        builder.AppendLine("    .rationale-list { margin: 12px 0 0; padding-left: 20px; }");
-        builder.AppendLine(
-            "    .evidence-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 16px; }");
-        builder.AppendLine(
-            "    .evidence-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 16px; }");
-        builder.AppendLine(
-            "    .evidence-card h4 { margin: 0 0 10px; font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase; color: #64748b; }");
-        builder.AppendLine(
-            "    .evidence-list { display: grid; grid-template-columns: minmax(140px, 35%) 1fr; gap: 6px 16px; margin: 0; }");
-        builder.AppendLine("    .evidence-list dt { color: #475569; font-weight: 600; }");
-        builder.AppendLine("    .evidence-list dd { margin: 0; overflow-wrap: anywhere; }");
-        builder.AppendLine("    .detail-toggle { display: inline; margin-left: 6px; }");
-        builder.AppendLine("    .detail-toggle summary { display: inline; cursor: pointer; color: #1d4ed8; }");
-        builder.AppendLine(
-            "    .detail-sublist { list-style: disc; margin: 8px 0 0; padding-left: 20px; color: #334155; }");
-        builder.AppendLine("    .detail-sublist li { padding: 2px 0; }");
-        builder.AppendLine("    .label { color: #475569; font-weight: 600; }");
-        builder.AppendLine("    .rationale-list strong { color: #991b1b; }");
-        builder.AppendLine("    .meta { color: #64748b; }");
-        builder.AppendLine(
-            "    .malicious-card { border: 3px solid #991b1b; background: #fef2f2; }");
-        builder.AppendLine("    .malicious-card h2 { color: #991b1b; }");
-        builder.AppendLine(
-            "    .summary-blocks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px; }");
-        builder.AppendLine("    .summary-blocks .card { margin-bottom: 0; }");
-        builder.AppendLine("    .summary-blocks h2 { font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase; color: #64748b; }");
-        builder.AppendLine("    .summary-blocks .status-grid { margin-top: 0; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }");
-        builder.AppendLine("    .critical-pill { background: #7f1d1d; color: #ffffff; border: 1px solid #450a0a; }");
-        builder.AppendLine("    .inconclusive-card { border: 2px solid #f59e0b; background: #fffbeb; }");
-        builder.AppendLine(
-            "    .inconclusive-pill { background: #f1f5f9; color: #334155; border: 1px dashed #94a3b8; font-weight: 600; font-size: 0.85rem; }");
-        builder.AppendLine("    code { font-family: Cascadia Code, Consolas, monospace; }");
-        builder.AppendLine(
-            "    @media print { body { background: #ffffff; } main { padding: 0; } .anchor-link { display: none; } .card { box-shadow: none; break-inside: avoid; } a { color: inherit; text-decoration: none; } }");
-        builder.AppendLine("  </style>");
-        builder.AppendLine("</head>");
-        builder.AppendLine("<body>");
-        builder.AppendLine("<main>");
+        var values = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["title"] = Encode(ChainablePath.From(projectPath).Name),
+            ["styles"] = StyleSheet,
+            ["content"] = content
+        };
+
+        return TemplatePlaceholderPattern.Replace(PageTemplate, match => values[match.Groups["name"].Value]);
+    }
+
+    /// <summary>
+    /// Reads an embedded resource from the <c>Reports</c> folder, using the line endings of the current platform.
+    /// </summary>
+    private static string ReadEmbeddedResource(string fileName)
+    {
+        using Stream stream = typeof(RiskHtmlReportWriter).Assembly.GetManifestResourceStream($"PackageGuard.Reports.{fileName}")
+            ?? throw new InvalidOperationException($"The embedded resource {fileName} is missing");
+
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        return reader.ReadToEnd().ReplaceLineEndings();
     }
 
     private sealed record ReportHeaderContext(
