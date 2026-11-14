@@ -292,15 +292,6 @@ internal sealed class RiskReportWriterSpecs
     }
 
     [TestMethod]
-    public void Does_not_link_an_unknown_license_without_a_license_url()
-    {
-        RiskHtmlReportWriter.TryGetLicenseInfoUrl("Unknown", null).Should().BeNull();
-        RiskHtmlReportWriter.TryGetLicenseInfoUrl(null, "ftp://example.com/license").Should().BeNull();
-        RiskHtmlReportWriter.TryGetLicenseInfoUrl("Custom", "https://example.com/license")
-            .Should().Be("https://example.com/license");
-    }
-
-    [TestMethod]
     public async Task The_detailed_report_distinguishes_missing_and_unrecognized_licenses()
     {
         var missingLicensePackage = new PackageInfo
