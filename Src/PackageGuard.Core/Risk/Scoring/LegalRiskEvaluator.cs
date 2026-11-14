@@ -16,14 +16,12 @@ internal sealed class LegalRiskEvaluator : IEvaluateRiskDimension
 
         if (string.IsNullOrEmpty(package.License))
         {
-            risk += 6.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("No license information found", 6.0));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "No license information found", 6.0);
         }
         else if (package.License.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
         {
-            risk += 6.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Non-standard or unrecognized license type ({package.License})",
-                6.0));
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                $"Non-standard or unrecognized license type ({package.License})", 6.0);
         }
         else
         {
@@ -33,8 +31,7 @@ internal sealed class LegalRiskEvaluator : IEvaluateRiskDimension
                 (left, right) => left.Risk <= right.Risk ? left : right,
                 (left, right) => left.Risk >= right.Risk ? left : right);
 
-            risk += alternativeRisk;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"{label} ({package.License})", alternativeRisk));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, $"{label} ({package.License})", alternativeRisk);
         }
 
         // A license that the package declares itself (for example an SPDX expression in the nuspec) needs no URL
@@ -42,8 +39,7 @@ internal sealed class LegalRiskEvaluator : IEvaluateRiskDimension
 
         if (urlIsRequired && (package.HasValidLicenseUrl is false || string.IsNullOrEmpty(package.LicenseUrl)))
         {
-            risk += 1.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Missing or invalid license URL", 1.0));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "Missing or invalid license URL", 1.0);
         }
         else if (package.HasValidLicenseUrl is true)
         {
@@ -52,8 +48,7 @@ internal sealed class LegalRiskEvaluator : IEvaluateRiskDimension
 
         if (package.IsLicensePolicyCompatible is false)
         {
-            risk += 3.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("License is incompatible with configured policy", 3.0));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "License is incompatible with configured policy", 3.0);
         }
         else if (package.IsLicensePolicyCompatible is true)
         {

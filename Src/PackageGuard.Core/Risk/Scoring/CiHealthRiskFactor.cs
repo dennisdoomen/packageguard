@@ -15,39 +15,33 @@ internal sealed class CiHealthRiskFactor : IEvaluateRiskFactor
 
         if (package.MedianPullRequestMergeDays > 60)
         {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
                 $"Median pull request merge time is slow ({RiskEvaluationHelpers.FormatScore(package.MedianPullRequestMergeDays!.Value)} days)",
-                0.5));
+                0.5);
         }
 
         if (package.RecentFailedWorkflowCount is >= 3)
         {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Recent CI workflow failures are elevated ({package.RecentFailedWorkflowCount})",
-                0.5));
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                $"Recent CI workflow failures are elevated ({package.RecentFailedWorkflowCount})", 0.5);
         }
 
         if (package.WorkflowFailureRate is > 0.5)
         {
-            risk += 0.75;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
                 $"CI workflow failure rate is elevated ({RiskEvaluationHelpers.FormatPercentage(package.WorkflowFailureRate.Value)})",
-                0.75));
+                0.75);
         }
 
         if (package.HasFlakyWorkflowPattern is true)
         {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("CI workflow history shows a potentially flaky failure pattern",
-                0.5));
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                "CI workflow history shows a potentially flaky failure pattern", 0.5);
         }
 
         if (package.HasRecentSuccessfulWorkflowRun is false)
         {
-            risk += 1.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("No recent successful CI workflow run detected", 1.5));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "No recent successful CI workflow run detected", 1.5);
         }
         else if (package.HasRecentSuccessfulWorkflowRun is true)
         {
@@ -56,9 +50,8 @@ internal sealed class CiHealthRiskFactor : IEvaluateRiskFactor
 
         if (package.RequiredStatusCheckCount is 0)
         {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("No required status checks were detected on the default branch",
-                0.5));
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                "No required status checks were detected on the default branch", 0.5);
         }
         else if (package.RequiredStatusCheckCount is > 0)
         {
@@ -69,26 +62,22 @@ internal sealed class CiHealthRiskFactor : IEvaluateRiskFactor
 
         if (package.WorkflowPlatformCount is < 2)
         {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("CI workflow matrix breadth looks limited", 0.25));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "CI workflow matrix breadth looks limited", 0.25);
         }
 
         if (package.HasCoverageWorkflowSignal is false)
         {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("No coverage workflow signal was detected", 0.25));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "No coverage workflow signal was detected", 0.25);
         }
 
         if (package.HasTestSignal is false)
         {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("No explicit test execution signal was detected", 0.5));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "No explicit test execution signal was detected", 0.5);
         }
 
         if (package.HasDependencyUpdateAutomation is false)
         {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("No dependency update automation signal was detected", 0.25));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "No dependency update automation signal was detected", 0.25);
         }
 
         return new RiskFactorContribution(risk, rationale.ToArray());

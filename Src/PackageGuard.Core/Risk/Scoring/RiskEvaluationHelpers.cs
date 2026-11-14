@@ -28,6 +28,16 @@ internal static class RiskEvaluationHelpers
     }
 
     /// <summary>
+    /// Adds a rationale entry for a risk signal and returns its <paramref name="contribution"/>, so that each weight is
+    /// written only once: <c>risk += AddContribution(rationale, "Some signal", 0.5);</c>
+    /// </summary>
+    internal static double AddContribution(List<string> rationale, string description, double contribution)
+    {
+        rationale.Add(CreateRationale(description, contribution));
+        return contribution;
+    }
+
+    /// <summary>
     /// Formats a rationale entry as "description (+score)".
     /// </summary>
     internal static string CreateRationale(string description, double contribution) =>
