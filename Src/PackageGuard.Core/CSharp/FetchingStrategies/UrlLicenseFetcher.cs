@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using PackageGuard.Core.Common;
 using PackageGuard.Core.Package;
 
 namespace PackageGuard.Core.CSharp.FetchingStrategies;
@@ -10,7 +11,7 @@ namespace PackageGuard.Core.CSharp.FetchingStrategies;
 /// </summary>
 public class UrlLicenseFetcher(ILogger logger) : IFetchLicense
 {
-    private static readonly HttpClient HttpClient = new();
+    private static readonly HttpClient HttpClient = PackageGuardHttpClient.Create();
 
     public async Task FetchLicenseAsync(PackageInfo package)
     {
