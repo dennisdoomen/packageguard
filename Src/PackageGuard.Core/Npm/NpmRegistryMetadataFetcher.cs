@@ -14,7 +14,7 @@ public class NpmRegistryMetadataFetcher
     /// <summary>
     /// The shared HTTP client used to query the NPM registry.
     /// </summary>
-    private static readonly HttpClient SharedHttpClient = new();
+    private static readonly HttpClient SharedHttpClient = PackageGuardHttpClient.Create();
 
     private readonly ILogger logger;
     private readonly HttpClient httpClient;

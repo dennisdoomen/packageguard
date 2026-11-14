@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using NuGet.Versioning;
+using PackageGuard.Core.Common;
 using PackageGuard.Core.GitHub;
 using PackageGuard.Core.Package;
 
@@ -20,7 +21,7 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     private static readonly Lock CacheLock = new();
 
     /// <summary>Client for the OpenSSF Scorecard API, which is not subject to the GitHub rate limit.</summary>
-    private static readonly HttpClient ScorecardHttpClient = new() { Timeout = TimeSpan.FromSeconds(20) };
+    private static readonly HttpClient ScorecardHttpClient = PackageGuardHttpClient.Create(TimeSpan.FromSeconds(20));
 
     /// <summary>
     /// The number of most recently closed pull requests the contribution and reviewer metrics are based on.

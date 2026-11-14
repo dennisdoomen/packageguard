@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using PackageGuard.Core.Common;
 using PackageGuard.Core.Package;
 
 namespace PackageGuard.Core.Risk.Enrichment;
@@ -11,7 +12,7 @@ internal sealed class LicenseUrlRiskEnricher(ILogger logger, HttpClient? httpCli
     /// <summary>
     /// Shared HTTP client used to validate license URLs.
     /// </summary>
-    private static readonly HttpClient SharedHttpClient = new() { Timeout = TimeSpan.FromSeconds(20) };
+    private static readonly HttpClient SharedHttpClient = PackageGuardHttpClient.Create(TimeSpan.FromSeconds(20));
 
     /// <summary>
     /// The client this enricher sends its requests through.

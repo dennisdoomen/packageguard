@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using PackageGuard.Core.Common;
 using PackageGuard.Core.Package;
 
 namespace PackageGuard.Core.Risk.Enrichment;
@@ -14,7 +15,7 @@ internal sealed class OsvRiskEnricher(ILogger logger, HttpClient? httpClient = n
     /// <summary>
     /// Shared HTTP client used for all OSV API requests.
     /// </summary>
-    private static readonly HttpClient SharedHttpClient = new();
+    private static readonly HttpClient SharedHttpClient = PackageGuardHttpClient.Create();
 
     /// <summary>
     /// The client this enricher sends its requests through.

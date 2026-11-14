@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using PackageGuard.Core.Common;
 
 namespace PackageGuard.Core.GitHub;
 
@@ -69,9 +70,7 @@ internal sealed class GitHubApiClient : IDisposable
         this.apiKey = apiKey;
         this.responseCache = responseCache ?? new GitHubResponseCache(logger);
 
-        httpClient = handler is null ? new HttpClient() : new HttpClient(handler);
-        httpClient.Timeout = TimeSpan.FromSeconds(30);
-        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("PackageGuard", "v1"));
+        httpClient = PackageGuardHttpClient.Create(TimeSpan.FromSeconds(30), handler);
     }
 
     /// <summary>
