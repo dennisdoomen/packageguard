@@ -15,8 +15,7 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
 
         if (string.IsNullOrEmpty(package.RepositoryUrl))
         {
-            risk += 3.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("No public repository available", 3.0));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "No public repository available", 3.0);
         }
         else
         {
@@ -38,11 +37,9 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         if (package.VulnerabilityCount > 0)
         {
             double severityContribution = Math.Min(4.0, package.MaxVulnerabilitySeverity / 2.0);
-            vulnerabilityRisk += severityContribution;
-
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+            vulnerabilityRisk += RiskEvaluationHelpers.AddContribution(rationale,
                 $"Known vulnerabilities found ({package.VulnerabilityCount}, max severity {RiskEvaluationHelpers.FormatScore(package.MaxVulnerabilitySeverity)})",
-                severityContribution));
+                severityContribution);
         }
         else
         {
@@ -51,29 +48,27 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
 
         if (package.HasPatchedVulnerabilityInLast90Days)
         {
-            vulnerabilityRisk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Package has a recent vulnerability fix window (<90 days)", 0.5));
+            vulnerabilityRisk += RiskEvaluationHelpers.AddContribution(rationale,
+                "Package has a recent vulnerability fix window (<90 days)", 0.5);
         }
 
         if (package is { VulnerabilityCount: > 0, HasAvailableSecurityFix: true })
         {
-            vulnerabilityRisk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("A security fix is available for a known vulnerability", 0.5));
+            vulnerabilityRisk += RiskEvaluationHelpers.AddContribution(rationale,
+                "A security fix is available for a known vulnerability", 0.5);
         }
 
         if (package.MedianVulnerabilityFixDays is > 180)
         {
-            vulnerabilityRisk += 1.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+            vulnerabilityRisk += RiskEvaluationHelpers.AddContribution(rationale,
                 $"Median time between vulnerability advisory publication and its last update is slow ({RiskEvaluationHelpers.FormatScore(package.MedianVulnerabilityFixDays.Value)} days)",
-                1.0));
+                1.0);
         }
         else if (package.MedianVulnerabilityFixDays is > 60)
         {
-            vulnerabilityRisk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+            vulnerabilityRisk += RiskEvaluationHelpers.AddContribution(rationale,
                 $"Median time between vulnerability advisory publication and its last update is elevated ({RiskEvaluationHelpers.FormatScore(package.MedianVulnerabilityFixDays.Value)} days)",
-                0.5));
+                0.5);
         }
         else if (package.MedianVulnerabilityFixDays != null)
         {
@@ -102,17 +97,17 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
 
         if (package.KnownExploitedCveIds is { Length: > 0 } exploitedCveIds)
         {
-            risk += 3.0;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Vulnerabilities are on the CISA Known Exploited Vulnerabilities list ({string.Join(", ", exploitedCveIds)})", 3.0));
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                $"Vulnerabilities are on the CISA Known Exploited Vulnerabilities list ({string.Join(", ", exploitedCveIds)})",
+                3.0);
         }
 
         if (package.MaxEpssScore is > 0 and var epss)
         {
             double epssRisk = epss * 1.5;
-            risk += epssRisk;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Highest EPSS exploitation probability within 30 days is {RiskEvaluationHelpers.FormatScore(epss * 100)}%", epssRisk));
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                $"Highest EPSS exploitation probability within 30 days is {RiskEvaluationHelpers.FormatScore(epss * 100)}%",
+                epssRisk);
         }
 
         return risk;
@@ -124,13 +119,13 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
 
         if (package.DependencyDepth > 20)
         {
-            risk += 2.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Deep dependency chain (depth {package.DependencyDepth})", 2.5));
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                $"Deep dependency chain (depth {package.DependencyDepth})", 2.5);
         }
         else if (package.DependencyDepth > 10)
         {
-            risk += 1.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale($"Deep dependency chain (depth {package.DependencyDepth})", 1.5));
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                $"Deep dependency chain (depth {package.DependencyDepth})", 1.5);
         }
         else if (package.DependencyDepth > 0)
         {
@@ -152,20 +147,17 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         if (package.AbandonedTransitiveDependencyCount is > 0)
         {
             double abandonedRisk = Math.Min(1.0, package.AbandonedTransitiveDependencyCount.Value * 0.5);
-            risk += abandonedRisk;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
                 $"Potentially abandoned risky transitive dependencies were detected ({package.AbandonedTransitiveDependencyCount})",
-                abandonedRisk));
+                abandonedRisk);
         }
 
         if (package.UnmaintainedCriticalTransitiveDependencyCount is > 0)
         {
             int count = package.UnmaintainedCriticalTransitiveDependencyCount.Value;
             double criticalTransitiveRisk = Math.Min(1.0, count * 0.5);
-            risk += criticalTransitiveRisk;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                $"Unmaintained critical transitive dependencies were detected ({count})",
-                criticalTransitiveRisk));
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                $"Unmaintained critical transitive dependencies were detected ({count})", criticalTransitiveRisk);
         }
 
         return risk;
@@ -177,15 +169,13 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
 
         if (package.IsPackageSigned is false)
         {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Package signature is missing or invalid", 0.5));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "Package signature is missing or invalid", 0.5);
         }
         else if (package.IsPackageSigned is true)
         {
             if (package.HasTrustedPackageSignature is false)
             {
-                risk += 1.0;
-                rationale.Add(RiskEvaluationHelpers.CreateRationale("Package is signed but trust verification failed", 1.0));
+                risk += RiskEvaluationHelpers.AddContribution(rationale, "Package is signed but trust verification failed", 1.0);
             }
             else
             {
@@ -195,9 +185,8 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
 
         if (package.HasVerifiedPublisher is false)
         {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
-                "No trusted NuGet package signature or organization-owned repository was detected", 0.5));
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                "No trusted NuGet package signature or organization-owned repository was detected", 0.5);
         }
         else if (package.HasVerifiedPublisher is true)
         {
@@ -207,18 +196,15 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
 
         if (package.HasNativeBinaryAssets is true)
         {
-            risk += 0.5;
-            rationale.Add(
-                RiskEvaluationHelpers.CreateRationale(
-                    "Package contains native or binary assets that may increase supply-chain exposure", 0.5));
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                "Package contains native or binary assets that may increase supply-chain exposure", 0.5);
         }
 
         if (package.VerifiedCommitRatio is < 0.5)
         {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
                 $"Verified commit coverage is limited ({RiskEvaluationHelpers.FormatPercentage(package.VerifiedCommitRatio.Value)})",
-                0.5));
+                0.5);
         }
         else if (package.VerifiedCommitRatio != null)
         {
@@ -238,21 +224,18 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
 
         if (package.HasDetailedSecurityPolicy is false)
         {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("SECURITY policy lacks detailed reporting guidance", 0.25));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "SECURITY policy lacks detailed reporting guidance", 0.25);
         }
 
         if (package.HasCoordinatedDisclosure is false)
         {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("No coordinated disclosure signal was detected", 0.25));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "No coordinated disclosure signal was detected", 0.25);
         }
 
         if (package.HasProvenanceAttestation is false)
         {
-            risk += 0.5;
-            rationale.Add(
-                RiskEvaluationHelpers.CreateRationale("No provenance or attestation workflow signal was detected", 0.5));
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                "No provenance or attestation workflow signal was detected", 0.5);
         }
         else if (package.HasProvenanceAttestation is true)
         {
@@ -261,15 +244,13 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
 
         if (package.HasReproducibleBuildSignal is false)
         {
-            risk += 0.25;
-            rationale.Add(
-                RiskEvaluationHelpers.CreateRationale("No reproducible-build or deterministic-build signal was detected", 0.25));
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                "No reproducible-build or deterministic-build signal was detected", 0.25);
         }
 
         if (package.HasVerifiedReleaseSignature is false)
         {
-            risk += 0.25;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Verified release signature signal was not detected", 0.25));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "Verified release signature signal was not detected", 0.25);
         }
         else if (package.HasVerifiedReleaseSignature is true)
         {
@@ -285,21 +266,18 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
 
         if (package.IsDeprecated is true)
         {
-            risk += 0.75;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("The package version is marked as deprecated", 0.75));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "The package version is marked as deprecated", 0.75);
         }
 
         if (package.OwnerCreatedAt != null &&
             package.OwnerCreatedAt.Value > DateTimeOffset.UtcNow.AddYears(-1))
         {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Repository owner account is less than one year old", 0.5));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "Repository owner account is less than one year old", 0.5);
         }
 
         if (!package.OwnerIsOrganization && (package.RecentMaintainerCount ?? package.ContributorCount) is <= 1)
         {
-            risk += 0.5;
-            rationale.Add(RiskEvaluationHelpers.CreateRationale("Single maintainer on a non-organization account", 0.5));
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "Single maintainer on a non-organization account", 0.5);
         }
 
         return risk;
