@@ -8,6 +8,7 @@ using PackageGuard.Core.Package;
 using PackageGuard.Core.Policy;
 using PackageGuard.Core.Risk;
 using PackageGuard.Core.Sbom;
+using PackageGuard.Reports;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -228,7 +229,7 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
     private static string FormatLicense(PolicyViolation violation)
     {
         string license = violation.License ?? "Unknown";
-        if (RiskHtmlReportWriter.TryGetLicenseInfoUrl(violation.License, violation.LicenseUrl) is not { } url)
+        if (RiskReportViewModelBuilder.TryGetLicenseInfoUrl(violation.License, violation.LicenseUrl) is not { } url)
         {
             return license;
         }

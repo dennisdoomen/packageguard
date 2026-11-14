@@ -6,6 +6,7 @@ using PackageGuard.Core.CSharp;
 using PackageGuard.Core.Package;
 using PackageGuard.Core.Policy;
 using PackageGuard.Core.Risk;
+using PackageGuard.Reports;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -165,7 +166,7 @@ public sealed class ExplainCommand(ILogger logger) : AsyncCommand<ExplainCommand
         AnsiConsole.MarkupLine($"[bold]{Markup.Escape(package.Name)} {Markup.Escape(package.Version)}[/]");
         string licenseSuffix = package.License is not null ? $" ({DescribeLicenseEvidence(package.LicenseEvidence)})" : "";
         string license = Markup.Escape(package.License ?? "Unknown");
-        if (RiskHtmlReportWriter.TryGetLicenseInfoUrl(package.License, package.LicenseUrl) is { } licenseInfoUrl)
+        if (RiskReportViewModelBuilder.TryGetLicenseInfoUrl(package.License, package.LicenseUrl) is { } licenseInfoUrl)
         {
             string escapedUrl = Markup.Escape(licenseInfoUrl);
             license = AnsiConsole.Profile.Capabilities.Links ? $"[link={escapedUrl}]{license}[/]" : $"{license} ({escapedUrl})";
