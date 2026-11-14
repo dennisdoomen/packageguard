@@ -3,7 +3,7 @@ using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NuGet.Versioning;
 using PackageGuard.Core;
-using PackageGuard.Core.Risk.Enrichment;
+using PackageGuard.Core.Risk.Enrichment.GitHub;
 
 namespace PackageGuard.Specs;
 
@@ -22,7 +22,7 @@ public class GitHubRepositoryRiskEnricherSpecs
         ];
 
         // Act
-        double? ratio = GitHubRepositoryRiskEnricher.ComputeMajorReleaseRatio(releases);
+        double? ratio = GitHubReleaseCollector.ComputeMajorReleaseRatio(releases);
 
         // Assert
         ratio.Should().Be(0.0);
@@ -41,7 +41,7 @@ public class GitHubRepositoryRiskEnricherSpecs
         ];
 
         // Act
-        double? ratio = GitHubRepositoryRiskEnricher.ComputeMajorReleaseRatio(releases);
+        double? ratio = GitHubReleaseCollector.ComputeMajorReleaseRatio(releases);
 
         // Assert
         ratio.Should().BeApproximately(2.0 / 3.0, 0.0001);
