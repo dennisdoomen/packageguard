@@ -1,12 +1,13 @@
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Logging;
 using NuGet.Versioning;
 using PackageGuard.Core.Common;
 using PackageGuard.Core.GitHub;
 using PackageGuard.Core.Package;
+using static PackageGuard.Core.Common.JsonElementReader;
+using static PackageGuard.Core.Common.Statistics;
 
 namespace PackageGuard.Core.Risk.Enrichment;
 
@@ -102,7 +103,7 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     /// <summary>Fetches GitHub repository risk data and applies it to the package.</summary>
     public async Task EnrichAsync(PackageInfo package)
     {
-        string? repositoryApiRoot = GetGitHubApiRoot(package.RepositoryUrl);
+        string? repositoryApiRoot = GitHubRepositoryUrl.TryGetApiRoot(package.RepositoryUrl);
         if (repositoryApiRoot is null)
         {
             return;
@@ -1580,34 +1581,6 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         return string.Empty;
     }
 
-    /// <summary>Converts a GitHub HTML URL to the API repository root URL.</summary>
-    private static string? GetGitHubApiRoot(string? repositoryUrl)
-    {
-        if (string.IsNullOrWhiteSpace(repositoryUrl))
-        {
-            return null;
-        }
-
-        Match match = Regex.Match(repositoryUrl,
-            @"github\.com/(?<owner>[a-zA-Z0-9._-]+)/(?<repo>[a-zA-Z0-9._-]+)",
-            RegexOptions.IgnoreCase);
-
-        if (!match.Success)
-        {
-            return null;
-        }
-
-        string owner = match.Groups["owner"].Value;
-        string repo = match.Groups["repo"].Value.TrimEnd('.');
-
-        if (repo.EndsWith(".git", StringComparison.OrdinalIgnoreCase))
-        {
-            repo = repo[..^4];
-        }
-
-        return $"https://api.github.com/repos/{owner}/{repo}";
-    }
-
     /// <summary>Returns true if the content appears to be a boilerplate README.</summary>
     private static bool LooksLikeBoilerplateReadme(string content)
     {
@@ -1766,76 +1739,17 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     /// <summary>Returns true if the declared and canonical GitHub repo identifiers differ.</summary>
     private static bool HasRepositoryOwnershipOrRenameChurn(string? declaredRepositoryUrl, string canonicalUrl)
     {
-        string? declaredIdentifier = TryGetGitHubIdentifier(declaredRepositoryUrl);
-        string? canonicalIdentifier = TryGetGitHubIdentifier(canonicalUrl);
+        string? declaredIdentifier = GitHubRepositoryUrl.TryGetIdentifier(declaredRepositoryUrl);
+        string? canonicalIdentifier = GitHubRepositoryUrl.TryGetIdentifier(canonicalUrl);
         return !string.IsNullOrWhiteSpace(canonicalIdentifier) &&
                !string.IsNullOrWhiteSpace(declaredIdentifier) &&
                !canonicalIdentifier.Equals(declaredIdentifier, StringComparison.OrdinalIgnoreCase);
-    }
-
-    /// <summary>Extracts the "owner/repo" identifier from a GitHub URL.</summary>
-    private static string? TryGetGitHubIdentifier(string? repositoryUrl)
-    {
-        if (string.IsNullOrWhiteSpace(repositoryUrl))
-        {
-            return null;
-        }
-
-        Match match = Regex.Match(repositoryUrl,
-            @"github\.com/(?<owner>[a-zA-Z0-9._-]+)/(?<repo>[a-zA-Z0-9._-]+)",
-            RegexOptions.IgnoreCase);
-
-        if (!match.Success)
-        {
-            return null;
-        }
-
-        return
-            $"{match.Groups["owner"].Value}/{match.Groups["repo"].Value.TrimEnd('.').Replace(".git", string.Empty, StringComparison.OrdinalIgnoreCase)}";
-    }
-
-    /// <summary>Reads and parses a date property from a JSON element.</summary>
-    private static DateTimeOffset? TryReadDate(JsonElement element, string propertyName)
-    {
-        if (element.TryGetProperty(propertyName, out JsonElement property) &&
-            DateTimeOffset.TryParse(property.GetString(), out DateTimeOffset parsed))
-        {
-            return parsed;
-        }
-
-        return null;
-    }
-
-    /// <summary>Reads a string property from a JSON element.</summary>
-    private static string? TryReadString(JsonElement element, string propertyName)
-    {
-        if (element.TryGetProperty(propertyName, out JsonElement property) && property.ValueKind == JsonValueKind.String)
-        {
-            return property.GetString();
-        }
-
-        return null;
     }
 
     /// <summary>Returns true if the author association is OWNER, MEMBER, or COLLABORATOR.</summary>
     private static bool IsMaintainerAssociation(string? association)
     {
         return association is "OWNER" or "MEMBER" or "COLLABORATOR";
-    }
-
-    /// <summary>Computes the median of a list, returning null if empty.</summary>
-    private static double? ComputeMedian(List<double> values)
-    {
-        if (values.Count == 0)
-        {
-            return null;
-        }
-
-        values.Sort();
-        int middle = values.Count / 2;
-        return values.Count % 2 == 0
-            ? (values[middle - 1] + values[middle]) / 2.0
-            : values[middle];
     }
 
     /// <summary>Lightweight snapshot of an open GitHub issue for processing.</summary>
