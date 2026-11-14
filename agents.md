@@ -81,14 +81,16 @@ PackageGuard is a .NET global CLI tool (target: .NET 9) that analyzes NuGet and 
 3. All discovered packages accumulate in `PackageInfoCollection`, which also handles binary caching (`cache.bin` via MemoryPack).
 4. **License fetching** is handled by `LicenseFetcher`, which chains strategies (`GitHubLicenseFetcher`, `UrlLicenseFetcher`, `CorrectMisbehavingPackagesFetcher`) to resolve SPDX license identifiers from NuGet/npm metadata or GitHub repository data.
 5. **Policy evaluation** — each package is checked against the project's `ProjectPolicy` (merged from hierarchical config files). Violations are returned as `PolicyViolation[]`.
-6. **Risk scoring** (opt-in via `--report-risk`) — `ParallelPackageRiskEnricher` fans out to multiple `IEnrichPackageRisk` enrichers (`GitHubRepositoryRiskEnricher`, `OsvRiskEnricher`, `NuGetPackageSigningRiskEnricher`, etc.) that populate `PackageInfo` with raw signals. Then `RiskEvaluator` calls `LegalRiskEvaluator`, `SecurityRiskEvaluator`, and `OperationalRiskEvaluator` (each composed of `IEvaluateRiskFactor` instances) to produce a 0–100 weighted score. The CLI writes the results to a self-contained HTML report and a SARIF file via `RiskHtmlReportWriter` / `RiskSarifReportWriter`.
+6. **Risk scoring** (opt-in via `--report-risk`) — `ParallelPackageRiskEnricher` fans out to multiple `IEnrichPackageRisk` enrichers (`GitHubRepositoryRiskEnricher`, `OsvRiskEnricher`, `NuGetPackageSigningRiskEnricher`, etc.) that populate `PackageInfo` with raw signals. Then `RiskEvaluator` calls `LegalRiskEvaluator`, `SecurityRiskEvaluator`, and `OperationalRiskEvaluator` to produce a 0–100 weighted score. The CLI writes the results to a self-contained HTML report and a SARIF file via `RiskHtmlReportWriter` / `RiskSarifReportWriter`.
 
 ### Key design patterns
 
 - **Strategy pattern** — `IProjectAnalysisStrategy` lets NuGet and NPM scanning be extended independently.
 - **Chain-of-responsibility** — `IFetchLicense` implementations try one source after another until a license is found.
 - **Enricher pipeline** — `IEnrichPackageRisk` enrichers are run in parallel (via `ParallelPackageRiskEnricher`) and write directly into `PackageInfo` fields; no aggregation step is needed before scoring.
-- **Risk factor decomposition** — each risk dimension (`IEvaluateRiskDimension`) composes multiple `IEvaluateRiskFactor` instances, each contributing a weighted score plus a human-readable rationale stored in `RiskFactorContribution`.
+- **Risk factor decomposition** — `OperationalRiskEvaluator` composes multiple `IEvaluateRiskFactor` instances (release, documentation, contributor, issue, CI and adoption health), each contributing a weighted score plus a human-readable rationale stored in `RiskFactorContribution`. `LegalRiskEvaluator` and `SecurityRiskEvaluator` still evaluate their signals inline.
+- **Risk weights** — record each signal with `risk += RiskEvaluationHelpers.AddContribution(rationale, "Description", weight);` so the weight is written only once.
+- **Shared helpers** — use `GitHubRepositoryUrl` to parse GitHub repository URLs, `JsonElementReader` and `Statistics` (in `Common/`) for JSON parsing and medians, and `PackageGuardHttpClient.Create` for new `HttpClient` instances. Do not add private copies of these.
 
 ### Configuration
 
