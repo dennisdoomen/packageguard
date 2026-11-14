@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using PackageGuard.Core.CSharp;
+using PackageGuard.Core.GitHub;
 using PackageGuard.Core.Package;
 using PackageGuard.Core.Policy;
 using PackageGuard.Core.Risk.Scoring;
@@ -1253,7 +1254,7 @@ internal static class RiskHtmlReportWriter
     /// </summary>
     private static string? TryGetLicenseFileUrl(PackageInfo package)
     {
-        string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
+        string? repositoryRoot = GitHubRepositoryUrl.TryGetWebRoot(package.RepositoryUrl);
         if (repositoryRoot is not null)
         {
             return $"{repositoryRoot}/blob/HEAD/LICENSE";
@@ -1268,22 +1269,12 @@ internal static class RiskHtmlReportWriter
     }
 
     /// <summary>
-    /// Returns the root <c>https://github.com/&lt;owner&gt;/&lt;repo&gt;</c> URL derived from
-    /// <paramref name="repositoryUrl"/>, or <c>null</c> if the URL is not a recognised GitHub URL.
-    /// </summary>
-    private static string? TryGetGitHubRepositoryRoot(string? repositoryUrl)
-    {
-        string? identifier = TryGetGitHubIdentifier(repositoryUrl);
-        return identifier is null ? null : $"https://github.com/{identifier}";
-    }
-
-    /// <summary>
     /// Returns a URL pointing to the README anchor on the GitHub repository, or <c>null</c> if the repository
     /// URL is not a recognised GitHub URL.
     /// </summary>
     private static string? TryGetReadmeUrl(PackageInfo package)
     {
-        string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
+        string? repositoryRoot = GitHubRepositoryUrl.TryGetWebRoot(package.RepositoryUrl);
         return repositoryRoot is null ? null : $"{repositoryRoot}#readme";
     }
 
@@ -1293,7 +1284,7 @@ internal static class RiskHtmlReportWriter
     /// </summary>
     private static string? TryGetContributingGuideUrl(PackageInfo package)
     {
-        string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
+        string? repositoryRoot = GitHubRepositoryUrl.TryGetWebRoot(package.RepositoryUrl);
         return repositoryRoot is null ? null : $"{repositoryRoot}/blob/HEAD/CONTRIBUTING.md";
     }
 
@@ -1303,7 +1294,7 @@ internal static class RiskHtmlReportWriter
     /// </summary>
     private static string? TryGetReleaseHistoryUrl(PackageInfo package)
     {
-        string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
+        string? repositoryRoot = GitHubRepositoryUrl.TryGetWebRoot(package.RepositoryUrl);
         if (repositoryRoot is null)
         {
             return null;
@@ -1328,7 +1319,7 @@ internal static class RiskHtmlReportWriter
     /// </summary>
     private static string? TryGetOpenSsfScorecardUrl(PackageInfo package)
     {
-        string? repositoryRoot = TryGetGitHubRepositoryRoot(package.RepositoryUrl);
+        string? repositoryRoot = GitHubRepositoryUrl.TryGetWebRoot(package.RepositoryUrl);
         if (repositoryRoot is null)
         {
             return null;
@@ -1338,32 +1329,6 @@ internal static class RiskHtmlReportWriter
             repositoryRoot.Replace("https://github.com/", "github.com/", StringComparison.OrdinalIgnoreCase);
 
         return $"https://securityscorecards.dev/viewer/?uri={repositoryIdentifier}";
-    }
-
-    /// <summary>
-    /// Extracts the <c>&lt;owner&gt;/&lt;repo&gt;</c> identifier from a GitHub repository URL,
-    /// or returns <c>null</c> if the URL is not a valid GitHub URL.
-    /// </summary>
-    private static string? TryGetGitHubIdentifier(string? repositoryUrl)
-    {
-        if (string.IsNullOrWhiteSpace(repositoryUrl))
-        {
-            return null;
-        }
-
-        Match match = Regex.Match(
-            repositoryUrl,
-            @"github\.com/(?<owner>[a-zA-Z0-9._-]+)/(?<repo>[a-zA-Z0-9._-]+)",
-            RegexOptions.IgnoreCase);
-
-        if (!match.Success)
-        {
-            return null;
-        }
-
-        string repositoryName = match.Groups["repo"].Value.TrimEnd('.');
-        repositoryName = repositoryName.Replace(".git", string.Empty, StringComparison.OrdinalIgnoreCase);
-        return $"{match.Groups["owner"].Value}/{repositoryName}";
     }
 
     /// <summary>

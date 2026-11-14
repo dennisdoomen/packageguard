@@ -4,6 +4,8 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using PackageGuard.Core.Common;
 using PackageGuard.Core.Package;
+using static PackageGuard.Core.Common.JsonElementReader;
+using static PackageGuard.Core.Common.Statistics;
 
 namespace PackageGuard.Core.Risk.Enrichment;
 
@@ -721,35 +723,6 @@ internal sealed class OsvRiskEnricher(ILogger logger, HttpClient? httpClient = n
         }
 
         return (modifiedAt.Value - publishedAt.Value).TotalDays;
-    }
-
-    /// <summary>
-    /// Reads and parses the date-valued property identified by <paramref name="propertyName"/> from <paramref name="element"/>;
-    /// returns <see langword="null"/> if the property is absent or unparseable.
-    /// </summary>
-    private static DateTimeOffset? TryReadDate(JsonElement element, string propertyName)
-    {
-        return element.TryGetProperty(propertyName, out JsonElement property) &&
-               DateTimeOffset.TryParse(property.GetString(), out DateTimeOffset value)
-            ? value
-            : null;
-    }
-
-    /// <summary>
-    /// Computes the median of <paramref name="values"/>, or returns <see langword="null"/> if the list is empty.
-    /// </summary>
-    private static double? ComputeMedian(List<double> values)
-    {
-        if (values.Count == 0)
-        {
-            return null;
-        }
-
-        values.Sort();
-        int middle = values.Count / 2;
-        return values.Count % 2 == 0
-            ? (values[middle - 1] + values[middle]) / 2.0
-            : values[middle];
     }
 
     /// <summary>
