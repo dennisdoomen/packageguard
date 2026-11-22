@@ -11,15 +11,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Fallout.Common" Version="10.4.0" />
-    <PackageReference Include="Fallout.Components" Version="10.4.0" />
+    <PackageReference Include="Fallout.Common" Version="10.5.0" />
+    <PackageReference Include="Fallout.Components" Version="10.5.0" />
     <PackageDownload Include="ReportGenerator" Version="[5.5.11]" />
     <PackageDownload Include="GitVersion.Tool" Version="[6.8.2]" />
     <PackageDownload Include="JetBrains.ReSharper.GlobalTools" Version="[2026.2.3.1]" />
-    <PackageReference Include="Fallout.Utilities.IO.Compression" Version="10.4.0" />
+    <PackageReference Include="Fallout.Utilities.IO.Compression" Version="10.5.0" />
     <PackageReference Include="SharpCompress" Version="0.50.8" />
     <!-- Pins the transitive dependency of Fallout to the version that fixes GHSA-7hqp-7c5m-4vq6 -->
-    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.14" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.15" />
   </ItemGroup>
 
 </Project>
