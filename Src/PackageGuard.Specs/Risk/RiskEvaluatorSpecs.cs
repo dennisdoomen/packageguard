@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
 using PackageGuard.Core.Package;
 using PackageGuard.Core.Risk;
+using PackageGuard.Core.Risk.Scoring;
 
 namespace PackageGuard.Specs;
 
@@ -13,6 +14,63 @@ namespace PackageGuard.Specs;
 [UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 internal class RiskEvaluatorSpecs
 {
+    [TestMethod]
+    internal void Small_issue_samples_do_not_add_rate_penalties()
+    {
+        var factor = new IssueHealthRiskFactor();
+        var package = new PackageInfo
+        {
+            OpenBugIssueCount = 1,
+            ClosedBugIssueCountLast90Days = 0,
+            IssueResponseCoverage = 0,
+            IssueTriageWithinSevenDaysRate = 0,
+            MedianIssueResponseDays = 60,
+            MedianCriticalIssueResponseDays = 60,
+            MedianOpenBugAgeDays = 365
+        };
+
+        RiskFactorContribution result = factor.Evaluate(package);
+
+        result.Risk.Should().Be(0);
+        result.Rationale.Should().Contain(item => item.Contains("Issue sample is too small"));
+    }
+
+    [TestMethod]
+    internal void Unknown_documentation_does_not_count_as_missing()
+    {
+        RiskFactorContribution result = new DocumentationRiskFactor().Evaluate(new PackageInfo());
+
+        result.Risk.Should().Be(0);
+        result.Rationale.Should().NotContain(item => item.Contains("is missing"));
+    }
+
+    [TestMethod]
+    internal void Unknown_signature_trust_is_not_reported_as_verified()
+    {
+        RiskDimensionEvaluation result = new SecurityRiskEvaluator().Evaluate(new PackageInfo { IsPackageSigned = true });
+
+        result.Rationale.Should().NotContain(item => item.Contains("trust verification succeeded"));
+    }
+
+    [TestMethod]
+    internal void Overlapping_issue_and_workflow_rates_are_not_counted_twice()
+    {
+        var package = new PackageInfo
+        {
+            OpenBugIssueCount = 5,
+            IssueResponseCoverage = 0,
+            IssueTriageWithinSevenDaysRate = 0,
+            RecentFailedWorkflowCount = 4,
+            WorkflowFailureRate = 0.8
+        };
+
+        new IssueHealthRiskFactor().Evaluate(package).Risk.Should().Be(0.75);
+        new CiHealthRiskFactor().Evaluate(package).Risk.Should().Be(0.75);
+
+        package.HasRecentSuccessfulWorkflowRun = false;
+        new CiHealthRiskFactor().Evaluate(package).Risk.Should().Be(1.5);
+    }
+
     [TestMethod]
     internal void Unknown_license_adds_legal_risk()
     {
@@ -250,6 +308,7 @@ internal class RiskEvaluatorSpecs
             HasSecurityPolicy = true,
             HasDetailedSecurityPolicy = false,
             HasChangelog = false,
+            HasReleaseNotes = false,
             ContributorCount = 10,
             RecentMaintainerCount = 2,
             TopContributorShare = 0.85,
@@ -293,9 +352,6 @@ internal class RiskEvaluatorSpecs
             .Contain(item => item.Contains("Contribution concentration is high"));
 
         package.RiskDimensions.OperationalRiskRationale.Should()
-            .Contain(item => item.Contains("Recent CI workflow failures are elevated (4)"));
-
-        package.RiskDimensions.OperationalRiskRationale.Should()
             .Contain(item => item.Contains("No recent successful CI workflow run detected"));
 
         package.RiskDimensions.OperationalRiskRationale.Should()
@@ -329,8 +385,8 @@ internal class RiskEvaluatorSpecs
             ContributorCount = 6,
             RecentMaintainerCount = 2,
             OpenBugIssueCount = 12,
-            ClosedBugIssueCountLast90Days = 2,
-            ReopenedBugIssueCountLast90Days = 1,
+            ClosedBugIssueCountLast90Days = 5,
+            ReopenedBugIssueCountLast90Days = 2,
             MedianCriticalIssueResponseDays = 10,
             IssueResponseCoverage = 0.4,
             MedianOpenBugAgeDays = 220,
@@ -386,6 +442,7 @@ internal class RiskEvaluatorSpecs
             MajorReleaseRatio = 0.5,
             RecentMaintainerCount = 3,
             MedianMaintainerActivityDays = 150,
+            OpenBugIssueCount = 5,
             IssueTriageWithinSevenDaysRate = 0.3,
             HasDependencyUpdateAutomation = false,
             HasTestSignal = false,
@@ -1144,7 +1201,12 @@ internal class RiskEvaluatorSpecs
         {
             Name = "TestPackage",
             Version = "1.0.0",
-            License = "MIT"
+            License = "MIT",
+            HasReadme = false,
+            HasContributingGuide = false,
+            HasSecurityPolicy = false,
+            HasChangelog = false,
+            HasReleaseNotes = false
         };
 
         // Act

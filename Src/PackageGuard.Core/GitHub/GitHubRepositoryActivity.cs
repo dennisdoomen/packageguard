@@ -39,6 +39,9 @@ internal sealed class GitHubActivityIssue
 
     /// <summary>The comments on the issue, oldest first.</summary>
     public IReadOnlyList<GitHubActivityComment> Comments { get; init; } = [];
+
+    /// <summary>Indicates whether all comments needed to establish the first response were returned.</summary>
+    public bool AreCommentsComplete { get; init; }
 }
 
 /// <summary>
@@ -53,7 +56,7 @@ internal sealed record GitHubActivityComment(DateTimeOffset CreatedAt, string? A
 /// </summary>
 /// <param name="ClosedAt">The moment the issue was closed.</param>
 /// <param name="WasReopened">Indicates whether the issue carries a reopen event.</param>
-internal sealed record GitHubActivityClosedIssue(DateTimeOffset? ClosedAt, bool WasReopened);
+internal sealed record GitHubActivityClosedIssue(DateTimeOffset? ClosedAt, bool? WasReopened);
 
 /// <summary>
 /// A closed pull request together with its reviewers.

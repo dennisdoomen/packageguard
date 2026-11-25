@@ -39,7 +39,7 @@ internal sealed class GitHubWorkflowRunCollector
             return new GitHubWorkflowData
             {
                 RecentFailedWorkflowCount = failedRuns,
-                HasRecentSuccessfulWorkflowRun = hasSuccess,
+                HasRecentSuccessfulWorkflowRun = completedRuns > 0 ? hasSuccess : null,
                 FailureRate = completedRuns > 0 ? failedRuns / (double)completedRuns : null,
                 HasFlakyPattern = completedRuns >= 4 && failedRuns > 0 && hasSuccess && failedRuns < completedRuns
             };

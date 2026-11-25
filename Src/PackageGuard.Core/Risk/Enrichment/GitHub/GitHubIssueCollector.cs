@@ -13,6 +13,7 @@ internal sealed class GitHubIssueCollector
     /// request, and a median over this many issues is as informative as one over a hundred.
     /// </summary>
     internal const int IssueResponseSampleSize = 20;
+    internal const int MinimumIssueRateSampleSize = 5;
 
     /// <summary>
     /// The number of recently closed bug issues that are listed, before they are narrowed to the last 90 days.
@@ -22,7 +23,7 @@ internal sealed class GitHubIssueCollector
     /// <summary>
     /// The number of recently closed bug issues whose timeline is read to spot reopenings.
     /// </summary>
-    private const int ReopenedIssueSampleSize = 20;
+    internal const int ReopenedIssueSampleSize = 20;
 
     private readonly GitHubApiClient apiClient;
 
@@ -42,6 +43,7 @@ internal sealed class GitHubIssueCollector
 
         if (issuesDoc?.RootElement.ValueKind != JsonValueKind.Array)
         {
+            GitHubRequestFailureScope.ReportFailure();
             return new GitHubIssueData();
         }
 
@@ -49,8 +51,8 @@ internal sealed class GitHubIssueCollector
         GitHubIssueSnapshot[] openIssues = ReadOpenIssues(issuesDoc.RootElement, now);
         GitHubIssueResponsiveness responsiveness = await MeasureIssueResponsivenessAsync(openIssues);
 
-        GitHubClosedIssueSnapshot[] closedIssues = await GetClosedBugIssuesAsync(repository);
-        int reopenedBugCount = await CountReopenedIssuesAsync(repository,
+        GitHubClosedIssueSnapshot[]? closedIssues = await GetClosedBugIssuesAsync(repository);
+        int? reopenedBugCount = closedIssues is null ? null : await CountReopenedIssuesAsync(repository,
             closedIssues.Take(ReopenedIssueSampleSize).ToArray());
 
         return new GitHubIssueData
@@ -61,8 +63,8 @@ internal sealed class GitHubIssueCollector
             MedianIssueResponseDays = responsiveness.MedianResponseDays,
             MedianCriticalIssueResponseDays = responsiveness.MedianCriticalResponseDays,
             IssueResponseCoverage = responsiveness.ResponseCoverage,
-            MedianOpenBugAgeDays = ComputeMedian(openIssues.Select(issue => (now - issue.CreatedAt).TotalDays).ToList()),
-            ClosedBugIssueCountLast90Days = closedIssues.Length,
+            MedianOpenBugAgeDays = ComputeOpenBugAge(openIssues, now),
+            ClosedBugIssueCountLast90Days = closedIssues?.Length,
             ReopenedBugIssueCountLast90Days = reopenedBugCount,
             TriageWithinSevenDaysRate = responsiveness.TriageWithinSevenDaysRate
         };
@@ -100,10 +102,11 @@ internal sealed class GitHubIssueCollector
             MedianIssueResponseDays = responsiveness.MedianResponseDays,
             MedianCriticalIssueResponseDays = responsiveness.MedianCriticalResponseDays,
             IssueResponseCoverage = responsiveness.ResponseCoverage,
-            MedianOpenBugAgeDays = ComputeMedian(openIssues.Select(issue => (now - issue.CreatedAt).TotalDays).ToList()),
+            MedianOpenBugAgeDays = ComputeOpenBugAge(openIssues, now),
             ClosedBugIssueCountLast90Days = closedIssues.Length,
-            ReopenedBugIssueCountLast90Days =
-                closedIssues.Take(ReopenedIssueSampleSize).Count(issue => issue.WasReopened),
+            ReopenedBugIssueCountLast90Days = closedIssues.Take(ReopenedIssueSampleSize).Any(issue => issue.WasReopened is null)
+                ? null
+                : closedIssues.Take(ReopenedIssueSampleSize).Count(issue => issue.WasReopened is true),
             TriageWithinSevenDaysRate = responsiveness.TriageWithinSevenDaysRate
         };
     }
@@ -119,7 +122,7 @@ internal sealed class GitHubIssueCollector
             .FirstOrDefault();
 
         return firstMaintainerComment is null
-            ? new GitHubIssueResponseData()
+            ? new GitHubIssueResponseData { IsKnown = issue.AreCommentsComplete }
             : new GitHubIssueResponseData
             {
                 HasMaintainerResponse = true,
@@ -172,6 +175,11 @@ internal sealed class GitHubIssueCollector
     private static GitHubIssueResponsiveness BuildResponsiveness(GitHubIssueSnapshot[] sample,
         GitHubIssueResponseData[] responses)
     {
+        if (sample.Length < MinimumIssueRateSampleSize || responses.Any(response => !response.IsKnown))
+        {
+            return new GitHubIssueResponsiveness();
+        }
+
         List<double> responseDays = responses
             .Where(response => response.ResponseDays.HasValue)
             .Select(response => response.ResponseDays!.Value)
@@ -184,13 +192,20 @@ internal sealed class GitHubIssueCollector
 
         return new GitHubIssueResponsiveness
         {
-            MedianResponseDays = ComputeMedian(responseDays),
-            MedianCriticalResponseDays = ComputeMedian(criticalResponseDays),
+            MedianResponseDays = responseDays.Count >= MinimumIssueRateSampleSize ? ComputeMedian(responseDays) : null,
+            MedianCriticalResponseDays = criticalResponseDays.Count >= MinimumIssueRateSampleSize
+                ? ComputeMedian(criticalResponseDays)
+                : null,
             ResponseCoverage = responses.Count(response => response.HasMaintainerResponse) / (double)sample.Length,
             TriageWithinSevenDaysRate =
                 responses.Count(response => response.ResponseDays is <= 7) / (double)sample.Length
         };
     }
+
+    private static double? ComputeOpenBugAge(GitHubIssueSnapshot[] issues, DateTimeOffset now) =>
+        issues.Length >= MinimumIssueRateSampleSize
+            ? ComputeMedian(issues.Select(issue => (now - issue.CreatedAt).TotalDays).ToList())
+            : null;
 
     /// <summary>
     /// Fetches the first maintainer comment on an issue to compute response time. This only refines a signal, so the
@@ -200,7 +215,8 @@ internal sealed class GitHubIssueCollector
     {
         if (string.IsNullOrWhiteSpace(issue.CommentsUrl))
         {
-            return new GitHubIssueResponseData();
+            GitHubRequestFailureScope.ReportFailure();
+            return new GitHubIssueResponseData { IsKnown = false };
         }
 
         try
@@ -209,7 +225,8 @@ internal sealed class GitHubIssueCollector
                 GitHubRequestImportance.Optional, GitHubResponseFields.Of("author_association", "created_at"));
             if (commentsDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
-                return new GitHubIssueResponseData();
+                GitHubRequestFailureScope.ReportFailure();
+                return new GitHubIssueResponseData { IsKnown = false };
             }
 
             DateTimeOffset? firstMaintainerComment = commentsDoc.RootElement.EnumerateArray()
@@ -230,7 +247,8 @@ internal sealed class GitHubIssueCollector
         }
         catch
         {
-            return new GitHubIssueResponseData();
+            GitHubRequestFailureScope.ReportFailure();
+            return new GitHubIssueResponseData { IsKnown = false };
         }
     }
 
@@ -240,7 +258,7 @@ internal sealed class GitHubIssueCollector
     /// same reason as <see cref="GitHubCommitHealthCollector.CollectAsync"/>. An issue closed in the last 90 days was
     /// also updated in that period, so the most recently updated issues contain the same matches.
     /// </remarks>
-    private async Task<GitHubClosedIssueSnapshot[]> GetClosedBugIssuesAsync(GitHubRepositoryContext repository)
+    private async Task<GitHubClosedIssueSnapshot[]?> GetClosedBugIssuesAsync(GitHubRepositoryContext repository)
     {
         try
         {
@@ -250,7 +268,8 @@ internal sealed class GitHubIssueCollector
 
             if (issuesDoc?.RootElement.ValueKind != JsonValueKind.Array)
             {
-                return [];
+                GitHubRequestFailureScope.ReportFailure();
+                return null;
             }
 
             return issuesDoc.RootElement.EnumerateArray()
@@ -266,12 +285,13 @@ internal sealed class GitHubIssueCollector
         }
         catch
         {
-            return [];
+            GitHubRequestFailureScope.ReportFailure();
+            return null;
         }
     }
 
     /// <summary>Counts how many of the given closed issues were subsequently reopened.</summary>
-    private async Task<int> CountReopenedIssuesAsync(GitHubRepositoryContext repository,
+    private async Task<int?> CountReopenedIssuesAsync(GitHubRepositoryContext repository,
         GitHubClosedIssueSnapshot[] closedIssues)
     {
         if (closedIssues.Length == 0)
@@ -280,7 +300,7 @@ internal sealed class GitHubIssueCollector
         }
 
         using var throttler = new SemaphoreSlim(6);
-        Task<bool>[] tasks = closedIssues.Select(async issue =>
+        Task<bool?>[] tasks = closedIssues.Select(async issue =>
         {
             await throttler.WaitAsync();
             try
@@ -289,7 +309,8 @@ internal sealed class GitHubIssueCollector
             }
             catch
             {
-                return false;
+                GitHubRequestFailureScope.ReportFailure();
+                return null;
             }
             finally
             {
@@ -297,23 +318,28 @@ internal sealed class GitHubIssueCollector
             }
         }).ToArray();
 
-        bool[] reopened = await Task.WhenAll(tasks);
-        return reopened.Count(value => value);
+        bool?[] reopened = await Task.WhenAll(tasks);
+        return reopened.Any(value => value is null) ? null : reopened.Count(value => value is true);
     }
 
     /// <summary>
     /// Reads the timeline of a closed issue to tell whether it was reopened. This only refines a signal, so the
     /// request is dropped once the rate limit budget runs low.
     /// </summary>
-    private async Task<bool> WasReopenedAsync(GitHubRepositoryContext repository, GitHubClosedIssueSnapshot issue)
+    private async Task<bool?> WasReopenedAsync(GitHubRepositoryContext repository, GitHubClosedIssueSnapshot issue)
     {
         using JsonDocument? eventsDoc = await apiClient.GetJsonAsync(
             $"{repository.ApiRoot}/issues/{issue.Number}/timeline?per_page=100",
             GitHubRequestImportance.Optional,
             GitHubResponseFields.Of("event"));
 
-        return eventsDoc?.RootElement.ValueKind == JsonValueKind.Array &&
-               eventsDoc.RootElement.EnumerateArray().Any(eventItem =>
+        if (eventsDoc?.RootElement.ValueKind != JsonValueKind.Array)
+        {
+            GitHubRequestFailureScope.ReportFailure();
+            return null;
+        }
+
+        return eventsDoc.RootElement.EnumerateArray().Any(eventItem =>
                    string.Equals(
                        eventItem.TryGetProperty("event", out JsonElement eventElement) ? eventElement.GetString() : null,
                        "reopened", StringComparison.OrdinalIgnoreCase));

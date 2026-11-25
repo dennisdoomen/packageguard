@@ -16,13 +16,11 @@ internal sealed class DocumentationRiskFactor : IEvaluateRiskFactor
     {
         var risk = 0.0;
         var rationale = new List<string>();
-        bool isIncomplete = package.HasIncompleteGitHubRiskData;
-
-        if (isIncomplete && package.HasReadme is null)
+        if (package.HasReadme is null)
         {
             rationale.Add(CreateUndeterminedRationale("whether a README exists"));
         }
-        else if (package.HasReadme is not true || package.HasDefaultReadme is true)
+        else if (package.HasReadme is false || package.HasDefaultReadme is true)
         {
             risk += RiskEvaluationHelpers.AddContribution(rationale, "README is missing or appears to be boilerplate", 0.5);
         }
@@ -37,7 +35,7 @@ internal sealed class DocumentationRiskFactor : IEvaluateRiskFactor
             risk += RiskEvaluationHelpers.AddContribution(rationale, "README has not been refreshed recently", 0.25);
         }
 
-        if (isIncomplete && package.HasContributingGuide is null)
+        if (package.HasContributingGuide is null)
         {
             rationale.Add(CreateUndeterminedRationale("whether a CONTRIBUTING guide exists"));
         }
@@ -50,7 +48,7 @@ internal sealed class DocumentationRiskFactor : IEvaluateRiskFactor
             rationale.Add(RiskEvaluationHelpers.CreateRationale("CONTRIBUTING guide is present", 0.0));
         }
 
-        if (isIncomplete && package.HasSecurityPolicy is null)
+        if (package.HasSecurityPolicy is null)
         {
             rationale.Add(CreateUndeterminedRationale("whether a SECURITY policy exists"));
         }
@@ -63,7 +61,7 @@ internal sealed class DocumentationRiskFactor : IEvaluateRiskFactor
             rationale.Add(RiskEvaluationHelpers.CreateRationale("SECURITY policy is present", 0.0));
         }
 
-        if (package.HasDetailedSecurityPolicy is false)
+        if (package is { HasSecurityPolicy: true, HasDetailedSecurityPolicy: false })
         {
             risk += RiskEvaluationHelpers.AddContribution(rationale,
                 "SECURITY policy lacks concrete response instructions", 0.25);
@@ -72,7 +70,7 @@ internal sealed class DocumentationRiskFactor : IEvaluateRiskFactor
         bool hasAcceptableReleaseHistory = package.HasReleaseNotes is true ||
                                            (package.HasChangelog is true && package.HasDefaultChangelog is not true);
 
-        if (!hasAcceptableReleaseHistory && isIncomplete && IsReleaseHistoryUnknown(package))
+        if (!hasAcceptableReleaseHistory && IsReleaseHistoryUnknown(package))
         {
             rationale.Add(CreateUndeterminedRationale("whether a CHANGELOG or release notes exist"));
         }

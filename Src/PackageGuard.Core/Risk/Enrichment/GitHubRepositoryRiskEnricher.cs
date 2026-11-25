@@ -118,8 +118,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         package.HasChangelog = cached.HasChangelog;
         package.HasDefaultChangelog = cached.HasDefaultChangelog;
         package.ChangelogUpdatedAt = cached.ChangelogUpdatedAt;
-        package.OpenBugIssueCount = cached.OpenBugIssueCount;
-        package.StaleCriticalBugIssueCount = cached.StaleCriticalBugIssueCount;
+        package.OpenBugIssueCount = cached.OpenBugIssueCount >= 0 ? cached.OpenBugIssueCount : null;
+        package.StaleCriticalBugIssueCount = cached.StaleCriticalBugIssueCount >= 0 ? cached.StaleCriticalBugIssueCount : null;
         package.MedianIssueResponseDays = cached.MedianIssueResponseDays;
         package.MedianCriticalIssueResponseDays = cached.MedianCriticalIssueResponseDays;
         package.IssueResponseCoverage = cached.IssueResponseCoverage;

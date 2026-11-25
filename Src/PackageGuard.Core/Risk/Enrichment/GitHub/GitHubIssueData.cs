@@ -4,10 +4,10 @@ namespace PackageGuard.Core.Risk.Enrichment.GitHub;
 internal sealed class GitHubIssueData
 {
     /// <summary>The number of currently open bug issues.</summary>
-    public int OpenBugIssueCount { get; init; }
+    public int? OpenBugIssueCount { get; init; }
 
     /// <summary>The number of critical bug issues open for more than six months.</summary>
-    public int StaleCriticalBugIssueCount { get; init; }
+    public int? StaleCriticalBugIssueCount { get; init; }
 
     /// <summary>The median number of days until a maintainer first responds to an open bug issue.</summary>
     public double? MedianIssueResponseDays { get; init; }

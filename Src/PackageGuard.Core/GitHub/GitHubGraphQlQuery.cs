@@ -35,6 +35,7 @@ internal static class GitHubGraphQlQuery
                 createdAt
                 labels(first: 20) { nodes { name } }
                 comments(first: 30) {
+                  totalCount
                   nodes {
                     createdAt
                     authorAssociation

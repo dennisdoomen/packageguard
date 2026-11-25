@@ -20,17 +20,20 @@ internal sealed class CiHealthRiskFactor : IEvaluateRiskFactor
                 0.5);
         }
 
-        if (package.RecentFailedWorkflowCount is >= 3)
+        if (package.HasRecentSuccessfulWorkflowRun is false)
         {
-            risk += RiskEvaluationHelpers.AddContribution(rationale,
-                $"Recent CI workflow failures are elevated ({package.RecentFailedWorkflowCount})", 0.5);
+            risk += RiskEvaluationHelpers.AddContribution(rationale, "No recent successful CI workflow run detected", 1.5);
         }
-
-        if (package.WorkflowFailureRate is > 0.5)
+        else if (package.WorkflowFailureRate is > 0.5)
         {
             risk += RiskEvaluationHelpers.AddContribution(rationale,
                 $"CI workflow failure rate is elevated ({RiskEvaluationHelpers.FormatPercentage(package.WorkflowFailureRate.Value)})",
                 0.75);
+        }
+        else if (package.RecentFailedWorkflowCount is >= 3)
+        {
+            risk += RiskEvaluationHelpers.AddContribution(rationale,
+                $"Recent CI workflow failures are elevated ({package.RecentFailedWorkflowCount})", 0.5);
         }
 
         if (package.HasFlakyWorkflowPattern is true)
@@ -39,11 +42,7 @@ internal sealed class CiHealthRiskFactor : IEvaluateRiskFactor
                 "CI workflow history shows a potentially flaky failure pattern", 0.5);
         }
 
-        if (package.HasRecentSuccessfulWorkflowRun is false)
-        {
-            risk += RiskEvaluationHelpers.AddContribution(rationale, "No recent successful CI workflow run detected", 1.5);
-        }
-        else if (package.HasRecentSuccessfulWorkflowRun is true)
+        if (package.HasRecentSuccessfulWorkflowRun is true)
         {
             rationale.Add(RiskEvaluationHelpers.CreateRationale("Recent successful CI workflow run detected", 0.0));
         }

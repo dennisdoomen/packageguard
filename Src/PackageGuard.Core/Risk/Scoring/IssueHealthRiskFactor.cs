@@ -1,4 +1,5 @@
 using PackageGuard.Core.Package;
+using PackageGuard.Core.Risk.Enrichment.GitHub;
 
 namespace PackageGuard.Core.Risk.Scoring;
 
@@ -12,6 +13,12 @@ internal sealed class IssueHealthRiskFactor : IEvaluateRiskFactor
     {
         var risk = 0.0;
         var rationale = new List<string>();
+
+        if (package.OpenBugIssueCount is > 0 and < GitHubIssueCollector.MinimumIssueRateSampleSize)
+        {
+            rationale.Add(RiskEvaluationHelpers.CreateRationale(
+                $"Issue sample is too small for reliable rates ({package.OpenBugIssueCount} open bugs)", 0.0));
+        }
 
         risk += EvaluateOpenIssueRisk(package, rationale);
         risk += EvaluateClosureRateRisk(package, rationale);
@@ -40,41 +47,47 @@ internal sealed class IssueHealthRiskFactor : IEvaluateRiskFactor
                 $"Stale critical bug issues remain open ({package.StaleCriticalBugIssueCount})", 1.5);
         }
 
-        if (package.MedianIssueResponseDays > 30)
+        if (package.OpenBugIssueCount >= GitHubIssueCollector.MinimumIssueRateSampleSize &&
+            package.MedianIssueResponseDays > 30)
         {
             risk += RiskEvaluationHelpers.AddContribution(rationale,
                 $"Median issue response time is slow ({RiskEvaluationHelpers.FormatScore(package.MedianIssueResponseDays!.Value)} days)",
                 1.0);
         }
-        else if (package.MedianIssueResponseDays != null)
+        else if (package.OpenBugIssueCount >= GitHubIssueCollector.MinimumIssueRateSampleSize &&
+                 package.MedianIssueResponseDays != null)
         {
             double responseDays = package.MedianIssueResponseDays.Value;
             rationale.Add(RiskEvaluationHelpers.CreateRationale(
                 $"Median issue response time looks healthy ({RiskEvaluationHelpers.FormatScore(responseDays)} days)", 0.0));
         }
 
-        if (package.MedianCriticalIssueResponseDays > 7)
+        if (package.OpenBugIssueCount >= GitHubIssueCollector.MinimumIssueRateSampleSize &&
+            package.MedianCriticalIssueResponseDays > 7)
         {
             risk += RiskEvaluationHelpers.AddContribution(rationale,
                 $"Critical issue response time is slow ({RiskEvaluationHelpers.FormatScore(package.MedianCriticalIssueResponseDays!.Value)} days)",
                 1.0);
         }
 
-        if (package.IssueResponseCoverage is < 0.5)
+        if (package.OpenBugIssueCount >= GitHubIssueCollector.MinimumIssueRateSampleSize &&
+            package.IssueResponseCoverage is < 0.5)
         {
             risk += RiskEvaluationHelpers.AddContribution(rationale,
                 $"Maintainer response coverage is low ({RiskEvaluationHelpers.FormatPercentage(package.IssueResponseCoverage.Value)})",
                 0.75);
         }
 
-        if (package.IssueTriageWithinSevenDaysRate is < 0.5)
+        else if (package.OpenBugIssueCount >= GitHubIssueCollector.MinimumIssueRateSampleSize &&
+                 package.IssueTriageWithinSevenDaysRate is < 0.5)
         {
             risk += RiskEvaluationHelpers.AddContribution(rationale,
                 $"Issue triage within 7 days is low ({RiskEvaluationHelpers.FormatPercentage(package.IssueTriageWithinSevenDaysRate.Value)})",
                 0.5);
         }
 
-        if (package.MedianOpenBugAgeDays > 180)
+        if (package.OpenBugIssueCount >= GitHubIssueCollector.MinimumIssueRateSampleSize &&
+            package.MedianOpenBugAgeDays > 180)
         {
             risk += RiskEvaluationHelpers.AddContribution(rationale,
                 $"Median age of open bugs is high ({RiskEvaluationHelpers.FormatScore(package.MedianOpenBugAgeDays!.Value)} days)",
@@ -132,7 +145,7 @@ internal sealed class IssueHealthRiskFactor : IEvaluateRiskFactor
         int closed = package.ClosedBugIssueCountLast90Days.Value;
         int open = package.OpenBugIssueCount.Value;
         int total = closed + open;
-        return total > 0 ? closed / (double)total : null;
+        return total >= GitHubIssueCollector.MinimumIssueRateSampleSize ? closed / (double)total : null;
     }
 
     /// <summary>
@@ -140,11 +153,13 @@ internal sealed class IssueHealthRiskFactor : IEvaluateRiskFactor
     /// </summary>
     private static double? GetBugReopenRate(PackageInfo package)
     {
-        if (package.ClosedBugIssueCountLast90Days is not > 0 || package.ReopenedBugIssueCountLast90Days is null)
+        if (package.ClosedBugIssueCountLast90Days is not >= GitHubIssueCollector.MinimumIssueRateSampleSize ||
+            package.ReopenedBugIssueCountLast90Days is null)
         {
             return null;
         }
 
-        return package.ReopenedBugIssueCountLast90Days.Value / (double)package.ClosedBugIssueCountLast90Days.Value;
+        return package.ReopenedBugIssueCountLast90Days.Value /
+               (double)Math.Min(GitHubIssueCollector.ReopenedIssueSampleSize, package.ClosedBugIssueCountLast90Days.Value);
     }
 }

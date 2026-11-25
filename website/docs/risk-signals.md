@@ -6,7 +6,7 @@ sidebar_label: Risk signals
 
 This page lists every signal that goes into the [risk score](./risk-metrics.md). PackageGuard combines package metadata, repository evidence, CI workflow signals, dependency-graph data, signing checks and OSV vulnerability data.
 
-Not every package exposes every signal. PackageGuard uses the evidence it can find. Missing or weak signals are scored conservatively, so they count as risk instead of being ignored.
+Not every package exposes every signal. PackageGuard uses the evidence it can find. Unavailable GitHub data is distinct from a confirmed missing signal and does not by itself add risk.
 
 ## Legal risk
 
@@ -92,3 +92,7 @@ Not every package exposes every signal. PackageGuard uses the evidence it can fi
 - **OpenSSF Scorecard** - a low [Scorecard](https://scorecard.dev/) score increases risk. A strong score lowers it.
 - **Branch protection** - repositories without branch protection on the default branch are riskier.
 - **Repository ownership or rename churn** - recent ownership transfers or renames can mean instability, or make it unclear where the package comes from.
+
+Issue response and triage rates require at least five sampled open bugs. Median response times require at least five responses in their respective samples, and median open bug age requires at least five sampled bugs. Closure and reopen rates also require at least five bugs in their respective samples. When both response coverage and seven-day triage are low, only the response coverage penalty applies because both measure responses to the same issues. The workflow failure count, failure rate, and absence of successful runs also contribute at most one penalty.
+
+Workflow signals include reusable workflows called by sampled GitHub Actions workflow files, including cross-repository calls. Traversal is limited to five root workflows and 20 distinct workflows in total. If a referenced workflow cannot be read, parsed, or followed within these limits, its workflow signals remain unknown rather than being treated as absent. Detection searches workflow text; it does not evaluate conditions, input values, or whether a job actually ran. Existing cached profiles may retain older signals until they are refreshed.
