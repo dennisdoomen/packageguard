@@ -113,6 +113,9 @@ public class GitHubRepositoryRiskEnricherCachingSpecs
         package.HasContributingGuide.Should().BeFalse();
         package.HasSecurityPolicy.Should().BeFalse();
         package.HasChangelog.Should().BeFalse();
+        package.OpenBugIssueCount.Should().BeNull("a missing issue endpoint does not reveal the issue count");
+        package.ClosedBugIssueCountLast90Days.Should().BeNull();
+        package.IssueResponseCoverage.Should().BeNull();
 
         repositoryCache.TryGet("https://api.github.com/repos/acme/widget", out _).Should().BeTrue();
     }

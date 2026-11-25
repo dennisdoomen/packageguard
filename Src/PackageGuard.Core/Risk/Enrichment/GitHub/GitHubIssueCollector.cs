@@ -41,7 +41,12 @@ internal sealed class GitHubIssueCollector
             $"{repository.ApiRoot}/issues?state=open&labels=bug&per_page=100",
             fields: GitHubResponseFields.Of("number", "created_at", "labels.name", "comments_url", "pull_request.url"));
 
-        if (issuesDoc?.RootElement.ValueKind != JsonValueKind.Array)
+        if (issuesDoc is null)
+        {
+            return new GitHubIssueData();
+        }
+
+        if (issuesDoc.RootElement.ValueKind != JsonValueKind.Array)
         {
             GitHubRequestFailureScope.ReportFailure();
             return new GitHubIssueData();
@@ -223,7 +228,12 @@ internal sealed class GitHubIssueCollector
         {
             using JsonDocument? commentsDoc = await apiClient.GetJsonAsync(issue.CommentsUrl,
                 GitHubRequestImportance.Optional, GitHubResponseFields.Of("author_association", "created_at"));
-            if (commentsDoc?.RootElement.ValueKind != JsonValueKind.Array)
+            if (commentsDoc is null)
+            {
+                return new GitHubIssueResponseData { IsKnown = false };
+            }
+
+            if (commentsDoc.RootElement.ValueKind != JsonValueKind.Array)
             {
                 GitHubRequestFailureScope.ReportFailure();
                 return new GitHubIssueResponseData { IsKnown = false };
@@ -266,7 +276,12 @@ internal sealed class GitHubIssueCollector
                 $"{repository.ApiRoot}/issues?state=closed&labels=bug&sort=updated&direction=desc&per_page=50",
                 fields: GitHubResponseFields.Of("number", "closed_at", "pull_request.url"));
 
-            if (issuesDoc?.RootElement.ValueKind != JsonValueKind.Array)
+            if (issuesDoc is null)
+            {
+                return null;
+            }
+
+            if (issuesDoc.RootElement.ValueKind != JsonValueKind.Array)
             {
                 GitHubRequestFailureScope.ReportFailure();
                 return null;
@@ -333,7 +348,12 @@ internal sealed class GitHubIssueCollector
             GitHubRequestImportance.Optional,
             GitHubResponseFields.Of("event"));
 
-        if (eventsDoc?.RootElement.ValueKind != JsonValueKind.Array)
+        if (eventsDoc is null)
+        {
+            return null;
+        }
+
+        if (eventsDoc.RootElement.ValueKind != JsonValueKind.Array)
         {
             GitHubRequestFailureScope.ReportFailure();
             return null;

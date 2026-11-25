@@ -402,6 +402,7 @@ internal sealed class GitHubApiClient : IDisposable
         }
 
         logger.LogDebug("GitHub returned {StatusCode} for {Url}", (int)response.StatusCode, url);
+        GitHubRequestFailureScope.ReportFailure();
         return GitHubAttemptResult.Final(null);
     }
 
