@@ -158,7 +158,14 @@ internal sealed class RiskAnalysisPipeline(ILogger logger, GetPolicyByProject ge
             PolicyDecision? denial = decisions.FirstOrDefault(decision => decision.IsMatch);
             if (denial is not null)
             {
-                violations.Add(PolicyViolation.FromDecision(package, package.Projects.ToArray(), denial));
+                PolicySeverity severity = package.Projects
+                    .Select(projectPath => getPolicyByProject(projectPath))
+                    .Select(policy => policy.ResolveSeverity(denial.Severity))
+                    .FirstOrDefault();
+                violations.Add(PolicyViolation.FromDecision(package, package.Projects.ToArray(), denial) with
+                {
+                    IsWarning = severity == PolicySeverity.Warning
+                });
             }
             else if (decisions.Length > 0 && package.HasIncompleteGitHubRiskData)
             {

@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using PackageGuard.Core;
 using PackageGuard.Core.Package;
+using PackageGuard.Core.Policy;
 using Pathy;
 
 namespace PackageGuard;
@@ -32,7 +33,10 @@ internal static class RiskSarifReportWriter
     /// Builds a SARIF JSON string reporting all packages with a risk score of 30 or above,
     /// using the project at <paramref name="projectPath"/> as the artifact location reference.
     /// </summary>
-    public static string BuildSarif(string projectPath, IReadOnlyCollection<PackageInfo> packages)
+    public static string BuildSarif(
+        string projectPath,
+        IReadOnlyCollection<PackageInfo> packages,
+        IReadOnlyCollection<PolicyViolation>? violations = null)
     {
         string locationPath = ResolveLocationPath(projectPath);
 
@@ -73,7 +77,11 @@ internal static class RiskSarifReportWriter
                         .Select(package => CreateMaliciousResult(locationPath, package))
                         .Concat(packages
                             .Where(package => package.RiskScore >= 30)
-                            .Select(package => CreateResult(locationPath, package)))
+                            .Select(package => CreateResult(locationPath, package,
+                                violations?.Any(violation =>
+                                    violation.PackageId == package.Name &&
+                                    violation.Version == package.Version &&
+                                    violation.IsWarning) == true)))
                         .ToArray()
                 }
             ]
@@ -165,7 +173,7 @@ internal static class RiskSarifReportWriter
     /// <summary>
     /// Creates a SARIF result entry for a single package, including risk message, fingerprint, properties, and location.
     /// </summary>
-    private static SarifResult CreateResult(string locationPath, PackageInfo package)
+    private static SarifResult CreateResult(string locationPath, PackageInfo package, bool isWarning = false)
     {
         string riskZone = package.RiskScore >= 60 ? "High" : "Medium";
         string ruleId = riskZone == "High" ? HighRiskRuleId : MediumRiskRuleId;
@@ -208,7 +216,7 @@ internal static class RiskSarifReportWriter
         return new SarifResult
         {
             RuleId = ruleId,
-            Level = riskZone == "High" ? "error" : "warning",
+            Level = isWarning || riskZone == "Medium" ? "warning" : "error",
             Message = new SarifMessage
             {
                 Text =

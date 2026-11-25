@@ -49,6 +49,7 @@ public class AllowList : PackagePolicy
             return new PolicyDecision
             {
                 IsMatch = true,
+                Severity = Severity ?? PolicySeverity.Error,
                 Reason = $"matches allow list feed entry \"{matchingFeed}\"",
                 SourceFile = feedSourceFile
             };
@@ -61,6 +62,7 @@ public class AllowList : PackagePolicy
             return new PolicyDecision
             {
                 IsMatch = false,
+                Severity = Severity ?? PolicySeverity.Error,
                 Reason = "prerelease packages are not allowed by policy",
                 Resolution = "Use a stable version, or set prerelease to true in the allow section of your config"
             };
@@ -79,6 +81,7 @@ public class AllowList : PackagePolicy
                     return new PolicyDecision
                     {
                         IsMatch = false,
+                        Severity = Severity ?? PolicySeverity.Error,
                         Reason = $"matches allow list package entry \"{selector.Id}\" but version {package.Version} does not satisfy \"{selector.VersionRange}\"",
                         SourceFile = selector.SourceFile,
                         Resolution = $"Use a version that satisfies \"{selector.VersionRange}\", or change that range in the allow " +
@@ -90,6 +93,7 @@ public class AllowList : PackagePolicy
                 return new PolicyDecision
                 {
                     IsMatch = true,
+                    Severity = Severity ?? PolicySeverity.Error,
                     Reason = $"matches allow list package entry \"{selector.Id}\"",
                     SourceFile = selector.SourceFile
                 };
@@ -101,6 +105,7 @@ public class AllowList : PackagePolicy
             return new PolicyDecision
             {
                 IsMatch = false,
+                Severity = Severity ?? PolicySeverity.Error,
                 Reason = $"license \"{package.License}\" is not in the allow list",
                 Resolution = LicenseResolution ??
                              "Add the license or the package to the allow section of your config, or use a different package. " +
@@ -113,6 +118,7 @@ public class AllowList : PackagePolicy
             return new PolicyDecision
             {
                 IsMatch = true,
+                Severity = Severity ?? PolicySeverity.Error,
                 Reason = LicenseExpression.DescribeMatch("allow list", matchingLicenses, package.License),
                 SourceFile = FindLicenseSourceFiles(matchingLicenses)
             };

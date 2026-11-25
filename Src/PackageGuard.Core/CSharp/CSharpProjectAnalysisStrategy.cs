@@ -134,7 +134,14 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
             if (!allowDecision.IsMatch || denyDecision.IsMatch)
             {
                 PolicyDecision decision = denyDecision.IsMatch ? denyDecision : allowDecision;
-                violations.Add(PolicyViolation.FromDecision(package, [projectPath], decision));
+                PolicySeverity severity = policy.ResolveSeverity(
+                    denyDecision.IsMatch
+                        ? policy.DenyList.Severity ?? PolicySeverity.Error
+                        : policy.AllowList.Severity ?? PolicySeverity.Error);
+                violations.Add(PolicyViolation.FromDecision(package, [projectPath], decision) with
+                {
+                    IsWarning = severity == PolicySeverity.Warning
+                });
             }
             else
             {

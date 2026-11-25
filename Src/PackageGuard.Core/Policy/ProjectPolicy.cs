@@ -9,6 +9,12 @@ namespace PackageGuard.Core.Policy;
 public class ProjectPolicy
 {
     /// <summary>
+    /// Gets or sets the default severity for policy violations. <see cref="AllowList"/> and
+    /// <see cref="DenyList"/> can override this with their own severity.
+    /// </summary>
+    public PolicySeverity? Severity { get; set; }
+
+    /// <summary>
     /// If specified, a list of packages, versions, and licenses that are allowed. Everything else is forbidden.
     /// </summary>
     /// <remarks>
@@ -90,6 +96,14 @@ public class ProjectPolicy
     /// currently applies, exempting it from <see cref="DenyList"/>'s risk-based rules.
     /// </summary>
     internal bool IsExcludedFromRiskDenial(PackageInfo package) => FindApplicableRiskException(package) is not null;
+
+    /// <summary>
+    /// Resolves a rule severity against the policy-wide severity setting.
+    /// </summary>
+    internal PolicySeverity ResolveSeverity(PolicySeverity ruleSeverity) =>
+        Severity == PolicySeverity.Warning || ruleSeverity == PolicySeverity.Warning
+            ? PolicySeverity.Warning
+            : PolicySeverity.Error;
 
     /// <summary>
     /// Updates <see cref="PackageInfo.IsLicensePolicyCompatible"/> by checking the license of <paramref name="package"/>

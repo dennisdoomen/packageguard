@@ -181,6 +181,10 @@ Here's a summary of the version-range notations:
 
 ## Warnings instead of build failures
 
+Set `settings.severity` to `"warning"` to report every non-malicious policy violation as a warning and keep the exit code at `0`.
+Set `allow.severity` or `deny.severity` to change the severity of an entire section.
+Individual deny risk gates also accept a matching `*Severity` setting, such as `"maxOverallRiskSeverity": "warning"`.
+
 A `warn` section works like `deny` for `packages`, `licenses` and `prerelease`. A match only logs a warning instead of failing the build. A `deny` match always takes precedence over a `warn` match on the same package.
 
 ```json
