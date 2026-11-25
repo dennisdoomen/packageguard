@@ -119,6 +119,71 @@
               "type": "boolean",
               "default": false
             },
+            "denyInstallScripts": {
+              "description": "Denies npm packages whose locked version is known to run preinstall, install or postinstall scripts.",
+              "type": "boolean",
+              "default": false
+            },
+            "installScriptAllowList": {
+              "description": "Exact npm package artifacts allowed to run install scripts when denyInstallScripts is enabled. Each entry must identify a package name, exact version, and either an integrity value or resolved URL.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "package": {
+                    "description": "Exact npm package name.",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "version": {
+                    "description": "Exact locked package version.",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "integrity": {
+                    "description": "Exact integrity value from the package-manager lockfile.",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "resolved": {
+                    "description": "Exact resolved package URL from the package-manager lockfile.",
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "package",
+                  "version"
+                ],
+                "allOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "required": [
+                          "integrity"
+                        ],
+                        "not": {
+                          "required": [
+                            "resolved"
+                          ]
+                        }
+                      },
+                      {
+                        "required": [
+                          "resolved"
+                        ],
+                        "not": {
+                          "required": [
+                            "integrity"
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "additionalProperties": false
+              }
+            },
             "minPackageAgeDays": {
               "description": "Denies a package version published fewer than the given number of days ago, per ecosystem (npm or nuget, not case-sensitive).",
               "type": "object",

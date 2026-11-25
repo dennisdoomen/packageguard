@@ -104,6 +104,72 @@ public class PolicyDecisionSpecs
     }
 
     [TestMethod]
+    public void Denies_install_scripts_except_for_the_exact_allowlisted_artifact()
+    {
+        // Arrange
+        var denyList = new DenyList { DenyInstallScripts = true };
+        denyList.InstallScriptAllowList.Add(new InstallScriptException(
+            "with-scripts",
+            "1.2.3",
+            "sha512-reviewed",
+            null));
+        PackageInfo package = CreatePackage("with-scripts", "1.2.3");
+        package.HasInstallScripts = true;
+        package.PackageIntegrity = "sha512-reviewed";
+
+        // Act & Assert
+        denyList.EvaluateDeny(package).IsMatch.Should().BeFalse();
+
+        package.PackageIntegrity = "sha512-different";
+        denyList.EvaluateDeny(package).IsMatch.Should().BeTrue();
+
+        package.Version = "1.2.4";
+        package.PackageIntegrity = "sha512-reviewed";
+        denyList.EvaluateDeny(package).IsMatch.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public void Matches_a_resolved_exception_only_against_the_artifact_url_from_the_lockfile()
+    {
+        // Arrange
+        const string url = "https://registry.npmjs.org/with-scripts/-/with-scripts-1.2.3.tgz";
+        var denyList = new DenyList { DenyInstallScripts = true };
+        denyList.InstallScriptAllowList.Add(new InstallScriptException("with-scripts", "1.2.3", null, url));
+        PackageInfo package = CreatePackage("with-scripts", "1.2.3");
+        package.HasInstallScripts = true;
+        package.SourceUrl = url;
+
+        // Act & Assert
+        denyList.EvaluateDeny(package).IsMatch.Should().BeTrue("a synthesized source URL is not artifact evidence");
+
+        package.ArtifactUrl = url;
+        denyList.EvaluateDeny(package).IsMatch.Should().BeFalse();
+    }
+
+    [TestMethod]
+    public void Does_not_apply_an_artifact_exception_to_a_package_with_conflicting_artifacts()
+    {
+        // Arrange
+        var denyList = new DenyList { DenyInstallScripts = true };
+        denyList.InstallScriptAllowList.Add(new InstallScriptException("with-scripts", "1.2.3", "sha512-reviewed", null));
+        PackageInfo package = CreatePackage("with-scripts", "1.2.3");
+        package.HasInstallScripts = true;
+        package.PackageIntegrity = "sha512-reviewed";
+        package.HasConflictingArtifacts = true;
+
+        // Act & Assert
+        denyList.EvaluateDeny(package).IsMatch.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public void Does_not_deny_a_package_when_its_install_script_status_is_unknown()
+    {
+        var denyList = new DenyList { DenyInstallScripts = true };
+
+        denyList.EvaluateDeny(CreatePackage()).IsMatch.Should().BeFalse();
+    }
+
+    [TestMethod]
     public void EvaluateAllow_and_Allows_agree_on_the_outcome()
     {
         // Arrange

@@ -110,6 +110,11 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         target.DenyList.DenyUnsigned = source.DenyList.DenyUnsigned;
         target.DenyList.DenyDeprecated = source.DenyList.DenyDeprecated;
         target.DenyList.DenyWithoutRepository = source.DenyList.DenyWithoutRepository;
+        if (source.DenyList.DenyInstallScripts is { } denyInstallScripts)
+        {
+            target.DenyList.DenyInstallScripts = denyInstallScripts;
+        }
+        target.DenyList.InstallScriptAllowList.AddRange(source.DenyList.InstallScriptAllowList);
         foreach ((string ecosystem, int minAgeDays) in source.DenyList.MinPackageAgeDays)
         {
             target.DenyList.MinPackageAgeDays[ecosystem] = minAgeDays;
@@ -290,6 +295,24 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         policy.DenyList.DenyUnsigned = settings.Deny.DenyUnsigned;
         policy.DenyList.DenyDeprecated = settings.Deny.DenyDeprecated;
         policy.DenyList.DenyWithoutRepository = settings.Deny.DenyWithoutRepository;
+        policy.DenyList.DenyInstallScripts = settings.Deny.DenyInstallScripts;
+        foreach (PolicySettings.InstallScriptAllowListItem exception in settings.Deny.InstallScriptAllowList)
+        {
+            if (string.IsNullOrWhiteSpace(exception.Package) ||
+                string.IsNullOrWhiteSpace(exception.Version) ||
+                (string.IsNullOrWhiteSpace(exception.Integrity) == string.IsNullOrWhiteSpace(exception.Resolved)))
+            {
+                throw new InvalidDataException(
+                    "Every installScriptAllowList entry needs a package, an exact version, and exactly one of integrity or resolved");
+            }
+
+            policy.DenyList.InstallScriptAllowList.Add(new InstallScriptException(
+                exception.Package,
+                exception.Version,
+                exception.Integrity,
+                exception.Resolved));
+        }
+
         foreach ((string ecosystem, int minAgeDays) in settings.Deny.MinPackageAgeDays)
         {
             policy.DenyList.MinPackageAgeDays[ecosystem] = minAgeDays;

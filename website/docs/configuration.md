@@ -35,6 +35,14 @@ A configuration file looks like this:
           "packages": [
             "ProhibitedPackage",
             "Legacy.*"
+          ],
+          "denyInstallScripts": true,
+          "installScriptAllowList": [
+            {
+              "package": "native-addon",
+              "version": "1.2.3",
+              "integrity": "sha512-value-from-lockfile"
+            }
           ]
         },
         "ignoredFeeds": [
@@ -50,8 +58,13 @@ This example does the following:
 - It always allows packages whose ID starts with `Microsoft.Extensions.`, and packages that come from a feed on `dev.azure.com`.
 - It only allows `MyPackage` in version 7.
 - It denies `ProhibitedPackage`, every package whose ID starts with `Legacy.`, and all pre-release versions (such as `1.0.2-beta.2`).
+- It denies npm packages that run install scripts, except for the exact `native-addon@1.2.3` artifact identified by its lockfile integrity.
 
 Both the `allow` and `deny` sections support the `licenses` and `packages` properties.
+
+`denyInstallScripts` denies npm packages whose locked versions are known to run `preinstall`, `install` or `postinstall` scripts. It applies during regular analysis and does not require `--report-risk`. Registry metadata provides the command shown in reports. npm and pnpm lockfile markers can also confirm that scripts are present.
+
+Use `installScriptAllowList` only for an artifact you have reviewed. Each entry needs the exact package name, version and one artifact identity: `integrity` or `resolved`. Copy that identity from the lockfile. A package name alone is not enough because a later version may be compromised. If PackageGuard cannot verify a package's script status, it does not treat the package as clean or deny it solely because the status is unknown; registry lookup failures are logged.
 
 :::warning
 Deny rules always take precedence over allow rules. A package that matches the `deny` section is blocked, whatever the `allow` section says.

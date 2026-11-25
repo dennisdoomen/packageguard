@@ -18,7 +18,7 @@ public abstract class PackagePolicy
     /// <summary>
     /// Checks if there are any policies defined either in Packages or Licenses.
     /// </summary>
-    internal bool HasPolicies => Packages.Any() || Licenses.Any();
+    internal virtual bool HasPolicies => Packages.Any() || Licenses.Any();
 
     /// <summary>
     /// Names the configuration file a rule came from in a resolution hint. Configuration files are hierarchical, so

@@ -73,7 +73,28 @@ public class PolicySettings
         public bool DenyWithoutRepository { get; set; }
 
         [UsedImplicitly]
+        public bool? DenyInstallScripts { get; set; }
+
+        [UsedImplicitly]
+        public InstallScriptAllowListItem[] InstallScriptAllowList { get; set; } = [];
+
+        [UsedImplicitly]
         public Dictionary<string, int> MinPackageAgeDays { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    }
+
+    public class InstallScriptAllowListItem
+    {
+        [UsedImplicitly]
+        public string? Package { get; set; }
+
+        [UsedImplicitly]
+        public string? Version { get; set; }
+
+        [UsedImplicitly]
+        public string? Integrity { get; set; }
+
+        [UsedImplicitly]
+        public string? Resolved { get; set; }
     }
 
     public class WarnPolicyItem : PolicyItem

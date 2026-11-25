@@ -14,6 +14,20 @@ public class DenyList : PackagePolicy
         "Upgrade to a version without these vulnerabilities, or add them to the vulnerabilityExceptions section of your config";
 
     /// <summary>
+    /// Gets or sets whether to deny npm packages that run install lifecycle scripts. A null value means the setting
+    /// is not defined in this configuration and should inherit from the parent configuration.
+    /// </summary>
+    internal bool? DenyInstallScripts { get; set; }
+
+    /// <summary>
+    /// Gets the exact npm package artifacts that are allowed to run install lifecycle scripts.
+    /// </summary>
+    internal List<InstallScriptException> InstallScriptAllowList { get; } = [];
+
+    /// <inheritdoc/>
+    internal override bool HasPolicies => base.HasPolicies || DenyInstallScripts is true;
+
+    /// <summary>
     /// Gets or sets a value indicating whether to deny all prerelease packages regardless of package name.
     /// </summary>
     public bool Prerelease { get; set; }
@@ -128,6 +142,18 @@ public class DenyList : PackagePolicy
                                  $"section of {DescribeConfigurationFile(selector.SourceFile)}"
                 };
             }
+        }
+
+        if (DenyInstallScripts is true && package.HasInstallScripts is true &&
+            !InstallScriptAllowList.Any(exception => exception.Matches(package)))
+        {
+            return new PolicyDecision
+            {
+                IsMatch = true,
+                Reason = "runs npm install lifecycle scripts",
+                Resolution = "Use a package without install scripts, or add this exact package version and artifact to " +
+                             "installScriptAllowList"
+            };
         }
 
         return new PolicyDecision
