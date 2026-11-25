@@ -85,7 +85,16 @@ public partial class PackageInfo
     /// <summary>
     /// Gets or sets when the cached metadata for this package was last refreshed.
     /// </summary>
+    [MemoryPackIgnore]
     public DateTimeOffset? CacheUpdatedAt { get; set; }
+
+    // Keep serialized timestamps in their original positions and use the .NET-compatible layout on both runtimes.
+    [MemoryPackInclude]
+    private Net10DateTimeOffset? SerializedCacheUpdatedAt
+    {
+        get => CacheUpdatedAt;
+        set => CacheUpdatedAt = value;
+    }
 
     /// <summary>
     /// Gets or sets the overall risk score for this package on a 0-100 scale.
@@ -234,7 +243,15 @@ public partial class PackageInfo
     /// Gets or sets when the analyzed package version was published upstream.
     /// For NuGet this comes from package search metadata; for npm it comes from the registry <c>time</c> map.
     /// </summary>
+    [MemoryPackIgnore]
     public DateTimeOffset? PublishedAt { get; set; }
+
+    [MemoryPackInclude]
+    private Net10DateTimeOffset? SerializedPublishedAt
+    {
+        get => PublishedAt;
+        set => PublishedAt = value;
+    }
 
     /// <summary>
     /// Gets or sets the ecosystem download count reported for this package.
@@ -251,7 +268,15 @@ public partial class PackageInfo
     /// <summary>
     /// Gets or sets when the GitHub repository owner account was created, as reported by the GitHub API.
     /// </summary>
+    [MemoryPackIgnore]
     public DateTimeOffset? OwnerCreatedAt { get; set; }
+
+    [MemoryPackInclude]
+    private Net10DateTimeOffset? SerializedOwnerCreatedAt
+    {
+        get => OwnerCreatedAt;
+        set => OwnerCreatedAt = value;
+    }
 
     /// <summary>
     /// Gets or sets the number of non-bot contributors returned by the GitHub contributors API.
@@ -294,7 +319,15 @@ public partial class PackageInfo
     /// <summary>
     /// Gets or sets the date of the latest default-branch commit touching the README file.
     /// </summary>
+    [MemoryPackIgnore]
     public DateTimeOffset? ReadmeUpdatedAt { get; set; }
+
+    [MemoryPackInclude]
+    private Net10DateTimeOffset? SerializedReadmeUpdatedAt
+    {
+        get => ReadmeUpdatedAt;
+        set => ReadmeUpdatedAt = value;
+    }
 
     /// <summary>
     /// Gets or sets whether the repository root contains a contributing guide such as <c>CONTRIBUTING.md</c>.
@@ -331,7 +364,15 @@ public partial class PackageInfo
     /// <summary>
     /// Gets or sets the date of the latest default-branch commit touching the changelog file.
     /// </summary>
+    [MemoryPackIgnore]
     public DateTimeOffset? ChangelogUpdatedAt { get; set; }
+
+    [MemoryPackInclude]
+    private Net10DateTimeOffset? SerializedChangelogUpdatedAt
+    {
+        get => ChangelogUpdatedAt;
+        set => ChangelogUpdatedAt = value;
+    }
 
     /// <summary>
     /// Gets or sets the number of open GitHub issues labeled <c>bug</c>, excluding pull requests.
@@ -426,7 +467,15 @@ public partial class PackageInfo
     /// <summary>
     /// Gets or sets when <see cref="LatestStableVersion"/> was published upstream.
     /// </summary>
+    [MemoryPackIgnore]
     public DateTimeOffset? LatestStablePublishedAt { get; set; }
+
+    [MemoryPackInclude]
+    private Net10DateTimeOffset? SerializedLatestStablePublishedAt
+    {
+        get => LatestStablePublishedAt;
+        set => LatestStablePublishedAt = value;
+    }
 
     /// <summary>
     /// Gets or sets how far this version trails the latest stable release in publication time.

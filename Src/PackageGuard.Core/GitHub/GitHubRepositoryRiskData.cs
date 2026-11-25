@@ -13,7 +13,16 @@ internal sealed partial class GitHubRepositoryRiskData
     public bool OwnerIsOrganization { get; init; }
 
     /// <summary>The date the repository owner account was created.</summary>
+    [MemoryPackIgnore]
     public DateTimeOffset? OwnerCreatedAt { get; init; }
+
+    // Keep serialized timestamps in their original positions and use the .NET-compatible layout on both runtimes.
+    [MemoryPackInclude]
+    private Net10DateTimeOffset? SerializedOwnerCreatedAt
+    {
+        get => OwnerCreatedAt;
+        init => OwnerCreatedAt = value;
+    }
 
     /// <summary>The total number of non-bot contributors.</summary>
     public int? ContributorCount { get; init; }
@@ -34,7 +43,15 @@ internal sealed partial class GitHubRepositoryRiskData
     public bool? HasDefaultReadme { get; init; }
 
     /// <summary>The date of the most recent commit that touched the README file.</summary>
+    [MemoryPackIgnore]
     public DateTimeOffset? ReadmeUpdatedAt { get; init; }
+
+    [MemoryPackInclude]
+    private Net10DateTimeOffset? SerializedReadmeUpdatedAt
+    {
+        get => ReadmeUpdatedAt;
+        init => ReadmeUpdatedAt = value;
+    }
 
     /// <summary>Indicates whether the repository has a CONTRIBUTING.md file.</summary>
     public bool? HasContributingGuide { get; init; }
@@ -55,7 +72,15 @@ internal sealed partial class GitHubRepositoryRiskData
     public bool? HasDefaultChangelog { get; init; }
 
     /// <summary>The date of the most recent commit that touched the CHANGELOG file.</summary>
+    [MemoryPackIgnore]
     public DateTimeOffset? ChangelogUpdatedAt { get; init; }
+
+    [MemoryPackInclude]
+    private Net10DateTimeOffset? SerializedChangelogUpdatedAt
+    {
+        get => ChangelogUpdatedAt;
+        init => ChangelogUpdatedAt = value;
+    }
 
     /// <summary>The number of currently open bug issues.</summary>
     public int OpenBugIssueCount { get; init; }
@@ -166,5 +191,13 @@ internal sealed partial class GitHubRepositoryRiskData
     public double? MedianMaintainerActivityDays { get; init; }
 
     /// <summary>The publication date of the most recent release.</summary>
+    [MemoryPackIgnore]
     public DateTimeOffset? LastReleaseAt { get; init; }
+
+    [MemoryPackInclude]
+    private Net10DateTimeOffset? SerializedLastReleaseAt
+    {
+        get => LastReleaseAt;
+        init => LastReleaseAt = value;
+    }
 }

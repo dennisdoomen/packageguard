@@ -181,7 +181,9 @@ namespace PackageGuard.Core.Package
         public int? AbandonedTransitiveDependencyCount { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public string[] AbandonedTransitiveDependencyDetails { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public System.DateTimeOffset? CacheUpdatedAt { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public System.DateTimeOffset? ChangelogUpdatedAt { get; set; }
         public int? ClosedBugIssueCountLast90Days { get; set; }
         public int? ContributorCount { get; set; }
@@ -240,6 +242,7 @@ namespace PackageGuard.Core.Package
         public double? IssueTriageWithinSevenDaysRate { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public string[] KnownExploitedCveIds { get; }
+        [MemoryPack.MemoryPackIgnore]
         public System.DateTimeOffset? LatestStablePublishedAt { get; set; }
         public string? LatestStableVersion { get; set; }
         public string? License { get; set; }
@@ -261,13 +264,16 @@ namespace PackageGuard.Core.Package
         public string Name { get; set; }
         public int? OpenBugIssueCount { get; set; }
         public double? OpenSsfScore { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public System.DateTimeOffset? OwnerCreatedAt { get; set; }
         public bool OwnerIsOrganization { get; set; }
         public double? PrereleaseRatio { get; set; }
         [MemoryPack.MemoryPackIgnore]
         public string[] Projects { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public System.DateTimeOffset? PublishedAt { get; set; }
         public int? RapidReleaseCorrectionCount { get; set; }
+        [MemoryPack.MemoryPackIgnore]
         public System.DateTimeOffset? ReadmeUpdatedAt { get; set; }
         public int? RecentFailedWorkflowCount { get; set; }
         public int? RecentMaintainerCount { get; set; }
