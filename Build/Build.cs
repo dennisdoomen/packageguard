@@ -165,14 +165,14 @@ class Build : FalloutBuild
                 .EnableNoBuild()
                 .EnableNoRestore();
 
-            Information("Running PackageGuard without explicit config path:");
-            DotNetRun(configurator);
-
             Information("Running PackageGuard with explicit config path and risk reporting:");
             DotNetRun(s => configurator(s)
                 .SetProcessEnvironmentVariable(PackageGuardReportDirectoryEnvironmentVariable, reportDirectory)
                 .AddApplicationArguments("--report-risk")
                 .AddApplicationArguments($"--configpath={RootDirectory / ".packageguard" / "config.json"}"));
+
+            Information("Running PackageGuard without explicit config path:");
+            DotNetRun(configurator);
 
             AbsolutePath sbomFile = reportDirectory / "packageguard.cyclonedx.json";
 
