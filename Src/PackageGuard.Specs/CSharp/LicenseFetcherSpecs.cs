@@ -1,8 +1,10 @@
 using System;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Meziantou.Extensions.Logging.InMemory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
@@ -16,6 +18,24 @@ namespace PackageGuard.Specs;
 public class LicenseFetcherSpecs
 {
     private readonly string gitHubApiKey = Environment.GetEnvironmentVariable("GITHUB_API_KEY");
+
+    [TestMethod]
+    [DataRow("test-token", 1)]
+    [DataRow(null, 0)]
+    public async Task Reports_a_configured_github_api_key_only_once(string apiKey, int expectedCount)
+    {
+        // Arrange
+        var loggingProvider = new InMemoryLoggerProvider();
+        var fetcher = new LicenseFetcher(loggingProvider.CreateLogger(""), apiKey, [new FixedLicenseFetcher("MIT")]);
+
+        // Act
+        await fetcher.AmendWithMissingLicenseInformation(new PackageInfo { Name = "First", Version = "1.0" });
+        await fetcher.AmendWithMissingLicenseInformation(new PackageInfo { Name = "Second", Version = "1.0" });
+
+        // Assert
+        loggingProvider.Logs.Where(log => log.Message == "GitHub API key configured").Should().HaveCount(expectedCount);
+        loggingProvider.Logs.Should().NotContain(log => log.Message.Contains("test-token"));
+    }
 
     [TestMethod]
     public async Task Nothing_needs_to_be_done_for_a_package_that_already_has_a_license()

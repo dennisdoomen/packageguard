@@ -8,18 +8,36 @@ namespace PackageGuard.Core.CSharp;
 /// <summary>
 /// Responsible for fetching and amending missing license information for a package.
 /// </summary>
-public sealed class LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
+public sealed class LicenseFetcher
 {
+    private readonly ILogger logger;
+
     /// <summary>
     /// Ordered list of license-fetching strategies tried in sequence until one succeeds.
     /// </summary>
-    private readonly IReadOnlyList<IFetchLicense> fetchers =
+    private readonly IReadOnlyList<IFetchLicense> fetchers;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="LicenseFetcher"/> class.
+    /// </summary>
+    /// <param name="logger">The logger to report license fetch results to.</param>
+    /// <param name="gitHubApiKey">The GitHub API key to use for license lookups, if any.</param>
+    public LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
+    {
+        this.logger = logger;
+        fetchers =
         [
             new WellKnownLicenseUrlFetcher(),
             new CorrectMisbehavingPackagesFetcher(),
             new GitHubLicenseFetcher(logger, gitHubApiKey),
             new UrlLicenseFetcher(logger)
         ];
+
+        if (gitHubApiKey is not null)
+        {
+            logger.LogInformation("GitHub API key configured");
+        }
+    }
 
     /// <summary>
     /// Test-only constructor that accepts an explicit set of license fetcher strategies.
@@ -35,8 +53,6 @@ public sealed class LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
     /// </summary>
     public async Task AmendWithMissingLicenseInformation(PackageInfo package)
     {
-        LogFetchConfiguration();
-
         if (package.License is null)
         {
             foreach (IFetchLicense fetcher in fetchers)
@@ -49,17 +65,6 @@ public sealed class LicenseFetcher(ILogger logger, string? gitHubApiKey = null)
         }
 
         LogFetchResult(package);
-    }
-
-    /// <summary>
-    /// Logs whether a GitHub API key is configured before attempting to fetch the license.
-    /// </summary>
-    private void LogFetchConfiguration()
-    {
-        if (gitHubApiKey is not null)
-        {
-            logger.LogInformation("Using GitHub API key");
-        }
     }
 
     /// <summary>
