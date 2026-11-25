@@ -13,6 +13,10 @@ internal sealed class GitHubIssueCollector
     /// request, and a median over this many issues is as informative as one over a hundred.
     /// </summary>
     internal const int IssueResponseSampleSize = 20;
+
+    /// <summary>
+    /// The minimum number of sampled issues or responses needed to score a rate or median.
+    /// </summary>
     internal const int MinimumIssueRateSampleSize = 5;
 
     /// <summary>
@@ -24,6 +28,13 @@ internal sealed class GitHubIssueCollector
     /// The number of recently closed bug issues whose timeline is read to spot reopenings.
     /// </summary>
     internal const int ReopenedIssueSampleSize = 20;
+
+    /// <summary>
+    /// Limits optional comment and timeline requests for unusually active issues.
+    /// </summary>
+    private const int IssueEventPageLimit = 10;
+
+    private const int IssueEventPageSize = 100;
 
     private readonly GitHubApiClient apiClient;
 
@@ -54,10 +65,10 @@ internal sealed class GitHubIssueCollector
 
         DateTimeOffset now = DateTimeOffset.UtcNow;
         GitHubIssueSnapshot[] openIssues = ReadOpenIssues(issuesDoc.RootElement, now);
-        GitHubIssueResponsiveness responsiveness = await MeasureIssueResponsivenessAsync(openIssues);
+        GitHubIssueResponsiveness responsiveness = await MeasureIssueResponsiveness(openIssues);
 
-        GitHubClosedIssueSnapshot[]? closedIssues = await GetClosedBugIssuesAsync(repository);
-        int? reopenedBugCount = closedIssues is null ? null : await CountReopenedIssuesAsync(repository,
+        GitHubClosedIssueSnapshot[]? closedIssues = await FindClosedBugIssues(repository);
+        int? reopenedBugCount = closedIssues is null ? null : await CountReopenedIssues(repository,
             closedIssues.Take(ReopenedIssueSampleSize).ToArray());
 
         return new GitHubIssueData
@@ -160,9 +171,9 @@ internal sealed class GitHubIssueCollector
 
     /// <summary>
     /// Measures how quickly maintainers respond, from the comments on a bounded sample of the open bug issues. Reading
-    /// the comments costs one request per issue, so the sample is capped; the rates are relative to the sample.
+    /// the comments can take several requests per issue, so the sample is capped; the rates are relative to the sample.
     /// </summary>
-    private async Task<GitHubIssueResponsiveness> MeasureIssueResponsivenessAsync(GitHubIssueSnapshot[] openIssues)
+    private async Task<GitHubIssueResponsiveness> MeasureIssueResponsiveness(GitHubIssueSnapshot[] openIssues)
     {
         GitHubIssueSnapshot[] sample = openIssues.Take(IssueResponseSampleSize).ToArray();
         if (sample.Length == 0)
@@ -171,7 +182,7 @@ internal sealed class GitHubIssueCollector
         }
 
         GitHubIssueResponseData[] responses =
-            await Task.WhenAll(sample.Select(TryGetIssueResponseDataAsync));
+            await Task.WhenAll(sample.Select(FindIssueResponseData));
 
         return BuildResponsiveness(sample, responses);
     }
@@ -216,7 +227,7 @@ internal sealed class GitHubIssueCollector
     /// Fetches the first maintainer comment on an issue to compute response time. This only refines a signal, so the
     /// request is dropped once the rate limit budget runs low.
     /// </summary>
-    private async Task<GitHubIssueResponseData> TryGetIssueResponseDataAsync(GitHubIssueSnapshot issue)
+    private async Task<GitHubIssueResponseData> FindIssueResponseData(GitHubIssueSnapshot issue)
     {
         if (string.IsNullOrWhiteSpace(issue.CommentsUrl))
         {
@@ -226,34 +237,31 @@ internal sealed class GitHubIssueCollector
 
         try
         {
-            using JsonDocument? commentsDoc = await apiClient.GetJsonAsync(issue.CommentsUrl,
-                GitHubRequestImportance.Optional, GitHubResponseFields.Of("author_association", "created_at"));
-            if (commentsDoc is null)
+            (bool isComplete, JsonElement? comment) = await FindIssueEvent(issue.CommentsUrl,
+                GitHubResponseFields.Of("author_association", "created_at"), IsMaintainerComment);
+
+            if (!isComplete)
             {
                 return new GitHubIssueResponseData { IsKnown = false };
             }
 
-            if (commentsDoc.RootElement.ValueKind != JsonValueKind.Array)
+            if (comment is null)
+            {
+                return new GitHubIssueResponseData();
+            }
+
+            DateTimeOffset? createdAt = TryReadDate(comment.Value, "created_at");
+            if (createdAt is null)
             {
                 GitHubRequestFailureScope.ReportFailure();
                 return new GitHubIssueResponseData { IsKnown = false };
             }
 
-            DateTimeOffset? firstMaintainerComment = commentsDoc.RootElement.EnumerateArray()
-                .Where(comment => comment.TryGetProperty("author_association", out JsonElement associationElement) &&
-                                  GitHubIdentity.IsMaintainerAssociation(associationElement.GetString()))
-                .Select(comment => TryReadDate(comment, "created_at"))
-                .Where(date => date.HasValue)
-                .OrderBy(date => date)
-                .FirstOrDefault();
-
-            return firstMaintainerComment != null
-                ? new GitHubIssueResponseData
-                {
-                    HasMaintainerResponse = true,
-                    ResponseDays = (firstMaintainerComment.Value - issue.CreatedAt).TotalDays
-                }
-                : new GitHubIssueResponseData();
+            return new GitHubIssueResponseData
+            {
+                HasMaintainerResponse = true,
+                ResponseDays = (createdAt.Value - issue.CreatedAt).TotalDays
+            };
         }
         catch
         {
@@ -268,7 +276,7 @@ internal sealed class GitHubIssueCollector
     /// same reason as <see cref="GitHubCommitHealthCollector.CollectAsync"/>. An issue closed in the last 90 days was
     /// also updated in that period, so the most recently updated issues contain the same matches.
     /// </remarks>
-    private async Task<GitHubClosedIssueSnapshot[]?> GetClosedBugIssuesAsync(GitHubRepositoryContext repository)
+    private async Task<GitHubClosedIssueSnapshot[]?> FindClosedBugIssues(GitHubRepositoryContext repository)
     {
         try
         {
@@ -306,7 +314,7 @@ internal sealed class GitHubIssueCollector
     }
 
     /// <summary>Counts how many of the given closed issues were subsequently reopened.</summary>
-    private async Task<int?> CountReopenedIssuesAsync(GitHubRepositoryContext repository,
+    private async Task<int?> CountReopenedIssues(GitHubRepositoryContext repository,
         GitHubClosedIssueSnapshot[] closedIssues)
     {
         if (closedIssues.Length == 0)
@@ -320,7 +328,7 @@ internal sealed class GitHubIssueCollector
             await throttler.WaitAsync();
             try
             {
-                return await WasReopenedAsync(repository, issue);
+                return await WasReopened(repository, issue);
             }
             catch
             {
@@ -341,29 +349,76 @@ internal sealed class GitHubIssueCollector
     /// Reads the timeline of a closed issue to tell whether it was reopened. This only refines a signal, so the
     /// request is dropped once the rate limit budget runs low.
     /// </summary>
-    private async Task<bool?> WasReopenedAsync(GitHubRepositoryContext repository, GitHubClosedIssueSnapshot issue)
+    private async Task<bool?> WasReopened(GitHubRepositoryContext repository, GitHubClosedIssueSnapshot issue)
     {
-        using JsonDocument? eventsDoc = await apiClient.GetJsonAsync(
-            $"{repository.ApiRoot}/issues/{issue.Number}/timeline?per_page=100",
-            GitHubRequestImportance.Optional,
-            GitHubResponseFields.Of("event"));
+        (bool isComplete, JsonElement? match) = await FindIssueEvent(
+            $"{repository.ApiRoot}/issues/{issue.Number}/timeline", GitHubResponseFields.Of("event"),
+            eventItem => TryReadString(eventItem, "event") is string eventName
+                ? string.Equals(eventName, "reopened", StringComparison.OrdinalIgnoreCase)
+                : null);
 
-        if (eventsDoc is null)
-        {
-            return null;
-        }
-
-        if (eventsDoc.RootElement.ValueKind != JsonValueKind.Array)
-        {
-            GitHubRequestFailureScope.ReportFailure();
-            return null;
-        }
-
-        return eventsDoc.RootElement.EnumerateArray().Any(eventItem =>
-                   string.Equals(
-                       eventItem.TryGetProperty("event", out JsonElement eventElement) ? eventElement.GetString() : null,
-                       "reopened", StringComparison.OrdinalIgnoreCase));
+        return isComplete ? match is not null : null;
     }
+
+    /// <summary>
+    /// Finds the first matching event in GitHub's oldest-first pages, or leaves the result unknown if pages cannot be read.
+    /// </summary>
+    private async Task<(bool IsComplete, JsonElement? Match)> FindIssueEvent(string url, GitHubResponseFields fields,
+        Func<JsonElement, bool?> matches)
+    {
+        string separator = url.Contains('?') ? "&" : "?";
+        for (int page = 1; page <= IssueEventPageLimit; page++)
+        {
+            using JsonDocument? document = await apiClient.GetJsonAsync(
+                $"{url}{separator}per_page={IssueEventPageSize}&page={page}", GitHubRequestImportance.Optional, fields);
+
+            if (document is null)
+            {
+                return (false, null);
+            }
+
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                GitHubRequestFailureScope.ReportFailure();
+                return (false, null);
+            }
+
+            JsonElement events = document.RootElement;
+            foreach (JsonElement item in events.EnumerateArray())
+            {
+                if (item.ValueKind != JsonValueKind.Object)
+                {
+                    GitHubRequestFailureScope.ReportFailure();
+                    return (false, null);
+                }
+
+                bool? isMatch = matches(item);
+                if (isMatch is null)
+                {
+                    GitHubRequestFailureScope.ReportFailure();
+                    return (false, null);
+                }
+
+                if (isMatch.Value)
+                {
+                    return (true, item.Clone());
+                }
+            }
+
+            if (events.GetArrayLength() < IssueEventPageSize)
+            {
+                return (true, null);
+            }
+        }
+
+        GitHubRequestFailureScope.ReportFailure();
+        return (false, null);
+    }
+
+    private static bool? IsMaintainerComment(JsonElement comment) =>
+        TryReadString(comment, "author_association") is string association
+            ? GitHubIdentity.IsMaintainerAssociation(association)
+            : null;
 
     /// <summary>Returns true if the issue label name indicates critical severity or a security issue.</summary>
     private static bool IsCriticalLabel(JsonElement label) => IsCriticalLabelName(

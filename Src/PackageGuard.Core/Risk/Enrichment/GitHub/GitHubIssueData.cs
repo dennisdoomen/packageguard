@@ -6,7 +6,9 @@ internal sealed class GitHubIssueData
     /// <summary>The number of currently open bug issues.</summary>
     public int? OpenBugIssueCount { get; init; }
 
-    /// <summary>The number of critical bug issues open for more than six months.</summary>
+    /// <summary>
+    /// The number of bugs open for more than six months with a label containing critical, security, or sev1.
+    /// </summary>
     public int? StaleCriticalBugIssueCount { get; init; }
 
     /// <summary>The median number of days until a maintainer first responds to an open bug issue.</summary>

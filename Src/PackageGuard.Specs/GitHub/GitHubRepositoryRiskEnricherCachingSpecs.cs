@@ -2,6 +2,7 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 using FluentAssertions;
+using MemoryPack;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core.GitHub;
@@ -118,6 +119,69 @@ public class GitHubRepositoryRiskEnricherCachingSpecs
         package.IssueResponseCoverage.Should().BeNull();
 
         repositoryCache.TryGet("https://api.github.com/repos/acme/widget", out _).Should().BeTrue();
+    }
+
+    [TestMethod]
+    public async Task Refreshes_legacy_package_signals_and_clears_them_when_the_repository_is_unavailable()
+    {
+        var oldPackage = CreatePackage("Acme.Widget");
+        oldPackage.HasGitHubRiskData = true;
+        oldPackage.HasTestSignal = false;
+        oldPackage.WorkflowPlatformCount = 0;
+        oldPackage.OpenBugIssueCount = 0;
+        oldPackage.HasReadme = false;
+        oldPackage.HasVerifiedReleaseSignature = false;
+        oldPackage.HasOsvRiskData = true;
+
+        byte[] serialized = MemoryPackSerializer.Serialize(oldPackage);
+        byte[] legacyBytes = serialized[..^sizeof(int)];
+        legacyBytes[0]--;
+        PackageInfo package = MemoryPackSerializer.Deserialize<PackageInfo>(legacyBytes);
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(ScriptedResponse.NotFound);
+        using var client = new GitHubApiClient(NullLogger.Instance, null, null, handler);
+        var enricher = new GitHubRepositoryRiskEnricher(NullLogger.Instance, client);
+
+        enricher.HasCachedData(package).Should().BeFalse();
+        await enricher.EnrichAsync(package);
+
+        package.HasGitHubRiskData.Should().BeFalse();
+        package.HasTestSignal.Should().BeNull();
+        package.WorkflowPlatformCount.Should().BeNull();
+        package.OpenBugIssueCount.Should().BeNull();
+        package.HasReadme.Should().BeNull();
+        package.HasVerifiedReleaseSignature.Should().BeNull();
+        package.HasOsvRiskData.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public async Task Reuses_current_package_signals_after_serialization()
+    {
+        var handler = new ScriptedHttpMessageHandler((request, _) => FakeGitHub.Respond(request));
+        using var client = new GitHubApiClient(NullLogger.Instance, null, null, handler);
+        var enricher = new GitHubRepositoryRiskEnricher(NullLogger.Instance, client);
+        PackageInfo package = CreatePackage("Acme.Widget");
+        await enricher.EnrichAsync(package);
+
+        PackageInfo reloaded = MemoryPackSerializer.Deserialize<PackageInfo>(MemoryPackSerializer.Serialize(package));
+
+        enricher.HasCachedData(reloaded).Should().BeTrue();
+    }
+
+    [TestMethod]
+    public async Task Clears_current_signals_after_package_metadata_is_invalidated()
+    {
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(ScriptedResponse.NotFound);
+        using var client = new GitHubApiClient(NullLogger.Instance, null, null, handler);
+        var enricher = new GitHubRepositoryRiskEnricher(NullLogger.Instance, client);
+        PackageInfo package = CreatePackage("Acme.Widget");
+        package.GitHubRiskDataVersion = GitHubRepositoryRiskCache.CurrentRiskDataVersion;
+        package.HasGitHubRiskData = true;
+        package.HasReadme = false;
+        package.InvalidateCachedMetadata();
+
+        await enricher.EnrichAsync(package);
+
+        package.HasReadme.Should().BeNull();
     }
 
     /// <summary>

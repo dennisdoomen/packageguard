@@ -1,7 +1,9 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Threading.Tasks;
 using FluentAssertions;
+using MemoryPack;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core.GitHub;
@@ -85,6 +87,44 @@ public class GitHubRepositoryRiskCacheSpecs
     }
 
     [TestMethod]
+    public async Task Does_not_reuse_a_profile_written_before_signal_versioning()
+    {
+        string cachePath = CreateCachePath();
+        string directory = Path.GetDirectoryName(cachePath)!;
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            var oldEntry = new LegacyRepositoryRiskCacheEntry
+            {
+                RepositoryApiRoot = "https://api.github.com/repos/acme/widget",
+                Data = new GitHubRepositoryRiskData(),
+                StoredAt = DateTimeOffset.UtcNow
+            };
+            byte[] bytes = MemoryPackSerializer.Serialize(new[] { oldEntry });
+            GitHubRepositoryRiskCacheEntry[] deserialized = MemoryPackSerializer.Deserialize<GitHubRepositoryRiskCacheEntry[]>(bytes);
+            deserialized.Should().ContainSingle()
+                .Which.RepositoryApiRoot.Should().Be(oldEntry.RepositoryApiRoot);
+            deserialized[0].RiskDataVersion.Should().Be(0);
+
+            await using (var file = File.Create(Path.Combine(directory, "github-repositories.bin")))
+            await using (var compressor = new BrotliStream(file, CompressionLevel.Fastest))
+            {
+                await compressor.WriteAsync(bytes);
+            }
+
+            var cache = new GitHubRepositoryRiskCache(NullLogger.Instance);
+            await cache.LoadAsync(cachePath);
+
+            cache.TryGet(oldEntry.RepositoryApiRoot, out _).Should().BeFalse();
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [TestMethod]
     public async Task Describes_a_repository_once_however_many_packages_come_out_of_it()
     {
         // Arrange
@@ -157,4 +197,14 @@ public class GitHubRepositoryRiskCacheSpecs
             Source = "NuGet",
             RepositoryUrl = "https://github.com/acme/widget"
         };
+}
+
+[MemoryPackable]
+internal sealed partial class LegacyRepositoryRiskCacheEntry
+{
+    public string RepositoryApiRoot { get; init; } = "";
+
+    public GitHubRepositoryRiskData Data { get; init; } = new();
+
+    public DateTimeOffset StoredAt { get; init; }
 }

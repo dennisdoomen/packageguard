@@ -40,7 +40,10 @@ internal sealed class GitHubActivityIssue
     /// <summary>The comments on the issue, oldest first.</summary>
     public IReadOnlyList<GitHubActivityComment> Comments { get; init; } = [];
 
-    /// <summary>Indicates whether all comments needed to establish the first response were returned.</summary>
+    /// <summary>
+    /// Indicates whether the query returned every comment, so an absent maintainer response can be confirmed.
+    /// A response in the returned oldest comments is sufficient even when later comments were omitted.
+    /// </summary>
     public bool AreCommentsComplete { get; init; }
 }
 

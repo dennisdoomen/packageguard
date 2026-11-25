@@ -17,6 +17,10 @@ internal sealed class GitHubWorkflowFileCollector
     /// saturate after a handful of files.
     /// </summary>
     private const int WorkflowFileSampleSize = 5;
+
+    /// <summary>
+    /// Limits total root and reusable workflows read per repository, including workflows reached through nested calls.
+    /// </summary>
     private const int ReusableWorkflowLimit = 20;
 
     private readonly GitHubApiClient apiClient;
@@ -39,12 +43,12 @@ internal sealed class GitHubWorkflowFileCollector
     public Task<Tracked<GitHubWorkflowFileSignals>> CollectAsync(GitHubRepositoryContext repository, string[] rootFiles)
     {
         return rootFiles.Contains(".github", StringComparer.OrdinalIgnoreCase)
-            ? GitHubRequestTracker.TrackAsync(() => ReadWorkflowFilesAsync(repository, rootFiles))
+            ? GitHubRequestTracker.TrackAsync(() => ReadWorkflowFiles(repository, rootFiles))
             : Task.FromResult(new Tracked<GitHubWorkflowFileSignals>(DetectSignals(string.Empty, string.Empty, rootFiles), true));
     }
 
     /// <summary>Downloads a sample of the workflow files and searches them for the signals.</summary>
-    private async Task<GitHubWorkflowFileSignals> ReadWorkflowFilesAsync(GitHubRepositoryContext repository,
+    private async Task<GitHubWorkflowFileSignals> ReadWorkflowFiles(GitHubRepositoryContext repository,
         string[] rootFiles)
     {
         try
@@ -81,7 +85,7 @@ internal sealed class GitHubWorkflowFileCollector
             var contents = new List<string>();
             foreach (string path in paths.Take(WorkflowFileSampleSize))
             {
-                await ReadWorkflowAsync(repository, path, visited, contents);
+                await ReadWorkflow(repository, path, visited, contents);
             }
 
             string combined = string.Join("\n", contents).ToLowerInvariant();
@@ -96,7 +100,7 @@ internal sealed class GitHubWorkflowFileCollector
         }
     }
 
-    private async Task ReadWorkflowAsync(GitHubRepositoryContext repository, string path,
+    private async Task ReadWorkflow(GitHubRepositoryContext repository, string path,
         HashSet<string> visited, List<string> contents)
     {
         string key = $"{repository.ApiRoot}/{path}@{repository.DefaultBranch}";
@@ -128,7 +132,7 @@ internal sealed class GitHubWorkflowFileCollector
             }
             else
             {
-                await ReadWorkflowAsync(target, targetPath, visited, contents);
+                await ReadWorkflow(target, targetPath, visited, contents);
             }
         }
     }

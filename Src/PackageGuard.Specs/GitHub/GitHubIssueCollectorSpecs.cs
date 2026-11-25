@@ -22,7 +22,7 @@ public class GitHubIssueCollectorSpecs
     public async Task Unavailable_comments_and_closed_issues_do_not_become_negative_results()
     {
         var handler = new ScriptedHttpMessageHandler((request, _) =>
-            request.RequestUri!.ToString().EndsWith("/comments", StringComparison.Ordinal) ||
+            request.RequestUri!.AbsolutePath.EndsWith("/comments", StringComparison.Ordinal) ||
             request.RequestUri.ToString().Contains("/issues?state=closed")
                 ? ScriptedResponse.NotFound()
                 : FakeGitHub.Respond(request, 5));
@@ -112,6 +112,138 @@ public class GitHubIssueCollectorSpecs
         result.IssueResponseCoverage.Should().BeNull();
         result.TriageWithinSevenDaysRate.Should().BeNull();
     }
+
+    [TestMethod]
+    public async Task Finds_the_first_maintainer_response_on_a_later_comment_page()
+    {
+        string firstPage = ManyEvents("""{"author_association":"NONE","created_at":"2026-01-01T12:00:00Z"}""");
+        var handler = new ScriptedHttpMessageHandler((request, _) =>
+            request.RequestUri!.AbsolutePath.EndsWith("/comments", StringComparison.Ordinal)
+                ? ScriptedResponse.Json(request.RequestUri.Query.Contains("page=2")
+                    ? """[{"author_association":"MEMBER","created_at":"2026-01-02T00:00:00Z"}]"""
+                    : firstPage)
+                : FakeGitHub.Respond(request, 5));
+        using var client = new GitHubApiClient(NullLogger.Instance, null, null, handler);
+
+        GitHubIssueData result = await new GitHubIssueCollector(client).CollectAsync(Repository);
+
+        result.IssueResponseCoverage.Should().Be(1);
+        result.MedianIssueResponseDays.Should().Be(1);
+        result.TriageWithinSevenDaysRate.Should().Be(1);
+    }
+
+    [TestMethod]
+    public async Task Finds_reopen_events_on_a_later_timeline_page()
+    {
+        string closedAt = DateTimeOffset.UtcNow.ToString("O");
+        string firstPage = ManyEvents("""{"event":"labeled"}""");
+        var handler = new ScriptedHttpMessageHandler((request, _) =>
+            request.RequestUri!.ToString().Contains("state=closed")
+                ? ScriptedResponse.Json($$"""[{"number":1,"closed_at":"{{closedAt}}"}]""")
+                : request.RequestUri.AbsolutePath.EndsWith("/timeline", StringComparison.Ordinal)
+                    ? ScriptedResponse.Json(request.RequestUri.Query.Contains("page=2")
+                        ? """[{"event":"reopened"}]"""
+                        : firstPage)
+                    : FakeGitHub.Respond(request, 0));
+        using var client = new GitHubApiClient(NullLogger.Instance, null, null, handler);
+
+        GitHubIssueData result = await new GitHubIssueCollector(client).CollectAsync(Repository);
+
+        result.ReopenedBugIssueCountLast90Days.Should().Be(1);
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task Missing_later_pages_leave_issue_metrics_unknown(bool timeline)
+    {
+        string closedAt = DateTimeOffset.UtcNow.ToString("O");
+        string firstPage = timeline ? ManyEvents("""{"event":"labeled"}""")
+            : ManyEvents("""{"author_association":"NONE","created_at":"2026-01-01T12:00:00Z"}""");
+        var handler = new ScriptedHttpMessageHandler((request, _) =>
+            request.RequestUri!.AbsolutePath.EndsWith(timeline ? "/timeline" : "/comments", StringComparison.Ordinal)
+                ? request.RequestUri.Query.Contains("page=2") ? ScriptedResponse.NotFound() : ScriptedResponse.Json(firstPage)
+                : timeline && request.RequestUri.ToString().Contains("state=closed")
+                    ? ScriptedResponse.Json($$"""[{"number":1,"closed_at":"{{closedAt}}"}]""")
+                    : FakeGitHub.Respond(request, 5));
+        using var client = new GitHubApiClient(NullLogger.Instance, null, null, handler);
+
+        GitHubIssueData result = await new GitHubIssueCollector(client).CollectAsync(Repository);
+
+        if (timeline)
+        {
+            result.ReopenedBugIssueCountLast90Days.Should().BeNull();
+        }
+        else
+        {
+            result.IssueResponseCoverage.Should().BeNull();
+            result.TriageWithinSevenDaysRate.Should().BeNull();
+        }
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task Issue_page_limit_leaves_the_affected_metric_unknown(bool timeline)
+    {
+        string closedAt = DateTimeOffset.UtcNow.ToString("O");
+        string fullPage = timeline ? ManyEvents("""{"event":"labeled"}""")
+            : ManyEvents("""{"author_association":"NONE","created_at":"2026-01-01T12:00:00Z"}""");
+        var handler = new ScriptedHttpMessageHandler((request, _) =>
+            request.RequestUri!.AbsolutePath.EndsWith(timeline ? "/timeline" : "/comments", StringComparison.Ordinal)
+                ? ScriptedResponse.Json(fullPage)
+                : timeline && request.RequestUri.ToString().Contains("state=closed")
+                    ? ScriptedResponse.Json($$"""[{"number":1,"closed_at":"{{closedAt}}"}]""")
+                : FakeGitHub.Respond(request, 5));
+        using var client = new GitHubApiClient(NullLogger.Instance, null, null, handler);
+        using GitHubRequestFailureScope scope = GitHubRequestFailureScope.Begin();
+
+        GitHubIssueData result = await new GitHubIssueCollector(client).CollectAsync(Repository);
+
+        if (timeline)
+        {
+            result.ReopenedBugIssueCountLast90Days.Should().BeNull();
+            handler.RequestedUrls.Count(url => url.Contains("/timeline?", StringComparison.Ordinal)).Should().Be(10);
+        }
+        else
+        {
+            result.IssueResponseCoverage.Should().BeNull();
+            handler.RequestedUrls.Count(url => url.Contains("/comments?", StringComparison.Ordinal)).Should().Be(50);
+        }
+
+        scope.HasFailures.Should().BeTrue();
+    }
+
+    [TestMethod]
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task Malformed_issue_events_leave_the_affected_metric_unknown(bool timeline)
+    {
+        string closedAt = DateTimeOffset.UtcNow.ToString("O");
+        var handler = new ScriptedHttpMessageHandler((request, _) =>
+            request.RequestUri!.AbsolutePath.EndsWith(timeline ? "/timeline" : "/comments", StringComparison.Ordinal)
+                ? ScriptedResponse.Json("[{}]")
+                : timeline && request.RequestUri.ToString().Contains("state=closed")
+                    ? ScriptedResponse.Json($$"""[{"number":1,"closed_at":"{{closedAt}}"}]""")
+                    : FakeGitHub.Respond(request, 5));
+        using var client = new GitHubApiClient(NullLogger.Instance, null, null, handler);
+        using GitHubRequestFailureScope scope = GitHubRequestFailureScope.Begin();
+
+        GitHubIssueData result = await new GitHubIssueCollector(client).CollectAsync(Repository);
+
+        if (timeline)
+        {
+            result.ReopenedBugIssueCountLast90Days.Should().BeNull();
+        }
+        else
+        {
+            result.IssueResponseCoverage.Should().BeNull();
+        }
+
+        scope.HasFailures.Should().BeTrue();
+    }
+
+    private static string ManyEvents(string item) => "[" + string.Join(",", Enumerable.Repeat(item, 100)) + "]";
 
     [TestMethod]
     public void Truncated_graphql_comments_do_not_count_as_unanswered()

@@ -17,6 +17,11 @@ namespace PackageGuard.Core.GitHub;
 internal sealed class GitHubRepositoryRiskCache(ILogger logger)
 {
     /// <summary>
+    /// The version shared by cached repository profiles and package-level GitHub signals.
+    /// </summary>
+    internal const int CurrentRiskDataVersion = 1;
+
+    /// <summary>
     /// The cached profiles, keyed by the repository's API root URL.
     /// </summary>
     private readonly Dictionary<string, GitHubRepositoryRiskCacheEntry> entries =
@@ -76,6 +81,7 @@ internal sealed class GitHubRepositoryRiskCache(ILogger logger)
                 RepositoryApiRoot = repositoryApiRoot,
                 Data = data,
                 StoredAt = DateTimeOffset.UtcNow,
+                RiskDataVersion = CurrentRiskDataVersion,
                 IsUsed = true
             };
         }
@@ -150,7 +156,8 @@ internal sealed class GitHubRepositoryRiskCache(ILogger logger)
     {
         lock (entriesLock)
         {
-            return entries.Values.Where(entry => entry.IsUsed || IsWithinMaxAge(entry)).ToArray();
+            return entries.Values.Where(entry => entry.RiskDataVersion == CurrentRiskDataVersion &&
+                (entry.IsUsed || IsWithinMaxAge(entry))).ToArray();
         }
     }
 
@@ -178,7 +185,8 @@ internal sealed class GitHubRepositoryRiskCache(ILogger logger)
     /// <summary>
     /// Returns <see langword="true"/> when an entry is too old to reuse, or when a refresh was asked for.
     /// </summary>
-    private bool IsStale(GitHubRepositoryRiskCacheEntry entry) => IsRefreshForced || !IsWithinMaxAge(entry);
+    private bool IsStale(GitHubRepositoryRiskCacheEntry entry) =>
+        IsRefreshForced || entry.RiskDataVersion != CurrentRiskDataVersion || !IsWithinMaxAge(entry);
 
     /// <summary>
     /// Reads and decompresses the persisted entries.

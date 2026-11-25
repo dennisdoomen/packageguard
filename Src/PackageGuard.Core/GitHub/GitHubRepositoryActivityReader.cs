@@ -50,6 +50,9 @@ internal static class GitHubRepositoryActivityReader
         return totalCount.TryGetInt32(out int count) ? count : null;
     }
 
+    /// <summary>
+    /// Checks that a GraphQL connection includes the nodes needed to interpret its count.
+    /// </summary>
     private static bool HasNodes(JsonElement owner, string connectionName) =>
         owner.TryGetProperty(connectionName, out JsonElement connection) &&
         connection.ValueKind == JsonValueKind.Object &&
@@ -71,17 +74,21 @@ internal static class GitHubRepositoryActivityReader
     }
 
     /// <summary>
-    /// Reads an open issue with its labels and comments.
+    /// Reads an open issue and records whether the oldest returned comments cover the whole comment history.
+    /// An incomplete history cannot establish that no maintainer responded.
     /// </summary>
     private static GitHubActivityIssue ReadIssue(JsonElement issue) => new()
     {
         CreatedAt = ReadDate(issue, "createdAt") ?? DateTimeOffset.UtcNow,
+
         Labels = ReadNodes(issue, "labels")
             .Select(label => label.TryGetProperty("name", out JsonElement name) ? name.GetString() : null)
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Select(name => name!)
             .ToArray(),
+
         Comments = ReadNodes(issue, "comments").Select(ReadComment).ToArray(),
+
         AreCommentsComplete = HasNodes(issue, "comments") &&
                               ReadNullableTotalCount(issue, "comments") <= ReadNodes(issue, "comments").Count()
     };
