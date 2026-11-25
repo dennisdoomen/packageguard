@@ -97,12 +97,12 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
         }
         else if (settings.NpmPackageManager == Yarn)
         {
-            var parser = new YarnLockFileParser(logger);
+            var parser = new YarnLockFileParser(logger, metadataFetcher);
             await parser.CollectPackageMetadata(lockFile.ToString(), packages);
         }
         else if (settings.NpmPackageManager == Pnpm)
         {
-            var parser = new PnpmLockFileParser(logger);
+            var parser = new PnpmLockFileParser(logger, metadataFetcher);
             await parser.CollectPackageMetadata(lockFile.ToString(), packages);
         }
 

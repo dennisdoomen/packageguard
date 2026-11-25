@@ -208,8 +208,25 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
             return package;
         }
 
+        DiscardScriptEvidenceOfOtherArtifact(existingPackage, package);
         MergePackageState(existingPackage, package);
         return existingPackage;
+    }
+
+    /// <summary>
+    /// Drops the script evidence a cache entry holds for a different artifact than the one the lockfile now names,
+    /// so that evidence is never reused for an artifact it was not collected from.
+    /// </summary>
+    private static void DiscardScriptEvidenceOfOtherArtifact(PackageInfo cached, PackageInfo current)
+    {
+        if (cached.Projects.Length == 0 &&
+            cached.PackageIntegrity is not null && current.PackageIntegrity is not null &&
+            !string.Equals(cached.PackageIntegrity, current.PackageIntegrity, StringComparison.Ordinal))
+        {
+            cached.PackageIntegrity = null;
+            cached.HasInstallScripts = null;
+            cached.InstallScripts = [];
+        }
     }
 
     /// <summary>
@@ -305,6 +322,33 @@ public class PackageInfoCollection(ILogger logger, AnalyzerSettings? settings = 
 
         MergeLicense(target, source);
         MergeVersionMetadata(target, source);
+        MergeArtifactIdentity(target, source);
+        target.HasInstallScripts = target.HasInstallScripts is true || source.HasInstallScripts is true
+            ? true
+            : target.HasInstallScripts ?? source.HasInstallScripts;
+        if (target.InstallScripts.Length == 0)
+        {
+            target.InstallScripts = source.InstallScripts;
+        }
+    }
+
+    /// <summary>
+    /// Keeps the artifact identity of <paramref name="target"/>, and flags a conflict when <paramref name="source"/>
+    /// names a different artifact for the same package version.
+    /// </summary>
+    private static void MergeArtifactIdentity(PackageInfo target, PackageInfo source)
+    {
+        if (target.PackageIntegrity is not null && source.PackageIntegrity is not null &&
+            !string.Equals(target.PackageIntegrity, source.PackageIntegrity, StringComparison.Ordinal) ||
+            target.ArtifactUrl is not null && source.ArtifactUrl is not null &&
+            !string.Equals(target.ArtifactUrl, source.ArtifactUrl, StringComparison.Ordinal))
+        {
+            target.HasConflictingArtifacts = true;
+        }
+
+        target.HasConflictingArtifacts |= source.HasConflictingArtifacts;
+        target.PackageIntegrity ??= source.PackageIntegrity;
+        target.ArtifactUrl ??= source.ArtifactUrl;
     }
 
     /// <summary>

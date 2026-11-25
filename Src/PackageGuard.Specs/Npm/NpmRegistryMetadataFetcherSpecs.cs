@@ -57,6 +57,91 @@ public class NpmRegistryMetadataFetcherSpecs
     }
 
     [TestMethod]
+    public async Task Reads_install_scripts_from_the_exact_package_version()
+    {
+        // Arrange
+        const string packument = """
+            {
+              "scripts": { "install": "node root-install.js" },
+              "versions": {
+                "1.0.0": {
+                  "scripts": {
+                    "preinstall": "node prepare.js",
+                    "install": "node install.js",
+                    "postinstall": "node finish.js",
+                    "test": "node test.js"
+                  }
+                },
+                "2.0.0": {}
+              }
+            }
+            """;
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() => ScriptedResponse.Json(packument));
+        var fetcher = new NpmRegistryMetadataFetcher(NullLogger.Instance, new HttpClient(handler));
+        PackageInfo package = CreatePackage("1.0.0", "with-scripts");
+
+        // Act
+        await fetcher.FetchMetadataAsync(package);
+
+        // Assert
+        package.HasInstallScripts.Should().BeTrue();
+        package.InstallScripts.Should().Equal(
+            new NpmInstallScript("preinstall", "node prepare.js"),
+            new NpmInstallScript("install", "node install.js"),
+            new NpmInstallScript("postinstall", "node finish.js"));
+    }
+
+    [TestMethod]
+    public async Task Ignores_empty_install_script_commands()
+    {
+        // Arrange
+        const string packument = """
+            {
+              "versions": {
+                "1.0.0": {
+                  "scripts": { "postinstall": "", "install": "   " }
+                }
+              }
+            }
+            """;
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() => ScriptedResponse.Json(packument));
+        var fetcher = new NpmRegistryMetadataFetcher(NullLogger.Instance, new HttpClient(handler));
+        PackageInfo package = CreatePackage("1.0.0", "empty-scripts");
+
+        // Act
+        await fetcher.FetchMetadataAsync(package);
+
+        // Assert
+        package.HasInstallScripts.Should().BeFalse();
+        package.InstallScripts.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public async Task Leaves_install_script_status_unknown_when_the_exact_version_is_missing()
+    {
+        // Arrange
+        const string packument = """
+            {
+              "versions": {
+                "2.0.0": {
+                  "scripts": { "install": "node install.js" }
+                }
+              }
+            }
+            """;
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() => ScriptedResponse.Json(packument));
+        var fetcher = new NpmRegistryMetadataFetcher(NullLogger.Instance, new HttpClient(handler));
+        PackageInfo package = CreatePackage("1.0.0", "with-scripts");
+
+        // Act
+        await fetcher.FetchMetadataAsync(package);
+
+        // Assert
+        package.HasInstallScripts.Should().BeNull();
+        package.InstallScripts.Should().BeEmpty();
+    }
+
+    [TestMethod]
     public async Task Reads_a_license_that_the_registry_describes_as_an_object()
     {
         // Arrange

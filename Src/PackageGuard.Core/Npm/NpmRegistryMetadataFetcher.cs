@@ -50,6 +50,8 @@ public class NpmRegistryMetadataFetcher
     /// </summary>
     private static readonly Lock PackumentLock = new();
 
+    private static readonly string[] InstallLifecycleNames = ["preinstall", "install", "postinstall"];
+
     /// <summary>
     /// The packages whose download count still has to be looked up.
     /// </summary>
@@ -109,6 +111,7 @@ public class NpmRegistryMetadataFetcher
             JsonElement root = doc.RootElement;
 
             ParseVersionMetadata(package, root);
+            ParseInstallScripts(package, root);
             ParsePackageMetadata(package, root);
 
             QueueDownloadCount(package);
@@ -228,6 +231,36 @@ public class NpmRegistryMetadataFetcher
             package.VersionUpdateLagDays =
                 (package.LatestStablePublishedAt.Value - package.PublishedAt.Value).TotalDays;
         }
+    }
+
+    /// <summary>
+    /// Reads the install lifecycle scripts from the exact version, not package-level or latest-version metadata.
+    /// </summary>
+    private static void ParseInstallScripts(PackageInfo package, JsonElement root)
+    {
+        JsonElement versionMetadata = FindExactVersionMetadata(root, package.Version);
+        if (versionMetadata.ValueKind != JsonValueKind.Object)
+        {
+            return;
+        }
+
+        List<NpmInstallScript> scripts = [];
+        if (versionMetadata.TryGetProperty("scripts", out JsonElement scriptsElement) &&
+            scriptsElement.ValueKind == JsonValueKind.Object)
+        {
+            foreach (string name in InstallLifecycleNames)
+            {
+                if (scriptsElement.TryGetProperty(name, out JsonElement commandElement) &&
+                    commandElement.ValueKind == JsonValueKind.String &&
+                    !string.IsNullOrWhiteSpace(commandElement.GetString()))
+                {
+                    scripts.Add(new NpmInstallScript(name, commandElement.GetString()!));
+                }
+            }
+        }
+
+        package.InstallScripts = scripts.ToArray();
+        package.HasInstallScripts = package.HasInstallScripts is true || scripts.Count > 0;
     }
 
     /// <summary>
@@ -421,6 +454,13 @@ public class NpmRegistryMetadataFetcher
 
         return root;
     }
+
+    private static JsonElement FindExactVersionMetadata(JsonElement root, string version) =>
+        root.TryGetProperty("versions", out JsonElement versionsElement) &&
+        versionsElement.ValueKind == JsonValueKind.Object &&
+        versionsElement.TryGetProperty(version, out JsonElement versionElement)
+            ? versionElement
+            : default;
 
     /// <summary>
     /// Populates <see cref="PackageInfo.DownloadCount"/> for every package whose metadata was fetched, asking the NPM

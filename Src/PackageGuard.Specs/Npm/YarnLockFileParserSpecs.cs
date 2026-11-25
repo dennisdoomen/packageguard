@@ -1,11 +1,15 @@
+using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Meziantou.Extensions.Logging.InMemory;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
 using PackageGuard.Core.Npm;
 using PackageGuard.Core.Package;
+using PackageGuard.Specs.Common;
 using Pathy;
 
 namespace PackageGuard.Specs.Npm;
@@ -125,5 +129,43 @@ public class YarnLockFileParserSpecs
 
         // License should be fetched from NPM registry
         expressPackage.License.Should().NotBeNullOrEmpty();
+    }
+
+    [TestMethod]
+    public async Task Collects_install_scripts_and_artifact_integrity_from_yarn_v1()
+    {
+        // Arrange
+        string lockFilePath = Path.GetTempFileName();
+        File.WriteAllText(lockFilePath,
+            """
+            # yarn lockfile v1
+            yarn-with-scripts@1.2.3:
+              version "1.2.3"
+              resolved "https://registry.npmjs.org/yarn-with-scripts/-/yarn-with-scripts-1.2.3.tgz"
+              integrity sha512-locked-artifact
+            """);
+
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() => ScriptedResponse.Json(
+            """{"versions":{"1.2.3":{"scripts":{"preinstall":"node prepare.js"}}}}"""));
+        var metadataFetcher = new NpmRegistryMetadataFetcher(NullLogger.Instance, new HttpClient(handler));
+        var parser = new YarnLockFileParser(NullLogger.Instance, metadataFetcher);
+        var packages = new PackageInfoCollection(NullLogger.Instance);
+
+        try
+        {
+            // Act
+            await parser.CollectPackageMetadata(lockFilePath, packages);
+
+            // Assert
+            PackageInfo package = packages.Should().ContainSingle().Subject;
+            package.HasInstallScripts.Should().BeTrue();
+            package.PackageIntegrity.Should().Be("sha512-locked-artifact");
+            package.InstallScripts.Should().ContainSingle()
+                .Which.Should().Be(new NpmInstallScript("preinstall", "node prepare.js"));
+        }
+        finally
+        {
+            File.Delete(lockFilePath);
+        }
     }
 }

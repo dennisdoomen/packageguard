@@ -28,9 +28,14 @@ internal class PnpmLockFileParser
     /// </summary>
     /// <param name="logger">An optional logger; defaults to <see cref="NullLogger.Instance"/> when not provided.</param>
     public PnpmLockFileParser(ILogger? logger = null)
+        : this(logger ?? NullLogger.Instance, new NpmRegistryMetadataFetcher(logger ?? NullLogger.Instance))
+    {
+    }
+
+    internal PnpmLockFileParser(ILogger logger, NpmRegistryMetadataFetcher metadataFetcher)
     {
         this.logger = logger ?? NullLogger.Instance;
-        metadataFetcher = new NpmRegistryMetadataFetcher(this.logger);
+        this.metadataFetcher = metadataFetcher;
     }
 
     /// <summary>
@@ -90,6 +95,9 @@ internal class PnpmLockFileParser
                     License = null, // Pnpm lock files typically don't include license info
                     Source = "npm",
                     SourceUrl = resolvedUrl ?? "https://registry.npmjs.org",
+                    PackageIntegrity = packageData.Resolution?.Integrity,
+                    ArtifactUrl = packageData.Resolution?.Tarball,
+                    HasInstallScripts = packageData.RequiresBuild,
                     DependencyDepth = 1
                 };
 
@@ -186,6 +194,11 @@ internal class PnpmLockFileParser
         /// Gets or sets the integrity and resolution information for the package.
         /// </summary>
         public PnpmResolution? Resolution { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether the package has install-time build steps.
+        /// </summary>
+        public bool? RequiresBuild { get; set; }
     }
 
     /// <summary>
@@ -198,5 +211,10 @@ internal class PnpmLockFileParser
         /// Gets or sets the integrity hash (e.g., <c>sha512-…</c>) that identifies the package tarball.
         /// </summary>
         public string? Integrity { get; set; }
+
+        /// <summary>
+        /// Gets or sets the tarball URL, which pnpm only records for artifacts outside the default registry layout.
+        /// </summary>
+        public string? Tarball { get; set; }
     }
 }

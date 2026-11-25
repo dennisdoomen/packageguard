@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using NuGet.Configuration;
 using NuGet.Protocol.Core.Types;
 using PackageGuard.Core;
+using PackageGuard.Core.Npm;
 using PackageGuard.Core.Package;
 using Pathy;
 
@@ -402,6 +403,99 @@ public class PackageInfoSpecs
         duplicate.Should().BeSameAs(original);
         collection.Should().ContainSingle();
         collection.GetAllUsedPackages().Should().ContainSingle().Which.Projects.Should().BeEquivalentTo("ProjectA", "ProjectB");
+    }
+
+    [TestMethod]
+    public void Adding_the_same_package_with_a_different_artifact_flags_conflicting_artifacts()
+    {
+        // Arrange
+        var collection = new PackageInfoCollection(NullLogger.Instance);
+        PackageInfo Create(string integrity) => new()
+        {
+            Name = "bogus",
+            Version = "1.0.0",
+            Source = "npm",
+            SourceUrl = "https://registry.npmjs.org",
+            PackageIntegrity = integrity
+        };
+
+        var original = collection.Add(Create("sha512-first"));
+        original.TrackAsUsedInProject("ProjectA");
+
+        // Act
+        var merged = collection.Add(Create("sha512-second"));
+
+        // Assert
+        merged.Should().BeSameAs(original);
+        merged.PackageIntegrity.Should().Be("sha512-first");
+        merged.HasConflictingArtifacts.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public async Task Reuses_cached_install_script_evidence_for_the_same_artifact()
+    {
+        // Arrange
+        PackageInfo Create(string integrity, bool? hasScripts) => new()
+        {
+            Name = "bogus",
+            Version = "1.0.0",
+            Source = "npm",
+            SourceUrl = "https://registry.npmjs.org",
+            PackageIntegrity = integrity,
+            HasInstallScripts = hasScripts
+        };
+
+        var prior = new PackageInfoCollection(NullLogger.Instance);
+        var cachedEntry = prior.Add(Create("sha512-first", true));
+        cachedEntry.InstallScripts = [new NpmInstallScript("postinstall", "node setup.js")];
+        await prior.WriteToCache(cachePath);
+
+        var current = new PackageInfoCollection(NullLogger.Instance);
+        await current.TryInitializeFromCache(cachePath);
+
+        // Act
+        var package = current.Add(Create("sha512-first", null));
+
+        // Assert
+        package.HasInstallScripts.Should().BeTrue();
+        package.InstallScripts.Should().Equal(new NpmInstallScript("postinstall", "node setup.js"));
+    }
+
+    [TestMethod]
+    public async Task Does_not_reuse_cached_install_script_evidence_for_a_different_artifact()
+    {
+        // Arrange
+        var prior = new PackageInfoCollection(NullLogger.Instance);
+        var cachedEntry = prior.Add(new PackageInfo
+        {
+            Name = "bogus",
+            Version = "1.0.0",
+            Source = "npm",
+            SourceUrl = "https://registry.npmjs.org",
+            PackageIntegrity = "sha512-first",
+            HasInstallScripts = true
+        });
+        cachedEntry.InstallScripts = [new NpmInstallScript("postinstall", "node setup.js")];
+        await prior.WriteToCache(cachePath);
+
+        var current = new PackageInfoCollection(NullLogger.Instance);
+        await current.TryInitializeFromCache(cachePath);
+
+        // Act
+        var package = current.Add(new PackageInfo
+        {
+            Name = "bogus",
+            Version = "1.0.0",
+            Source = "npm",
+            SourceUrl = "https://registry.npmjs.org",
+            PackageIntegrity = "sha512-second"
+        });
+
+        // Assert
+        package.HasInstallScripts.Should().BeNull();
+        package.InstallScripts.Should().BeEmpty();
+        package.PackageIntegrity.Should().Be("sha512-second");
+        package.HasConflictingArtifacts.Should().BeFalse();
     }
 
     [TestMethod]
