@@ -63,6 +63,38 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
+    [DataRow(null, true)]
+    [DataRow(false, false)]
+    [DataRow(true, true)]
+    public void Source_warning_setting_inherits_unless_a_project_overrides_it(bool? projectValue, bool expected)
+    {
+        string projectDirectory = Path.Combine(tempDir, "project");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(tempDir, "packageguard.config.json"),
+            """{"settings":{"failOnNugetSourceWarnings":true,"allow":{"licenses":["MIT"]}}}""");
+        string projectJson = projectValue is null
+            ? """{"settings":{"allow":{"licenses":["MIT"]}}}"""
+            : "{\"settings\":{\"failOnNugetSourceWarnings\":" + projectValue.Value.ToString().ToLowerInvariant() + "}}";
+        File.WriteAllText(Path.Combine(projectDirectory, "packageguard.config.json"), projectJson);
+        var loader = new ConfigurationLoader(NullLogger.Instance, tempDir);
+
+        ProjectPolicy policy = loader.GetEffectiveConfigurationForProject(projectDirectory);
+
+        policy.FailOnNugetSourceWarnings.Should().Be(expected);
+    }
+
+    [TestMethod]
+    public void Source_warning_setting_can_be_loaded_from_an_explicit_config()
+    {
+        string path = Path.Combine(tempDir, "explicit.json");
+        File.WriteAllText(path, """{"settings":{"failOnNugetSourceWarnings":true}}""");
+
+        ProjectPolicy policy = configurationLoader.CreatePolicyResolver(path)("ignored.csproj");
+
+        policy.FailOnNugetSourceWarnings.Should().BeTrue();
+    }
+
+    [TestMethod]
     public void Ignores_the_schema_property()
     {
         // Arrange

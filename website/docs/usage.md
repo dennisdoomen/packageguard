@@ -36,6 +36,16 @@ PackageGuard reads the packages from what your package manager already resolved:
 
 PackageGuard uses the same feeds and credential providers as `dotnet` and your package manager, so private feeds work without extra setup.
 
+## NuGet source warnings
+
+PackageGuard checks each project's effective NuGet configuration before restore. It warns when nuget.org and another enabled feed can supply the same package IDs because there is no package source mapping or because both feeds have the same highest-priority mapping. The warning names the feeds and configuration files.
+
+Configure [NuGet package source mapping](https://learn.microsoft.com/en-us/nuget/consume-packages/package-source-mapping) to assign private package IDs to their intended feed. A more specific private mapping takes precedence over a broad nuget.org `*` mapping and does not cause a warning.
+
+The check is offline and cannot tell which packages or feeds are private. It does not account for sources supplied by MSBuild properties or restore arguments. It also cannot verify where packages already in the global package cache came from. It runs with `--skip-restore` and when PackageGuard ignores a feed for metadata, because NuGet may still use that feed during restore.
+
+To fail the scan on these warnings, set [`failOnNugetSourceWarnings`](./configuration.md#nuget-source-warnings) in PackageGuard's configuration.
+
 ## Reading the output
 
 If everything is allowed, you get something like:
@@ -66,7 +76,7 @@ To see *why* a package is in your project, and which direct dependency brings it
 | Exit code | Meaning |
 | --- | --- |
 | `0` | No violations, or only warnings. |
-| `1` | At least one package was denied, or a known malicious package was found. |
+| `1` | A package was denied, a known malicious package was found, or a NuGet source warning was configured to fail the scan. |
 
 Two options change this:
 

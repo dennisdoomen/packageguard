@@ -132,6 +132,22 @@ If the file does not exist, PackageGuard stops with an error instead of using th
 
 If PackageGuard finds no configuration file, it still runs. It then allows only well-known permissive licenses, such as MIT, Apache-2.0, the BSD licenses and ISC, and applies no other rules. A package with any other license, or with a license that could not be found, is reported as a violation. PackageGuard prints a warning about this once per run.
 
+## NuGet source warnings
+
+PackageGuard warns when the effective NuGet configuration lets nuget.org and another enabled feed supply the same package IDs. To fail the scan on these warnings, add this setting to the PackageGuard configuration:
+
+```json
+{
+    "settings": {
+        "failOnNugetSourceWarnings": true
+    }
+}
+```
+
+The default is `false`. Each project inherits the setting from its solution configuration unless a project configuration explicitly overrides it. With `--config-path`, the specified file applies to every project. `--ignore-violations` prevents these warnings from failing the scan.
+
+See [NuGet source warnings](./usage.md#nuget-source-warnings) for how the check works and its limitations.
+
 ## Licenses
 
 License names are case-insensitive and follow the [SPDX identifier](https://spdx.org/licenses/) naming conventions. PackageGuard also supports some proprietary Microsoft licenses, such as the one used by the `Microsoft.AspNet.WebApi*` packages. For those, use the license name `Microsoft .NET Library License`.

@@ -45,6 +45,8 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         }
 
         var analyzer = BuildAnalyzer(logger, settings);
+        var sourceWarningReporter = new NuGetSourceWarningReporter(logger);
+        analyzer.OnNuGetProjectAnalyzed = sourceWarningReporter.CheckProject;
 
         // The restore graph is already loaded for the analysis, so keeping it for the dependency hygiene section costs nothing extra
         List<LockFile> lockFiles = [];
@@ -77,6 +79,12 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         }
 
         int exitCode = ReportViolations(logger, violations, settings);
+        if (sourceWarningReporter.Complete() && !settings.IgnoreViolations)
+        {
+            logger.LogError("NuGet source warnings are configured to fail the analysis for: {Projects}",
+                string.Join(", ", sourceWarningReporter.FailingProjects));
+            exitCode = FailureExitCode;
+        }
 
         if (reportPaths is not null)
         {
