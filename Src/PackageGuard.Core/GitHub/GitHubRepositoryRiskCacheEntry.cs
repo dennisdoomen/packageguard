@@ -21,7 +21,15 @@ internal sealed partial class GitHubRepositoryRiskCacheEntry
     /// <summary>
     /// The moment the profile was collected.
     /// </summary>
+    [MemoryPackIgnore]
     public DateTimeOffset StoredAt { get; init; }
+
+    [MemoryPackInclude]
+    private Net10DateTimeOffset SerializedStoredAt
+    {
+        get => StoredAt;
+        init => StoredAt = value;
+    }
 
     /// <summary>
     /// The version of the collected signals. Older cache entries have version zero.

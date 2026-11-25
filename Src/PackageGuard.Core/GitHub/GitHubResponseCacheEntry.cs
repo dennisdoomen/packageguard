@@ -33,7 +33,15 @@ internal sealed partial class GitHubResponseCacheEntry
     /// The moment the entry's body was last fetched or confirmed missing. A later run that revalidates this entry
     /// and finds it unchanged does not update this timestamp.
     /// </summary>
+    [MemoryPackIgnore]
     public DateTimeOffset StoredAt { get; set; }
+
+    [MemoryPackInclude]
+    private Net10DateTimeOffset SerializedStoredAt
+    {
+        get => StoredAt;
+        set => StoredAt = value;
+    }
 
     /// <summary>
     /// The <see cref="GitHubResponseFields.Signature"/> of the selection <see cref="Body"/> was trimmed to, or
