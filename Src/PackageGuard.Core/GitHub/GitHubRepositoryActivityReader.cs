@@ -16,7 +16,9 @@ internal static class GitHubRepositoryActivityReader
     public static GitHubRepositoryActivity? Read(JsonElement data)
     {
         if (!data.TryGetProperty("repository", out JsonElement repository) ||
-            repository.ValueKind != JsonValueKind.Object)
+            repository.ValueKind != JsonValueKind.Object ||
+            !HasNodes(repository, "openBugIssues") || !HasNodes(repository, "closedBugIssues") ||
+            !HasNodes(repository, "pullRequests") || ReadNullableTotalCount(repository, "openBugIssues") is null)
         {
             return null;
         }
@@ -34,15 +36,27 @@ internal static class GitHubRepositoryActivityReader
     /// Reads the <c>totalCount</c> of a GraphQL connection, defaulting to zero when it is absent.
     /// </summary>
     private static int ReadTotalCount(JsonElement repository, string connectionName)
+        => ReadNullableTotalCount(repository, connectionName) ?? 0;
+
+    private static int? ReadNullableTotalCount(JsonElement repository, string connectionName)
     {
         if (!repository.TryGetProperty(connectionName, out JsonElement connection) ||
+            connection.ValueKind != JsonValueKind.Object ||
             !connection.TryGetProperty("totalCount", out JsonElement totalCount))
         {
-            return 0;
+            return null;
         }
 
-        return totalCount.TryGetInt32(out int count) ? count : 0;
+        return totalCount.TryGetInt32(out int count) ? count : null;
     }
+
+    /// <summary>
+    /// Checks that a GraphQL connection includes the nodes needed to interpret its count.
+    /// </summary>
+    private static bool HasNodes(JsonElement owner, string connectionName) =>
+        owner.TryGetProperty(connectionName, out JsonElement connection) &&
+        connection.ValueKind == JsonValueKind.Object &&
+        connection.TryGetProperty("nodes", out JsonElement nodes) && nodes.ValueKind == JsonValueKind.Array;
 
     /// <summary>
     /// Enumerates the <c>nodes</c> of a GraphQL connection, skipping the nulls GraphQL can return for them.
@@ -60,17 +74,23 @@ internal static class GitHubRepositoryActivityReader
     }
 
     /// <summary>
-    /// Reads an open issue with its labels and comments.
+    /// Reads an open issue and records whether the oldest returned comments cover the whole comment history.
+    /// An incomplete history cannot establish that no maintainer responded.
     /// </summary>
     private static GitHubActivityIssue ReadIssue(JsonElement issue) => new()
     {
         CreatedAt = ReadDate(issue, "createdAt") ?? DateTimeOffset.UtcNow,
+
         Labels = ReadNodes(issue, "labels")
             .Select(label => label.TryGetProperty("name", out JsonElement name) ? name.GetString() : null)
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Select(name => name!)
             .ToArray(),
-        Comments = ReadNodes(issue, "comments").Select(ReadComment).ToArray()
+
+        Comments = ReadNodes(issue, "comments").Select(ReadComment).ToArray(),
+
+        AreCommentsComplete = HasNodes(issue, "comments") &&
+                              ReadNullableTotalCount(issue, "comments") <= ReadNodes(issue, "comments").Count()
     };
 
     /// <summary>
@@ -85,7 +105,7 @@ internal static class GitHubRepositoryActivityReader
     /// </summary>
     private static GitHubActivityClosedIssue ReadClosedIssue(JsonElement issue) => new(
         ReadDate(issue, "closedAt"),
-        ReadTotalCount(issue, "timelineItems") > 0);
+        ReadNullableTotalCount(issue, "timelineItems") is int count ? count > 0 : null);
 
     /// <summary>
     /// Reads a closed pull request with the logins of its reviewers.

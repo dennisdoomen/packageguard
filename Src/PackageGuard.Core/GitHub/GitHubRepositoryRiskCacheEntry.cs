@@ -24,6 +24,11 @@ internal sealed partial class GitHubRepositoryRiskCacheEntry
     public DateTimeOffset StoredAt { get; init; }
 
     /// <summary>
+    /// The version of the collected signals. Older cache entries have version zero.
+    /// </summary>
+    public int RiskDataVersion { get; init; }
+
+    /// <summary>
     /// Indicates whether the entry was read or written during the current run. Entries left untouched are dropped
     /// when the cache is persisted, so it does not keep repositories that are no longer referenced.
     /// </summary>

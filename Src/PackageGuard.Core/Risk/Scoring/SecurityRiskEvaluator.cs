@@ -177,7 +177,7 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
             {
                 risk += RiskEvaluationHelpers.AddContribution(rationale, "Package is signed but trust verification failed", 1.0);
             }
-            else
+            else if (package.HasTrustedPackageSignature is true)
             {
                 rationale.Add(RiskEvaluationHelpers.CreateRationale("Package is signed and trust verification succeeded", 0.0));
             }

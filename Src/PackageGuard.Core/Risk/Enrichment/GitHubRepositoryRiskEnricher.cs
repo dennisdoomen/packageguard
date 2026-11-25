@@ -76,11 +76,17 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
     }
 
     /// <summary>Returns true if GitHub risk data is already populated for the package.</summary>
-    public bool HasCachedData(PackageInfo package) => package.HasGitHubRiskData;
+    public bool HasCachedData(PackageInfo package) =>
+        package.HasGitHubRiskData && package.GitHubRiskDataVersion == GitHubRepositoryRiskCache.CurrentRiskDataVersion;
 
     /// <summary>Fetches GitHub repository risk data and applies it to the package.</summary>
     public async Task EnrichAsync(PackageInfo package)
     {
+        if (package.GitHubRiskDataVersion != GitHubRepositoryRiskCache.CurrentRiskDataVersion)
+        {
+            ClearOutdatedSignals(package);
+        }
+
         string? repositoryApiRoot = GitHubRepositoryUrl.TryGetApiRoot(package.RepositoryUrl);
         if (repositoryApiRoot is null)
         {
@@ -97,6 +103,59 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         ApplyOwnerAndDocumentationData(package, load.Value);
         ApplyActivityAndWorkflowData(package, load.Value);
         package.HasGitHubRiskData = load.IsComplete;
+        package.GitHubRiskDataVersion = load.IsComplete ? GitHubRepositoryRiskCache.CurrentRiskDataVersion : 0;
+    }
+
+    /// <summary>
+    /// Removes signals whose meaning changed before attempting to refresh an older package cache entry.
+    /// </summary>
+    private static void ClearOutdatedSignals(PackageInfo package)
+    {
+        package.HasGitHubRiskData = false;
+        package.HasVerifiedReleaseSignature = null;
+        ClearIssueSignals(package);
+        ClearWorkflowSignals(package);
+        ClearDocumentationSignals(package);
+    }
+
+    private static void ClearIssueSignals(PackageInfo package)
+    {
+        package.OpenBugIssueCount = null;
+        package.StaleCriticalBugIssueCount = null;
+        package.MedianIssueResponseDays = null;
+        package.MedianCriticalIssueResponseDays = null;
+        package.IssueResponseCoverage = null;
+        package.MedianOpenBugAgeDays = null;
+        package.ClosedBugIssueCountLast90Days = null;
+        package.ReopenedBugIssueCountLast90Days = null;
+        package.IssueTriageWithinSevenDaysRate = null;
+    }
+
+    private static void ClearWorkflowSignals(PackageInfo package)
+    {
+        package.HasTestSignal = null;
+        package.WorkflowPlatformCount = null;
+        package.HasCoverageWorkflowSignal = null;
+        package.HasReproducibleBuildSignal = null;
+        package.HasDependencyUpdateAutomation = null;
+        package.RecentFailedWorkflowCount = null;
+        package.HasRecentSuccessfulWorkflowRun = null;
+        package.WorkflowFailureRate = null;
+        package.HasFlakyWorkflowPattern = null;
+    }
+
+    private static void ClearDocumentationSignals(PackageInfo package)
+    {
+        package.HasReadme = null;
+        package.HasDefaultReadme = null;
+        package.ReadmeUpdatedAt = null;
+        package.HasContributingGuide = null;
+        package.HasSecurityPolicy = null;
+        package.HasDetailedSecurityPolicy = null;
+        package.HasCoordinatedDisclosure = null;
+        package.HasChangelog = null;
+        package.HasDefaultChangelog = null;
+        package.ChangelogUpdatedAt = null;
     }
 
     /// <summary>Applies owner, contributor, documentation, and issue data from cached GitHub data.</summary>
@@ -118,8 +177,8 @@ internal sealed class GitHubRepositoryRiskEnricher : IEnrichPackageRisk
         package.HasChangelog = cached.HasChangelog;
         package.HasDefaultChangelog = cached.HasDefaultChangelog;
         package.ChangelogUpdatedAt = cached.ChangelogUpdatedAt;
-        package.OpenBugIssueCount = cached.OpenBugIssueCount;
-        package.StaleCriticalBugIssueCount = cached.StaleCriticalBugIssueCount;
+        package.OpenBugIssueCount = cached.OpenBugIssueCount >= 0 ? cached.OpenBugIssueCount : null;
+        package.StaleCriticalBugIssueCount = cached.StaleCriticalBugIssueCount >= 0 ? cached.StaleCriticalBugIssueCount : null;
         package.MedianIssueResponseDays = cached.MedianIssueResponseDays;
         package.MedianCriticalIssueResponseDays = cached.MedianCriticalIssueResponseDays;
         package.IssueResponseCoverage = cached.IssueResponseCoverage;

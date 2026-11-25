@@ -67,7 +67,7 @@ public class GitHubRepositoryRequestBudgetSpecs
         await enricher.EnrichAsync(CreatePackage());
 
         // Assert
-        handler.RequestedUrls.Where(url => url.EndsWith("/comments", StringComparison.Ordinal))
+        handler.RequestedUrls.Where(url => url.Contains("/comments?", StringComparison.Ordinal))
             .Should().HaveCount(20, "reading every one of the 80 issues would cost 80 requests");
     }
 
@@ -124,7 +124,7 @@ public class GitHubRepositoryRequestBudgetSpecs
 
         // Assert
         handler.RequestedUrls.Should().ContainSingle(url => url.EndsWith("/graphql", StringComparison.Ordinal));
-        handler.RequestedUrls.Should().NotContain(url => url.EndsWith("/comments", StringComparison.Ordinal));
+        handler.RequestedUrls.Should().NotContain(url => url.Contains("/comments?", StringComparison.Ordinal));
         handler.RequestedUrls.Should().NotContain(url => url.Contains("/reviews?"));
         handler.RequestedUrls.Should().NotContain(url => url.Contains("/timeline?"));
         handler.RequestedUrls.Should().NotContain(url => url.Contains("/pulls?"));
@@ -183,7 +183,7 @@ internal static class FakeGitHub
         "https://api.github.com/orgs/acme" => """{"created_at":"2015-01-01T00:00:00Z"}""",
         _ when url.Contains("/contents?ref=") => RootContents,
         _ when url.Contains("/issues?state=open") => OpenIssues(openBugIssueCount),
-        _ when url.EndsWith("/comments", StringComparison.Ordinal) => "[]",
+        _ when url.Contains("/comments?", StringComparison.Ordinal) => "[]",
         _ when url.Contains("/issues?state=closed") => "[]",
         _ when url.Contains("/pulls?") => ClosedPullRequests,
         _ when url.Contains("/reviews?") => "[]",

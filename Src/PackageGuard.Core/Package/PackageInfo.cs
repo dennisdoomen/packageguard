@@ -702,6 +702,12 @@ public partial class PackageInfo
     public string[] UnmaintainedCriticalTransitiveDependencyDetails { get; set; } = [];
 
     /// <summary>
+    /// The version of the GitHub risk signals stored with this package. Older cache entries have version zero.
+    /// </summary>
+    [MemoryPackInclude]
+    internal int GitHubRiskDataVersion { get; set; }
+
+    /// <summary>
     /// Determines whether this package matches the provided package name and optional version range.
     /// </summary>
     public bool SatisfiesRange(string name, string? versionRange = null)
@@ -830,6 +836,7 @@ public partial class PackageInfo
     private void ClearRiskData()
     {
         HasGitHubRiskData = false;
+        GitHubRiskDataVersion = 0;
         HasIncompleteGitHubRiskData = false;
         HasOsvRiskData = false;
         HasSigningRiskData = false;
