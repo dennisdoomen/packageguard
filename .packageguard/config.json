@@ -29,6 +29,11 @@
         },
         "riskExceptions": [
             {
+                "package": "CliWrap",
+                "versions": "[3.10.5]",
+                "reason": "The operational risk score misses tests in its reusable CI workflow and relies on a single open bug. Revisit this exception when risk scoring is corrected."
+            },
+            {
                 "package": "Meziantou.Extensions.Logging.InMemory",
                 "versions": "[1.3.16]",
                 "reason": "Test-only dependency (PackageGuard.Specs), never shipped. Its operational risk score (9.3) went over the MaxOperationalRisk limit of 8 because 1.x no longer gets releases. Version 2.x drops net9.0, which PackageGuard.Specs still targets."
