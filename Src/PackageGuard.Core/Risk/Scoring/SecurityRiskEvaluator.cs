@@ -25,10 +25,29 @@ internal sealed class SecurityRiskEvaluator : IEvaluateRiskDimension
         risk += EvaluateVulnerabilityRisk(package, rationale);
         risk += EvaluateExploitRisk(package, rationale);
         risk += EvaluateTransitiveDependencyRisk(package, rationale);
+        risk += EvaluateInstallScriptRisk(package, rationale);
         risk += EvaluateSupplyChainRisk(package, rationale);
         risk += EvaluateOwnershipRisk(package, rationale);
 
         return RiskEvaluationHelpers.CreateEvaluation(risk, rationale);
+    }
+
+    private static double EvaluateInstallScriptRisk(PackageInfo package, List<string> rationale)
+    {
+        if (package.HasInstallScripts is true)
+        {
+            return RiskEvaluationHelpers.AddContribution(
+                rationale,
+                "Package runs npm install lifecycle scripts",
+                1.0);
+        }
+
+        if (package.HasInstallScripts is false)
+        {
+            rationale.Add(RiskEvaluationHelpers.CreateRationale("No npm install lifecycle scripts were detected", 0.0));
+        }
+
+        return 0;
     }
 
     private static double EvaluateVulnerabilityRisk(PackageInfo package, List<string> rationale)

@@ -103,6 +103,31 @@ internal class RiskEvaluatorSpecs
     }
 
     [TestMethod]
+    internal void Install_scripts_add_one_point_to_security_risk()
+    {
+        // Arrange
+        var riskEvaluator = new RiskEvaluator(NullLogger.Instance);
+        var packageWithoutScripts = new PackageInfo { Name = "Package", Version = "1.0.0", License = "MIT" };
+        var packageWithScripts = new PackageInfo
+        {
+            Name = "Package",
+            Version = "1.0.0",
+            License = "MIT",
+            HasInstallScripts = true
+        };
+
+        // Act
+        riskEvaluator.EvaluateRisk(packageWithoutScripts);
+        riskEvaluator.EvaluateRisk(packageWithScripts);
+
+        // Assert
+        (packageWithScripts.RiskDimensions.SecurityRisk - packageWithoutScripts.RiskDimensions.SecurityRisk)
+            .Should().Be(1.0);
+        packageWithScripts.RiskDimensions.SecurityRiskRationale
+            .Should().Contain("Package runs npm install lifecycle scripts (+1.0)");
+    }
+
+    [TestMethod]
     internal void The_overall_risk_is_a_weighted_sum_of_the_dimensions()
     {
         // Arrange

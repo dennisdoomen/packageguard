@@ -28,6 +28,7 @@ Not every package exposes every signal. PackageGuard uses the evidence it can fi
 - **Available fixes** - whether a fixed version of a known vulnerability already exists.
 - **Median time to fix vulnerabilities** - slow fix times mean a weaker security response.
 - **Dependency depth** - deeper dependency chains increase the attack surface.
+- **npm install scripts** - a package version with a `preinstall`, `install` or `postinstall` script adds +1.0 to security risk, because the command runs during installation.
 - **Pre-1.0 dependencies** - depending on unstable pre-1.0 packages adds some supply-chain risk.
 - **Package signing** - unsigned packages, or packages that fail trust verification, are riskier.
 - **Trusted package signature** - a valid, trusted signature lowers the risk.

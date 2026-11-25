@@ -3,6 +3,7 @@ using System.Linq;
 using FluentAssertions;
 using JetBrains.Annotations;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PackageGuard.Core.Npm;
 using PackageGuard.Core.Package;
 using PackageGuard.Reports;
 
@@ -58,6 +59,25 @@ internal sealed class RiskReportViewModelBuilderSpecs
             new EvidenceEntry("Branch protection", "Not detected"));
 
         groups["Releases"].Entries.Should().Equal(new EvidenceEntry("Prerelease ratio", "25 %"));
+    }
+
+    [TestMethod]
+    public void Includes_install_script_commands_in_security_evidence()
+    {
+        var package = new PackageInfo
+        {
+        Name = "native-addon",
+        Version = "1.0.0",
+        HasInstallScripts = true,
+        InstallScripts = [new NpmInstallScript("postinstall", "node setup.js")]
+        };
+
+        EvidenceEntry evidence = RiskReportViewModelBuilder.BuildEvidenceGroups(package)
+        .Single(group => group.Title == "Security")
+        .Entries.Should().ContainSingle(entry => entry.Label == "Install scripts").Subject;
+
+        evidence.Value.Should().Be("1 detected");
+        evidence.Items.Should().Equal("postinstall: node setup.js");
     }
 
     [TestMethod]
