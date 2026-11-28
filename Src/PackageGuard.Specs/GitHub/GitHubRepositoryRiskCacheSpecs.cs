@@ -206,5 +206,13 @@ internal sealed partial class LegacyRepositoryRiskCacheEntry
 
     public GitHubRepositoryRiskData Data { get; init; } = new();
 
+    [MemoryPackIgnore]
     public DateTimeOffset StoredAt { get; init; }
+
+    [MemoryPackInclude]
+    private Net10DateTimeOffset SerializedStoredAt
+    {
+        get => StoredAt;
+        init => StoredAt = value;
+    }
 }
