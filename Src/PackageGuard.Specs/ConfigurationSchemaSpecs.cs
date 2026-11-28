@@ -102,6 +102,10 @@ public class ConfigurationSchemaSpecs
     [DataRow("""{ "settings": { "deny": { "maxOveralRisk": 60 } } }""", DisplayName = "Misspelled property")]
     [DataRow("""{ "settings": { "deny": { "maxOverallRisk": 101 } } }""", DisplayName = "Risk score above 100")]
     [DataRow("""{ "settings": { "deny": { "maxSecurityRisk": -1 } } }""", DisplayName = "Negative risk score")]
+    [DataRow("""{ "settings": { "deny": { "installScriptAllowList": [ { "package": "x", "version": "1.0.0" } ] } } }""",
+        DisplayName = "Install script exception without artifact identity")]
+    [DataRow("""{ "settings": { "deny": { "installScriptAllowList": [ { "package": "x", "version": "1.0.0", "integrity": "sha512-x", "resolved": "https://example.com/x.tgz" } ] } } }""",
+        DisplayName = "Install script exception with two artifact identities")]
     [DataRow("""{ "settings": { "riskExceptions": [ { "package": "x", "expiresOn": "next year" } ] } }""",
         DisplayName = "Invalid date")]
     [DataRow("""{ "settings": { "vulnerabilityExceptions": [ { "vulnerability": "CVE-2024-0001" } ] } }""",

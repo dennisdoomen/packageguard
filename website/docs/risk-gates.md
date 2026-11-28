@@ -36,10 +36,11 @@ Besides package identity and license, the `deny` section of your [configuration 
 - `denyKnownExploited` - denies a package that has a vulnerability on the [CISA Known Exploited Vulnerabilities (KEV)](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) list.
 - `denyUnsigned` - denies packages that aren't signed. Packages for which signing can't be checked (for example npm packages) are never denied by this rule.
 - `denyDeprecated` - denies packages that their registry marks as deprecated.
+- `denyInstallScripts` - denies npm packages with confirmed `preinstall`, `install` or `postinstall` scripts. It works without `--report-risk`. See [configuration](./configuration.md#configuration-format) for exact-artifact exceptions.
 - `denyWithoutRepository` - denies packages that don't declare a repository URL.
 - `minPackageAgeDays` - denies a package version published fewer than the given number of days ago, per ecosystem (`npm` or `nuget`). This is a cheap defense against a common attack: someone takes over a maintainer account, publishes a malicious version, and it is removed again within hours.
 
-Setting any of these rules makes PackageGuard collect risk data for that project, even without `--report-risk`. Without that data there is nothing to check the rules against. Collecting risk data makes a run slower, and works best with a [GitHub API key](./caching-and-rate-limits.md#github-rate-limits).
+The risk-based rules in this section make PackageGuard collect risk data for that project, even without `--report-risk`. Without that data there is nothing to check the rules against. Collecting risk data makes a run slower, and works best with a [GitHub API key](./caching-and-rate-limits.md#github-rate-limits). The `denyInstallScripts` rule is separate: it uses npm registry metadata already collected during dependency analysis and does not trigger risk enrichment.
 
 If GitHub does not answer every request for a package, for example because the rate limit ran out, the signals it could not collect stay unknown and do not add risk. Such a package can stay under the risk limits only because its data is incomplete, so PackageGuard logs a warning that names it. The next run tries again.
 

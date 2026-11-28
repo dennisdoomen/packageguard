@@ -28,9 +28,14 @@ internal class YarnLockFileParser
     /// </summary>
     /// <param name="logger">An optional logger; defaults to <see cref="NullLogger.Instance"/> when not provided.</param>
     public YarnLockFileParser(ILogger? logger = null)
+        : this(logger ?? NullLogger.Instance, new NpmRegistryMetadataFetcher(logger ?? NullLogger.Instance))
+    {
+    }
+
+    internal YarnLockFileParser(ILogger logger, NpmRegistryMetadataFetcher metadataFetcher)
     {
         this.logger = logger ?? NullLogger.Instance;
-        metadataFetcher = new NpmRegistryMetadataFetcher(this.logger);
+        this.metadataFetcher = metadataFetcher;
     }
 
     /// <summary>
@@ -79,6 +84,8 @@ internal class YarnLockFileParser
                     License = null, // Yarn lock files typically don't include license info
                     Source = "npm",
                     SourceUrl = packageData.Resolved ?? "https://registry.npmjs.org",
+                    PackageIntegrity = packageData.Integrity,
+                    ArtifactUrl = packageData.IsResolvedSynthesized ? null : packageData.Resolved,
                     DependencyDepth = 1
                 };
 
@@ -171,7 +178,11 @@ internal class YarnLockFileParser
                     packages[packageName] = new YarnPackageData
                     {
                         Version = version,
-                        Resolved = resolvedUrl
+                        Resolved = resolvedUrl,
+                        IsResolvedSynthesized = true,
+                        Integrity = packageData.TryGetValue("checksum", out object? checksum)
+                            ? checksum.ToString()
+                            : null
                     };
                 }
             }
@@ -291,6 +302,10 @@ internal class YarnLockFileParser
                 {
                     currentPackageData.Resolved = ExtractValue(trimmedLine, "resolved");
                 }
+                else if (trimmedLine.StartsWith("integrity "))
+                {
+                    currentPackageData.Integrity = ExtractValue(trimmedLine, "integrity");
+                }
             }
         }
 
@@ -331,5 +346,15 @@ internal class YarnLockFileParser
         /// Gets or sets the resolved tarball URL for the package, if present in the lock file.
         /// </summary>
         public string? Resolved { get; set; }
+
+        /// <summary>
+        /// Gets or sets whether <see cref="Resolved"/> was constructed rather than read from the lockfile.
+        /// </summary>
+        public bool IsResolvedSynthesized { get; set; }
+
+        /// <summary>
+        /// Gets or sets the integrity value recorded by Yarn for this package artifact.
+        /// </summary>
+        public string? Integrity { get; set; }
     }
 }

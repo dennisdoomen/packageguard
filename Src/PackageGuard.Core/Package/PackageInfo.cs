@@ -2,6 +2,7 @@ using JetBrains.Annotations;
 using MemoryPack;
 using NuGet.Versioning;
 using PackageGuard.Core.Common;
+using PackageGuard.Core.Npm;
 using PackageGuard.Core.Risk;
 using PackageGuard.Core.Risk.Enrichment;
 
@@ -76,6 +77,20 @@ public partial class PackageInfo
     /// Gets or sets the URL of the package source that was used to fetch the metadata.
     /// </summary>
     public string SourceUrl { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the artifact URL exactly as the lockfile recorded it. It stays <c>null</c> when the lockfile
+    /// does not state one, so a synthesized or fallback <see cref="SourceUrl"/> is never mistaken for artifact evidence.
+    /// </summary>
+    [MemoryPackIgnore]
+    internal string? ArtifactUrl { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether lockfile entries with the same source, name and version pointed at different artifacts.
+    /// Such a package has no single artifact identity, so it cannot qualify for an artifact-specific exception.
+    /// </summary>
+    [MemoryPackIgnore]
+    internal bool HasConflictingArtifacts { get; set; }
 
     /// <summary>
     /// Gets or sets the repository URL used to enrich package metadata and risk information.
@@ -891,4 +906,28 @@ public partial class PackageInfo
         HasSigningRiskData = false;
         HasValidatedLicenseUrl = false;
     }
+
+    /// <summary>
+    /// Gets or sets whether package installation scripts are present when known. It is persisted together with
+    /// <see cref="InstallScripts"/> and <see cref="PackageIntegrity"/>, so confirmed script evidence survives a
+    /// failed registry lookup on a later run.
+    /// </summary>
+    /// <remarks>
+    /// The persisted members stay at the end of the type, because MemoryPack identifies members by position.
+    /// </remarks>
+    [MemoryPackInclude]
+    internal bool? HasInstallScripts { get; set; }
+
+    /// <summary>
+    /// Gets or sets the integrity value recorded for the resolved package artifact. The persisted script evidence
+    /// only applies to the artifact with this identity.
+    /// </summary>
+    [MemoryPackInclude]
+    internal string? PackageIntegrity { get; set; }
+
+    /// <summary>
+    /// Gets or sets the lifecycle scripts declared by the exact package version.
+    /// </summary>
+    [MemoryPackInclude]
+    internal NpmInstallScript[] InstallScripts { get; set; } = [];
 }

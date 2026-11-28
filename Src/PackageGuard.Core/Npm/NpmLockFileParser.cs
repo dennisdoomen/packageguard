@@ -91,14 +91,18 @@ internal class NpmLockFileParser
                 LicenseEvidence = packageEntry.License is not null ? LicenseEvidence.Declared : LicenseEvidence.Unknown,
                 Source = "npm",
                 SourceUrl = packageEntry.Resolved ?? "https://registry.npmjs.org",
+                PackageIntegrity = packageEntry.Integrity,
+                ArtifactUrl = packageEntry.Resolved,
+                HasInstallScripts = packageEntry.HasInstallScript,
                 DependencyDepth = Math.Max(1, packagePath.Split("node_modules/", StringSplitOptions.RemoveEmptyEntries).Length)
             };
 
             packageInfo = packages.Add(packageInfo);
             packageInfo.TrackAsUsedInProject(lockFilePath.Directory);
 
-            // Fetch additional metadata from NPM registry if license is missing
-            if (packageInfo.License is null || packageInfo.RepositoryUrl is null || packageInfo.LicenseUrl is null)
+            // Fetch scripts for positive lockfile markers and resolve unknown (absent marker) script status.
+            if (packageInfo.HasInstallScripts != false ||
+                packageInfo.License is null || packageInfo.RepositoryUrl is null || packageInfo.LicenseUrl is null)
             {
                 await metadataFetcher.FetchMetadataAsync(packageInfo);
             }

@@ -15,6 +15,12 @@ internal class NpmPackageEntry
     [JsonPropertyName("resolved")]
     public string? Resolved { get; set; }
 
+    [JsonPropertyName("integrity")]
+    public string? Integrity { get; set; }
+
+    [JsonPropertyName("hasInstallScript")]
+    public bool? HasInstallScript { get; set; }
+
     [JsonPropertyName("license")]
     public string? License { get; set; }
 

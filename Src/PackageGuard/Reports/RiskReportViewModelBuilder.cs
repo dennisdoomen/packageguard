@@ -142,6 +142,18 @@ internal static class RiskReportViewModelBuilder
             yield return ("Package signature", package.IsPackageSigned.Value ? "Signed" : "Unsigned");
         }
 
+        if (package.HasInstallScripts is true)
+        {
+            string[] scripts = package.InstallScripts
+                .Select(script => $"{script.Name}: {script.Command}")
+                .ToArray();
+
+            yield return new EvidenceEntry(
+                "Install scripts",
+                scripts.Length == 0 ? "Detected; commands unavailable" : $"{scripts.Length} detected",
+                scripts);
+        }
+
         if (package.HasTrustedPackageSignature != null)
         {
             yield return ("Signature trust", package.HasTrustedPackageSignature.Value ? "Verified" : "Unverified");

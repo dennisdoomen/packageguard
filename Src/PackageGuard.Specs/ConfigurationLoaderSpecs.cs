@@ -164,6 +164,69 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
+    public void Can_parse_exact_install_script_allowlist_entries()
+    {
+        // Arrange
+        ChainablePath path = tempDir / "install-scripts.json";
+        File.WriteAllText(path,
+            """
+            {
+                "settings": {
+                    "deny": {
+                        "denyInstallScripts": true,
+                        "installScriptAllowList": [
+                            {
+                                "package": "native-addon",
+                                "version": "1.2.3",
+                                "integrity": "sha512-reviewed"
+                            }
+                        ]
+                    }
+                }
+            }
+            """);
+
+        // Act
+        ProjectPolicy policy = configurationLoader.GetConfigurationFromConfigPath(path);
+
+        // Assert
+        policy.DenyList.DenyInstallScripts.Should().BeTrue();
+        InstallScriptException exception = policy.DenyList.InstallScriptAllowList.Should().ContainSingle().Subject;
+        exception.Package.Should().Be("native-addon");
+        exception.Version.Should().Be("1.2.3");
+        exception.Integrity.Should().Be("sha512-reviewed");
+    }
+
+    [TestMethod]
+    public void Rejects_install_script_allowlist_entries_without_one_artifact_identity()
+    {
+        // Arrange
+        ChainablePath path = tempDir / "invalid-install-scripts.json";
+        File.WriteAllText(path,
+            """
+            {
+                "settings": {
+                    "deny": {
+                        "installScriptAllowList": [
+                            {
+                                "package": "native-addon",
+                                "version": "1.2.3"
+                            }
+                        ]
+                    }
+                }
+            }
+            """);
+
+        // Act
+        Action loadConfiguration = () => configurationLoader.GetConfigurationFromConfigPath(path);
+
+        // Assert
+        loadConfiguration.Should().Throw<InvalidDataException>()
+            .WithMessage("*exactly one of integrity or resolved*");
+    }
+
+    [TestMethod]
     public void Allows_prerelease_packages_by_default()
     {
         // Arrange
@@ -793,6 +856,82 @@ public class ConfigurationLoaderSpecs
 
         // Assert
         policy.DenyList.MaxOverallRisk.Should().Be(60, "the project config didn't set this, so the solution-level threshold should still apply");
+    }
+
+    [TestMethod]
+    public void Project_level_config_without_denying_install_scripts_keeps_the_solution_level_setting()
+    {
+        // Arrange
+        var solutionDir = tempDir / "MySolution";
+        solutionDir.CreateDirectoryRecursively();
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+        File.WriteAllText(solutionDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "deny": {
+                        "denyInstallScripts": true
+                    }
+                }
+            }
+            """);
+
+        var projectDir = solutionDir / "MyProject";
+        projectDir.CreateDirectoryRecursively();
+        File.WriteAllText(projectDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "deny": {
+                        "packages": ["Bogus/1.0.0"]
+                    }
+                }
+            }
+            """);
+
+        // Act
+        ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(projectDir);
+
+        // Assert
+        policy.DenyList.DenyInstallScripts.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public void Project_level_config_can_disable_denying_install_scripts()
+    {
+        // Arrange
+        var solutionDir = tempDir / "MySolution";
+        solutionDir.CreateDirectoryRecursively();
+        File.WriteAllText(solutionDir / "MySolution.sln", "# Solution file");
+        File.WriteAllText(solutionDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "deny": {
+                        "denyInstallScripts": true
+                    }
+                }
+            }
+            """);
+
+        var projectDir = solutionDir / "MyProject";
+        projectDir.CreateDirectoryRecursively();
+        File.WriteAllText(projectDir / "packageguard.config.json",
+            """
+            {
+                "settings": {
+                    "deny": {
+                        "denyInstallScripts": false
+                    }
+                }
+            }
+            """);
+
+        // Act
+        ProjectPolicy policy = configurationLoader.GetEffectiveConfigurationForProject(projectDir);
+
+        // Assert
+        policy.DenyList.DenyInstallScripts.Should().BeFalse();
     }
 
     [TestMethod]

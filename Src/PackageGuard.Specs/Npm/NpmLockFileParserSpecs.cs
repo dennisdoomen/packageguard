@@ -1,3 +1,4 @@
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -7,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PackageGuard.Core;
 using PackageGuard.Core.Npm;
 using PackageGuard.Core.Package;
+using PackageGuard.Specs.Common;
 using Pathy;
 
 namespace PackageGuard.Specs.Npm;
@@ -49,6 +51,92 @@ public class NpmLockFileParserSpecs
         var acceptsPackage = packages.FirstOrDefault(p => p.Name == "accepts");
         acceptsPackage.Should().NotBeNull();
         acceptsPackage!.Version.Should().Be("1.3.8");
+    }
+
+    [TestMethod]
+    public async Task Resolves_the_install_script_status_of_an_entry_without_a_lockfile_marker()
+    {
+        // Arrange
+        string packageLockPath = Path.GetTempFileName();
+        File.WriteAllText(packageLockPath,
+            """
+            {
+              "lockfileVersion": 3,
+              "packages": {
+                "node_modules/no-marker": {
+                  "version": "1.0.0",
+                  "license": "MIT",
+                  "repository": "https://github.com/example/no-marker",
+                  "licenseUrl": "https://example.com/license"
+                }
+              }
+            }
+            """);
+
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() => ScriptedResponse.Json(
+            """{"versions":{"1.0.0":{"scripts":{"install":"node build.js"}}}}"""));
+        var metadataFetcher = new NpmRegistryMetadataFetcher(NullLogger.Instance, new System.Net.Http.HttpClient(handler));
+        var parser = new NpmLockFileParser(metadataFetcher, NullLogger.Instance);
+        var packages = new PackageInfoCollection(NullLogger.Instance);
+
+        try
+        {
+            // Act
+            await parser.CollectPackageMetadata(packageLockPath, packages);
+
+            // Assert
+            packages.Should().ContainSingle().Which.HasInstallScripts.Should().BeTrue();
+        }
+        finally
+        {
+            File.Delete(packageLockPath);
+        }
+    }
+
+    [TestMethod]
+    public async Task Collects_lifecycle_scripts_and_integrity_for_transitive_packages()
+    {
+        // Arrange
+        string packageLockPath = Path.GetTempFileName();
+        File.WriteAllText(packageLockPath,
+            """
+            {
+              "lockfileVersion": 3,
+              "packages": {
+                "node_modules/parent/node_modules/with-scripts": {
+                  "version": "1.2.3",
+                  "resolved": "https://registry.npmjs.org/with-scripts/-/with-scripts-1.2.3.tgz",
+                  "integrity": "sha512-locked-artifact",
+                  "hasInstallScript": true,
+                  "license": "MIT"
+                }
+              }
+            }
+            """);
+
+        var handler = ScriptedHttpMessageHandler.AlwaysReturns(() => ScriptedResponse.Json(
+            """{"versions":{"1.2.3":{"scripts":{"postinstall":"node setup.js"}}}}"""));
+        var metadataFetcher = new NpmRegistryMetadataFetcher(NullLogger.Instance, new System.Net.Http.HttpClient(handler));
+        var parser = new NpmLockFileParser(metadataFetcher, NullLogger.Instance);
+        var packages = new PackageInfoCollection(NullLogger.Instance);
+
+        try
+        {
+            // Act
+            await parser.CollectPackageMetadata(packageLockPath, packages);
+
+            // Assert
+            PackageInfo package = packages.Should().ContainSingle().Subject;
+            package.Name.Should().Be("with-scripts");
+            package.DependencyDepth.Should().Be(2);
+            package.PackageIntegrity.Should().Be("sha512-locked-artifact");
+            package.HasInstallScripts.Should().BeTrue();
+            package.InstallScripts.Should().Equal(new NpmInstallScript("postinstall", "node setup.js"));
+        }
+        finally
+        {
+            File.Delete(packageLockPath);
+        }
     }
 
     [TestMethod]
