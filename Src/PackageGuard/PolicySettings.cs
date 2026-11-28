@@ -5,6 +5,9 @@ namespace PackageGuard;
 public class PolicySettings
 {
     [UsedImplicitly]
+    public bool? FailOnNugetSourceWarnings { get; set; }
+
+    [UsedImplicitly]
     public AllowPolicyItem Allow { get; set; } = new();
 
     [UsedImplicitly]

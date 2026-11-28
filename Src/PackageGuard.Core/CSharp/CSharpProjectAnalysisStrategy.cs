@@ -20,6 +20,8 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
 
     private readonly ILogger logger = logger ?? NullLogger.Instance;
 
+    internal Action<string, ProjectPolicy>? OnNuGetProjectAnalyzed { get; init; }
+
     /// <summary>
     /// Analyzes C# projects found at <paramref name="projectOrSolutionPath"/> for NuGet policy violations,
     /// collecting package metadata and checking each package against the configured allow/deny lists and license policies.
@@ -44,6 +46,7 @@ public class CSharpProjectAnalysisStrategy(GetPolicyByProject getPolicyByProject
                 ProjectPolicy policy = getPolicyByProject(projectPath);
                 policy.Validate();
 
+                OnNuGetProjectAnalyzed?.Invoke(projectPath, policy);
                 analyzer.IgnoredFeeds = policy.IgnoredFeeds;
 
                 await CollectPackagesFrom(projectPath, settings, packages, analyzer);

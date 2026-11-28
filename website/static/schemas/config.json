@@ -13,6 +13,11 @@
       "description": "The allow, deny and warn rules, the risk and vulnerability exceptions, and the feeds to ignore.",
       "type": "object",
       "properties": {
+        "failOnNugetSourceWarnings": {
+          "description": "Fail the analysis when NuGet source configuration may allow nuget.org and another source to supply the same package.",
+          "type": "boolean",
+          "default": false
+        },
         "allow": {
           "description": "Packages, licenses and feeds that are allowed. When this section lists licenses or packages, everything else is a violation.",
           "type": "object",

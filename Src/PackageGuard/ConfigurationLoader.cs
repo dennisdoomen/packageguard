@@ -90,6 +90,7 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
     /// </summary>
     private static void MergeInto(ProjectPolicy target, ProjectPolicy source)
     {
+        target.FailOnNugetSourceWarnings = source.FailOnNugetSourceWarnings ?? target.FailOnNugetSourceWarnings;
         MergePackagePolicy(target.AllowList, source.AllowList);
         target.AllowList.Feeds.AddRange(source.AllowList.Feeds);
         foreach ((string feed, string sourceFile) in source.AllowList.FeedSourceFiles)
@@ -239,7 +240,8 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         {
             AllowList = new AllowList(),
             DenyList = new DenyList(),
-            WarnList = new WarnList()
+            WarnList = new WarnList(),
+            FailOnNugetSourceWarnings = settings.FailOnNugetSourceWarnings
         };
 
         foreach (string package in settings.Allow.Packages)

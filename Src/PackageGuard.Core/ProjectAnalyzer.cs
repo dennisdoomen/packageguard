@@ -26,6 +26,8 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
     /// </summary>
     public Action<string, LockFile>? OnProjectLockFileLoaded { get; set; }
 
+    internal Action<string, ProjectPolicy>? OnNuGetProjectAnalyzed { get; set; }
+
     /// <summary>
     /// Gets or sets an optional callback invoked during risk enrichment with the number of packages enriched so far and
     /// the total, first with zero completed. When set, the periodic progress log lines are not written, so the caller
@@ -103,7 +105,10 @@ public class ProjectAnalyzer(LicenseFetcher licenseFetcher, RiskEvaluator? riskE
     {
         IProjectAnalysisStrategy[] strategies =
         [
-            new CSharpProjectAnalysisStrategy(getPolicyByProject, licenseFetcher, Logger, OnProjectLockFileLoaded),
+            new CSharpProjectAnalysisStrategy(getPolicyByProject, licenseFetcher, Logger, OnProjectLockFileLoaded)
+            {
+                OnNuGetProjectAnalyzed = OnNuGetProjectAnalyzed
+            },
             new NpmProjectAnalysisStrategy(getPolicyByProject, Logger)
         ];
 

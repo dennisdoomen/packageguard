@@ -8,6 +8,8 @@ namespace PackageGuard.Core.Policy;
 /// </summary>
 public class ProjectPolicy
 {
+    internal bool? FailOnNugetSourceWarnings { get; set; }
+
     /// <summary>
     /// If specified, a list of packages, versions, and licenses that are allowed. Everything else is forbidden.
     /// </summary>
