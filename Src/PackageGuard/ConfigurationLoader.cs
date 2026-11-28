@@ -91,6 +91,14 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
     private static void MergeInto(ProjectPolicy target, ProjectPolicy source)
     {
         MergePackagePolicy(target.AllowList, source.AllowList);
+        if (source.AllowList.Severity.HasValue)
+        {
+            target.AllowList.Severity = source.AllowList.Severity;
+        }
+        if (source.Severity.HasValue)
+        {
+            target.Severity = source.Severity;
+        }
         target.AllowList.Feeds.AddRange(source.AllowList.Feeds);
         foreach ((string feed, string sourceFile) in source.AllowList.FeedSourceFiles)
         {
@@ -100,12 +108,26 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         target.AllowList.Prerelease = source.AllowList.Prerelease;
 
         MergePackagePolicy(target.DenyList, source.DenyList);
+        if (source.DenyList.Severity.HasValue)
+        {
+            target.DenyList.Severity = source.DenyList.Severity;
+        }
         target.DenyList.Prerelease = source.DenyList.Prerelease;
         target.DenyList.MaxOverallRisk = source.DenyList.MaxOverallRisk ?? target.DenyList.MaxOverallRisk;
         target.DenyList.MaxLegalRisk = source.DenyList.MaxLegalRisk ?? target.DenyList.MaxLegalRisk;
         target.DenyList.MaxSecurityRisk = source.DenyList.MaxSecurityRisk ?? target.DenyList.MaxSecurityRisk;
         target.DenyList.MaxOperationalRisk = source.DenyList.MaxOperationalRisk ?? target.DenyList.MaxOperationalRisk;
         target.DenyList.MaxOsvSeverityScore = source.DenyList.MaxOsvSeverityScore ?? target.DenyList.MaxOsvSeverityScore;
+        if (source.DenyList.MaxOverallRiskSeverity.HasValue) target.DenyList.MaxOverallRiskSeverity = source.DenyList.MaxOverallRiskSeverity;
+        if (source.DenyList.MaxLegalRiskSeverity.HasValue) target.DenyList.MaxLegalRiskSeverity = source.DenyList.MaxLegalRiskSeverity;
+        if (source.DenyList.MaxSecurityRiskSeverity.HasValue) target.DenyList.MaxSecurityRiskSeverity = source.DenyList.MaxSecurityRiskSeverity;
+        if (source.DenyList.MaxOperationalRiskSeverity.HasValue) target.DenyList.MaxOperationalRiskSeverity = source.DenyList.MaxOperationalRiskSeverity;
+        if (source.DenyList.MaxOsvSeverityScoreSeverity.HasValue) target.DenyList.MaxOsvSeverityScoreSeverity = source.DenyList.MaxOsvSeverityScoreSeverity;
+        if (source.DenyList.DenyKnownExploitedSeverity.HasValue) target.DenyList.DenyKnownExploitedSeverity = source.DenyList.DenyKnownExploitedSeverity;
+        if (source.DenyList.DenyUnsignedSeverity.HasValue) target.DenyList.DenyUnsignedSeverity = source.DenyList.DenyUnsignedSeverity;
+        if (source.DenyList.DenyDeprecatedSeverity.HasValue) target.DenyList.DenyDeprecatedSeverity = source.DenyList.DenyDeprecatedSeverity;
+        if (source.DenyList.DenyWithoutRepositorySeverity.HasValue) target.DenyList.DenyWithoutRepositorySeverity = source.DenyList.DenyWithoutRepositorySeverity;
+        if (source.DenyList.MinPackageAgeDaysSeverity.HasValue) target.DenyList.MinPackageAgeDaysSeverity = source.DenyList.MinPackageAgeDaysSeverity;
         target.DenyList.DenyKnownExploited = source.DenyList.DenyKnownExploited;
         target.DenyList.DenyUnsigned = source.DenyList.DenyUnsigned;
         target.DenyList.DenyDeprecated = source.DenyList.DenyDeprecated;
@@ -239,7 +261,8 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         {
             AllowList = new AllowList(),
             DenyList = new DenyList(),
-            WarnList = new WarnList()
+            WarnList = new WarnList(),
+            Severity = settings.Severity
         };
 
         foreach (string package in settings.Allow.Packages)
@@ -264,6 +287,7 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         }
 
         policy.AllowList.Prerelease = settings.Allow.Prerelease;
+        policy.AllowList.Severity = settings.Allow.Severity;
 
         foreach (string package in settings.Deny.Packages)
         {
@@ -281,6 +305,7 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         }
 
         policy.DenyList.Prerelease = settings.Deny.Prerelease;
+        policy.DenyList.Severity = settings.Deny.Severity;
         policy.DenyList.MaxOverallRisk = settings.Deny.MaxOverallRisk;
         policy.DenyList.MaxLegalRisk = settings.Deny.MaxLegalRisk;
         policy.DenyList.MaxSecurityRisk = settings.Deny.MaxSecurityRisk;
@@ -294,6 +319,16 @@ public class ConfigurationLoader(ILogger logger, string? scanRoot = null)
         {
             policy.DenyList.MinPackageAgeDays[ecosystem] = minAgeDays;
         }
+        policy.DenyList.MaxOverallRiskSeverity = settings.Deny.MaxOverallRiskSeverity;
+        policy.DenyList.MaxLegalRiskSeverity = settings.Deny.MaxLegalRiskSeverity;
+        policy.DenyList.MaxSecurityRiskSeverity = settings.Deny.MaxSecurityRiskSeverity;
+        policy.DenyList.MaxOperationalRiskSeverity = settings.Deny.MaxOperationalRiskSeverity;
+        policy.DenyList.MaxOsvSeverityScoreSeverity = settings.Deny.MaxOsvSeverityScoreSeverity;
+        policy.DenyList.DenyKnownExploitedSeverity = settings.Deny.DenyKnownExploitedSeverity;
+        policy.DenyList.DenyUnsignedSeverity = settings.Deny.DenyUnsignedSeverity;
+        policy.DenyList.DenyDeprecatedSeverity = settings.Deny.DenyDeprecatedSeverity;
+        policy.DenyList.DenyWithoutRepositorySeverity = settings.Deny.DenyWithoutRepositorySeverity;
+        policy.DenyList.MinPackageAgeDaysSeverity = settings.Deny.MinPackageAgeDaysSeverity;
 
         foreach (string package in settings.Warn.Packages)
         {

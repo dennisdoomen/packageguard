@@ -2,6 +2,11 @@
 
 public abstract class PackagePolicy
 {
+    /// <summary>
+    /// Gets or sets whether matches against this policy are errors or warnings.
+    /// </summary>
+    public PolicySeverity? Severity { get; set; }
+
     public List<PackageSelector> Packages { get; set; } = new();
 
     /// <summary>

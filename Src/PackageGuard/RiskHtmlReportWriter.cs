@@ -49,12 +49,13 @@ internal static class RiskHtmlReportWriter
         string projectPath,
         IEnumerable<PackageInfo> packages,
         string? reportOutputPath = null,
-        IReadOnlyCollection<DependencyFinding>? dependencyFindings = null)
+        IReadOnlyCollection<DependencyFinding>? dependencyFindings = null,
+        IReadOnlyCollection<PolicyViolation>? violations = null)
     {
         PackageInfo[] orderedPackages = packages.OrderByDescending(package => package.RiskScore).ToArray();
         RiskReportPaths reportPaths = GetReportPaths(projectPath, reportOutputPath);
-        string html = BuildHtml(projectPath, orderedPackages, dependencyFindings ?? []);
-        string sarif = RiskSarifReportWriter.BuildSarif(projectPath, orderedPackages);
+        string html = BuildHtml(projectPath, orderedPackages, dependencyFindings ?? [], violations ?? []);
+        string sarif = RiskSarifReportWriter.BuildSarif(projectPath, orderedPackages, violations);
 
         await File.WriteAllTextAsync(reportPaths.HtmlPath, html, Utf8WithoutBom);
         await File.WriteAllTextAsync(reportPaths.SarifPath, sarif, Utf8WithoutBom);
@@ -165,7 +166,11 @@ internal static class RiskHtmlReportWriter
     /// Builds the complete self-contained HTML string for the risk report, including styles, summary table,
     /// and per-package detail sections.
     /// </summary>
-    private static string BuildHtml(string projectPath, PackageInfo[] packages, IReadOnlyCollection<DependencyFinding> dependencyFindings)
+    private static string BuildHtml(
+        string projectPath,
+        PackageInfo[] packages,
+        IReadOnlyCollection<DependencyFinding> dependencyFindings,
+        IReadOnlyCollection<PolicyViolation> violations)
     {
         var builder = new StringBuilder();
         string generatedAt = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture);
@@ -188,6 +193,7 @@ internal static class RiskHtmlReportWriter
             packages.Length > 0 ? CreatePackageAnchor(packages[0]) : null, dependencyFindings.Count > 0,
             criticalVulnerabilityCount, hasVulnerabilityDetails));
         AppendInconclusiveNotice(builder, packages);
+        AppendPolicyViolationsSection(builder, violations);
         AppendVulnerabilitiesSection(builder, packages);
         AppendPackageSummaryTable(builder, packages);
         AppendDependencyHygieneSection(builder, dependencyFindings);
@@ -371,6 +377,34 @@ internal static class RiskHtmlReportWriter
             "The signals that could not be collected are left out of their scores, so those scores may change once the data is available. " +
             "These packages are marked <span class=\"score-pill inconclusive-pill\">Inconclusive</span>. " +
             "Run again after the rate limit resets, or pass a GitHub token through <code>--github-api-key</code> or the <code>GITHUB_API_KEY</code> environment variable.</p>");
+        builder.AppendLine("  </section>");
+    }
+
+    private static void AppendPolicyViolationsSection(
+        StringBuilder builder,
+        IReadOnlyCollection<PolicyViolation> violations)
+    {
+        if (violations.Count == 0)
+        {
+            return;
+        }
+
+        builder.AppendLine("  <section class=\"card\" id=\"policy-violations\">");
+        builder.AppendLine("    <h2>Policy violations</h2>");
+        builder.AppendLine("    <table>");
+        builder.AppendLine("      <thead><tr><th>Severity</th><th>Package</th><th>Reason</th></tr></thead>");
+        builder.AppendLine("      <tbody>");
+
+        foreach (PolicyViolation violation in violations)
+        {
+            string severity = violation.IsWarning ? "Warning" : "Error";
+            builder.AppendLine(
+                $"        <tr><td>{severity}</td><td>{Encode(violation.PackageId)} {Encode(violation.Version)}</td>" +
+                $"<td>{Encode(violation.Reason)}</td></tr>");
+        }
+
+        builder.AppendLine("      </tbody>");
+        builder.AppendLine("    </table>");
         builder.AppendLine("  </section>");
     }
 

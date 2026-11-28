@@ -6,6 +6,16 @@ namespace PackageGuard.Core.Policy;
 
 public class DenyList : PackagePolicy
 {
+    public PolicySeverity? MaxOverallRiskSeverity { get; set; }
+    public PolicySeverity? MaxLegalRiskSeverity { get; set; }
+    public PolicySeverity? MaxSecurityRiskSeverity { get; set; }
+    public PolicySeverity? MaxOperationalRiskSeverity { get; set; }
+    public PolicySeverity? MaxOsvSeverityScoreSeverity { get; set; }
+    public PolicySeverity? DenyKnownExploitedSeverity { get; set; }
+    public PolicySeverity? DenyUnsignedSeverity { get; set; }
+    public PolicySeverity? DenyDeprecatedSeverity { get; set; }
+    public PolicySeverity? DenyWithoutRepositorySeverity { get; set; }
+    public PolicySeverity? MinPackageAgeDaysSeverity { get; set; }
     private const string RiskExceptionResolution =
         "Upgrade or replace the package, or add it to the riskExceptions section of your config. " +
         "Set expiresOn to make the exception temporary";
@@ -95,6 +105,7 @@ public class DenyList : PackagePolicy
             return new PolicyDecision
             {
                 IsMatch = true,
+                Severity = Severity ?? PolicySeverity.Error,
                 Reason = "prerelease packages are denied by policy",
                 Resolution = "Use a stable version, or set prerelease to false in the deny section of your config"
             };
@@ -107,6 +118,7 @@ public class DenyList : PackagePolicy
             return new PolicyDecision
             {
                 IsMatch = true,
+                Severity = Severity ?? PolicySeverity.Error,
                 Reason = LicenseExpression.DescribeMatch("deny list", matchingLicenses, package.License),
                 SourceFile = licenseSourceFiles,
                 Resolution = $"Use a package with a different license, or remove {LicenseExpression.JoinQuoted(matchingLicenses, "or")} " +
@@ -122,6 +134,7 @@ public class DenyList : PackagePolicy
                 return new PolicyDecision
                 {
                     IsMatch = true,
+                    Severity = Severity ?? PolicySeverity.Error,
                     Reason = $"matches deny list package entry \"{selector.Id}\"",
                     SourceFile = selector.SourceFile,
                     Resolution = $"Use a different package or version, or remove \"{selector.Id}\" from the deny " +
@@ -147,52 +160,59 @@ public class DenyList : PackagePolicy
         if (MaxOverallRisk is { } maxOverallRisk && package.RiskScore > maxOverallRisk)
         {
             return DenyByRiskRule(
-                $"overall risk score {package.RiskScore:0.#} exceeds the maximum of {maxOverallRisk:0.#}");
+                $"overall risk score {package.RiskScore:0.#} exceeds the maximum of {maxOverallRisk:0.#}",
+                MaxOverallRiskSeverity ?? Severity ?? PolicySeverity.Error);
         }
 
         if (MaxLegalRisk is { } maxLegalRisk && package.RiskDimensions.LegalRisk > maxLegalRisk)
         {
             return DenyByRiskRule(
-                $"legal risk score {package.RiskDimensions.LegalRisk:0.#} exceeds the maximum of {maxLegalRisk:0.#}");
+                $"legal risk score {package.RiskDimensions.LegalRisk:0.#} exceeds the maximum of {maxLegalRisk:0.#}",
+                MaxLegalRiskSeverity ?? Severity ?? PolicySeverity.Error);
         }
 
         if (MaxSecurityRisk is { } maxSecurityRisk && package.RiskDimensions.SecurityRisk > maxSecurityRisk)
         {
             return DenyByRiskRule(
-                $"security risk score {package.RiskDimensions.SecurityRisk:0.#} exceeds the maximum of {maxSecurityRisk:0.#}");
+                $"security risk score {package.RiskDimensions.SecurityRisk:0.#} exceeds the maximum of {maxSecurityRisk:0.#}",
+                MaxSecurityRiskSeverity ?? Severity ?? PolicySeverity.Error);
         }
 
         if (MaxOperationalRisk is { } maxOperationalRisk && package.RiskDimensions.OperationalRisk > maxOperationalRisk)
         {
             return DenyByRiskRule(
-                $"operational risk score {package.RiskDimensions.OperationalRisk:0.#} exceeds the maximum of {maxOperationalRisk:0.#}");
+                $"operational risk score {package.RiskDimensions.OperationalRisk:0.#} exceeds the maximum of {maxOperationalRisk:0.#}",
+                MaxOperationalRiskSeverity ?? Severity ?? PolicySeverity.Error);
         }
 
         if (MaxOsvSeverityScore is { } maxOsvSeverityScore && package.MaxVulnerabilitySeverity > maxOsvSeverityScore)
         {
             return DenyByVulnerabilityRule(
-                $"highest known OSV severity {package.MaxVulnerabilitySeverity:0.#} exceeds the maximum of {maxOsvSeverityScore:0.#}");
+                $"highest known OSV severity {package.MaxVulnerabilitySeverity:0.#} exceeds the maximum of {maxOsvSeverityScore:0.#}",
+                MaxOsvSeverityScoreSeverity ?? Severity ?? PolicySeverity.Error);
         }
 
         if (DenyKnownExploited && package.KnownExploitedCveIds is { Length: > 0 } exploitedCveIds)
         {
             return DenyByVulnerabilityRule(
-                $"has vulnerabilities on the CISA Known Exploited Vulnerabilities list ({string.Join(", ", exploitedCveIds)})");
+                $"has vulnerabilities on the CISA Known Exploited Vulnerabilities list ({string.Join(", ", exploitedCveIds)})",
+                DenyKnownExploitedSeverity ?? Severity ?? PolicySeverity.Error);
         }
 
         if (DenyUnsigned && package.IsPackageSigned == false)
         {
-            return DenyByRiskRule("package is not signed");
+            return DenyByRiskRule("package is not signed", DenyUnsignedSeverity ?? Severity ?? PolicySeverity.Error);
         }
 
         if (DenyDeprecated && package.IsDeprecated == true)
         {
-            return DenyByRiskRule("package is deprecated");
+            return DenyByRiskRule("package is deprecated", DenyDeprecatedSeverity ?? Severity ?? PolicySeverity.Error);
         }
 
         if (DenyWithoutRepository && string.IsNullOrWhiteSpace(package.RepositoryUrl))
         {
-            return DenyByRiskRule("package does not declare a repository URL");
+            return DenyByRiskRule("package does not declare a repository URL",
+                DenyWithoutRepositorySeverity ?? Severity ?? PolicySeverity.Error);
         }
 
         if (MinPackageAgeDays.TryGetValue(package.GetPackageEcosystem(), out int minAgeDays) && package.PublishedAt is { } publishedAt)
@@ -203,6 +223,7 @@ public class DenyList : PackagePolicy
                 return new PolicyDecision
                 {
                     IsMatch = true,
+                    Severity = MinPackageAgeDaysSeverity ?? Severity ?? PolicySeverity.Error,
                     Reason = $"published {ageDays:0.#} day(s) ago, which is less than the minimum age of {minAgeDays} day(s)",
                     Resolution = $"Use an older version, wait until this version is {minAgeDays} day(s) old, or add it to the " +
                                  "riskExceptions section of your config. Set expiresOn to make the exception temporary"
@@ -230,6 +251,17 @@ public class DenyList : PackagePolicy
         };
     }
 
+    private static PolicyDecision DenyByRiskRule(string reason, PolicySeverity severity)
+    {
+        return new PolicyDecision
+        {
+            IsMatch = true,
+            Severity = severity,
+            Reason = reason,
+            Resolution = RiskExceptionResolution
+        };
+    }
+
     /// <summary>
     /// Denies a package by a rule about known vulnerabilities, which upgrading or a <see cref="VulnerabilityException"/>
     /// resolves.
@@ -239,6 +271,17 @@ public class DenyList : PackagePolicy
         return new PolicyDecision
         {
             IsMatch = true,
+            Reason = reason,
+            Resolution = VulnerabilityExceptionResolution
+        };
+    }
+
+    private static PolicyDecision DenyByVulnerabilityRule(string reason, PolicySeverity severity)
+    {
+        return new PolicyDecision
+        {
+            IsMatch = true,
+            Severity = severity,
             Reason = reason,
             Resolution = VulnerabilityExceptionResolution
         };

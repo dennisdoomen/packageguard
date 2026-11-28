@@ -73,7 +73,7 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         RiskReportPaths? reportPaths = null;
         if (settings.ReportRisk && packages.Length > 0)
         {
-            reportPaths = await WriteRiskReportsAsync(logger, settings, packages, lockFiles);
+            reportPaths = await WriteRiskReportsAsync(logger, settings, packages, lockFiles, violations);
         }
 
         int exitCode = ReportViolations(logger, violations, settings);
@@ -121,7 +121,8 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
     }
 
     private static async Task<RiskReportPaths> WriteRiskReportsAsync(ILogger logger, AnalyzeCommandSettings settings, PackageInfo[] packages,
-        IReadOnlyCollection<LockFile> lockFiles)
+        IReadOnlyCollection<LockFile> lockFiles,
+        IReadOnlyCollection<PolicyViolation> violations)
     {
         logger.LogHeader("Writing risk reports");
         logger.LogInformation("Writing detailed HTML and SARIF risk reports for {PackageCount} packages.", packages.Length);
@@ -129,7 +130,7 @@ public sealed class AnalyzeCommand(ILogger logger) : AsyncCommand<AnalyzeCommand
         IReadOnlyCollection<DependencyFinding> dependencyFindings = new DependencyHygieneAnalyzer().Analyze(lockFiles);
 
         RiskReportPaths reportPaths = await RiskHtmlReportWriter.WriteAsync(
-            settings.ProjectPath, packages, settings.GetReportRiskPath(), dependencyFindings);
+            settings.ProjectPath, packages, settings.GetReportRiskPath(), dependencyFindings, violations);
 
         AnsiConsole.MarkupLine("[yellow1]Package Risk Summary:[/]");
         AnsiConsole.MarkupLine("");

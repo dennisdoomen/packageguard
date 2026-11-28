@@ -23,7 +23,8 @@ public record PolicyViolation
             FeedName = package.Source,
             FeedUrl = package.SourceUrl,
             Reason = decision.Reason,
-            Resolution = decision.Resolution
+            Resolution = decision.Resolution,
+            IsWarning = decision.Severity == PolicySeverity.Warning
         };
     }
 

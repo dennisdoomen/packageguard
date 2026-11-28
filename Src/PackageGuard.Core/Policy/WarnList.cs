@@ -30,6 +30,7 @@ public class WarnList : PackagePolicy
             return new PolicyDecision
             {
                 IsMatch = true,
+                Severity = PolicySeverity.Warning,
                 Reason = "prerelease packages are flagged for warning by policy"
             };
         }
@@ -40,6 +41,7 @@ public class WarnList : PackagePolicy
             return new PolicyDecision
             {
                 IsMatch = true,
+                Severity = PolicySeverity.Warning,
                 Reason = LicenseExpression.DescribeMatch("warn list", matchingLicenses, package.License),
                 SourceFile = FindLicenseSourceFiles(matchingLicenses)
             };
@@ -53,6 +55,7 @@ public class WarnList : PackagePolicy
                 return new PolicyDecision
                 {
                     IsMatch = true,
+                    Severity = PolicySeverity.Warning,
                     Reason = $"matches warn list package entry \"{selector.Id}\"",
                     SourceFile = selector.SourceFile
                 };

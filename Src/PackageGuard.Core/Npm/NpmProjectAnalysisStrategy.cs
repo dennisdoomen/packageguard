@@ -155,7 +155,14 @@ public class NpmProjectAnalysisStrategy(GetPolicyByProject policyByProject, ILog
             if (!allowDecision.IsMatch || denyDecision.IsMatch)
             {
                 PolicyDecision decision = denyDecision.IsMatch ? denyDecision : allowDecision;
-                violations.Add(PolicyViolation.FromDecision(package, package.Projects.ToArray(), decision));
+                PolicySeverity severity = policy.ResolveSeverity(
+                    denyDecision.IsMatch
+                        ? policy.DenyList.Severity ?? PolicySeverity.Error
+                        : policy.AllowList.Severity ?? PolicySeverity.Error);
+                violations.Add(PolicyViolation.FromDecision(package, package.Projects.ToArray(), decision) with
+                {
+                    IsWarning = severity == PolicySeverity.Warning
+                });
             }
             else
             {

@@ -1,9 +1,13 @@
+using PackageGuard.Core.Policy;
 using JetBrains.Annotations;
 
 namespace PackageGuard;
 
 public class PolicySettings
 {
+    [UsedImplicitly]
+    public PolicySeverity? Severity { get; set; }
+
     [UsedImplicitly]
     public AllowPolicyItem Allow { get; set; } = new();
 
@@ -24,6 +28,9 @@ public class PolicySettings
 
     public class PolicyItem
     {
+        [UsedImplicitly]
+        public PolicySeverity? Severity { get; set; }
+
         [UsedImplicitly]
         public string[] Packages { get; set; } = [];
 
@@ -74,6 +81,36 @@ public class PolicySettings
 
         [UsedImplicitly]
         public Dictionary<string, int> MinPackageAgeDays { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+        [UsedImplicitly]
+        public PolicySeverity? MaxOverallRiskSeverity { get; set; }
+
+        [UsedImplicitly]
+        public PolicySeverity? MaxLegalRiskSeverity { get; set; }
+
+        [UsedImplicitly]
+        public PolicySeverity? MaxSecurityRiskSeverity { get; set; }
+
+        [UsedImplicitly]
+        public PolicySeverity? MaxOperationalRiskSeverity { get; set; }
+
+        [UsedImplicitly]
+        public PolicySeverity? MaxOsvSeverityScoreSeverity { get; set; }
+
+        [UsedImplicitly]
+        public PolicySeverity? DenyKnownExploitedSeverity { get; set; }
+
+        [UsedImplicitly]
+        public PolicySeverity? DenyUnsignedSeverity { get; set; }
+
+        [UsedImplicitly]
+        public PolicySeverity? DenyDeprecatedSeverity { get; set; }
+
+        [UsedImplicitly]
+        public PolicySeverity? DenyWithoutRepositorySeverity { get; set; }
+
+        [UsedImplicitly]
+        public PolicySeverity? MinPackageAgeDaysSeverity { get; set; }
     }
 
     public class WarnPolicyItem : PolicyItem

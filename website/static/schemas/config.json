@@ -13,10 +13,22 @@
       "description": "The allow, deny and warn rules, the risk and vulnerability exceptions, and the feeds to ignore.",
       "type": "object",
       "properties": {
+        "severity": {
+          "description": "The default severity for policy violations. \"warning\" reports every non-malicious violation without failing the build.",
+          "type": "string",
+          "enum": ["error", "warning"],
+          "default": "error"
+        },
         "allow": {
           "description": "Packages, licenses and feeds that are allowed. When this section lists licenses or packages, everything else is a violation.",
           "type": "object",
           "properties": {
+            "severity": {
+              "description": "Whether allow-rule violations fail the build or are warnings.",
+              "type": "string",
+              "enum": ["error", "warning"],
+              "default": "error"
+            },
             "packages": {
               "description": "Packages that are always allowed, whatever their license. Supports the wildcards * and ?, and an optional NuGet version (range) after a /, such as \"MyPackage/[7.0.0,8.0.0)\".",
               "type": "array",
@@ -50,6 +62,12 @@
           "description": "Packages and licenses that are denied, and the risk gates. A deny rule always takes precedence over an allow rule.",
           "type": "object",
           "properties": {
+            "severity": {
+              "description": "Whether deny-rule violations fail the build or are warnings.",
+              "type": "string",
+              "enum": ["error", "warning"],
+              "default": "error"
+            },
             "packages": {
               "description": "Packages that are denied. Supports the wildcards * and ?, and an optional NuGet version (range) after a /, such as \"MyPackage/[7.0.0,8.0.0)\".",
               "type": "array",
@@ -75,6 +93,21 @@
               "minimum": 0,
               "maximum": 100
             },
+            "maxOverallRiskSeverity": {
+              "description": "Whether an overall-risk violation fails the build or is a warning.",
+              "type": "string",
+              "enum": ["error", "warning"],
+              "default": "error"
+            },
+            "maxLegalRiskSeverity": {"description": "Whether a legal-risk violation fails the build or is a warning.", "type": "string", "enum": ["error", "warning"], "default": "error"},
+            "maxSecurityRiskSeverity": {"description": "Whether a security-risk violation fails the build or is a warning.", "type": "string", "enum": ["error", "warning"], "default": "error"},
+            "maxOperationalRiskSeverity": {"description": "Whether an operational-risk violation fails the build or is a warning.", "type": "string", "enum": ["error", "warning"], "default": "error"},
+            "maxOsvSeverityScoreSeverity": {"description": "Whether an OSV-severity violation fails the build or is a warning.", "type": "string", "enum": ["error", "warning"], "default": "error"},
+            "denyKnownExploitedSeverity": {"description": "Whether a known-exploited vulnerability violation fails the build or is a warning.", "type": "string", "enum": ["error", "warning"], "default": "error"},
+            "denyUnsignedSeverity": {"description": "Whether an unsigned-package violation fails the build or is a warning.", "type": "string", "enum": ["error", "warning"], "default": "error"},
+            "denyDeprecatedSeverity": {"description": "Whether a deprecated-package violation fails the build or is a warning.", "type": "string", "enum": ["error", "warning"], "default": "error"},
+            "denyWithoutRepositorySeverity": {"description": "Whether a package without a repository violation fails the build or is a warning.", "type": "string", "enum": ["error", "warning"], "default": "error"},
+            "minPackageAgeDaysSeverity": {"description": "Whether a minimum-package-age violation fails the build or is a warning.", "type": "string", "enum": ["error", "warning"], "default": "error"},
             "maxLegalRisk": {
               "description": "Denies a package whose legal risk score (0-10) is higher than this value.",
               "type": "number",
@@ -149,6 +182,12 @@
           "description": "Packages and licenses that are reported as a warning instead of failing the build. A deny rule takes precedence over a warn rule.",
           "type": "object",
           "properties": {
+            "severity": {
+              "description": "Whether warn-list matches are warnings. This section already defaults to warning severity.",
+              "type": "string",
+              "enum": ["error", "warning"],
+              "default": "warning"
+            },
             "packages": {
               "description": "Packages that cause a warning. Supports the wildcards * and ?, and an optional NuGet version (range) after a /, such as \"MyPackage/[7.0.0,8.0.0)\".",
               "type": "array",

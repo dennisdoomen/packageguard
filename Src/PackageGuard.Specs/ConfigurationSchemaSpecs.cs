@@ -212,6 +212,7 @@ public class ConfigurationSchemaSpecs
             _ when underlyingType == typeof(int) => "integer",
             _ when underlyingType == typeof(double) => "number",
             _ when underlyingType == typeof(string) || underlyingType == typeof(DateOnly) => "string",
+            _ when underlyingType.IsEnum => "string",
             _ when underlyingType.IsArray => "array",
             _ => "object"
         };

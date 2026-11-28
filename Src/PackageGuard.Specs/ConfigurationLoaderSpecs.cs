@@ -659,6 +659,38 @@ public class ConfigurationLoaderSpecs
     }
 
     [TestMethod]
+    public void Can_parse_policy_severity_settings()
+    {
+        // Arrange
+        File.WriteAllText(ChainablePath.Current / "severity.json",
+            """
+            {
+                "settings": {
+                    "severity": "warning",
+                    "allow": {
+                        "severity": "error",
+                        "licenses": ["MIT"]
+                    },
+                    "deny": {
+                        "severity": "warning",
+                        "maxOverallRisk": 60,
+                        "maxOverallRiskSeverity": "warning"
+                    }
+                }
+            }
+            """);
+
+        // Act
+        ProjectPolicy policy = configurationLoader.GetConfigurationFromConfigPath("severity.json");
+
+        // Assert
+        policy.Severity.Should().Be(PolicySeverity.Warning);
+        policy.AllowList.Severity.Should().Be(PolicySeverity.Error);
+        policy.DenyList.Severity.Should().Be(PolicySeverity.Warning);
+        policy.DenyList.MaxOverallRiskSeverity.Should().Be(PolicySeverity.Warning);
+    }
+
+    [TestMethod]
     public void Can_parse_risk_gating_settings()
     {
         // Arrange

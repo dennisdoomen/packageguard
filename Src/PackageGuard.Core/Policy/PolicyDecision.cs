@@ -7,6 +7,11 @@ namespace PackageGuard.Core.Policy;
 internal sealed record PolicyDecision
 {
     /// <summary>
+    /// Gets or sets whether this outcome fails the build or is reported as a warning.
+    /// </summary>
+    public PolicySeverity Severity { get; init; } = PolicySeverity.Error;
+
+    /// <summary>
     /// Indicates that a rule of the list applies to the package. For an <see cref="AllowList"/> this means the package
     /// is allowed; for a <see cref="DenyList"/> or <see cref="WarnList"/> it means the package is denied or flagged.
     /// </summary>
