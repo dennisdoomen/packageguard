@@ -68,7 +68,11 @@ jobs:
         name: coverage-badge
         path: TestResults/reports/coverage.svg
 
+    # Uploading is best effort: a GitHub API rate limit must not fail the build, and PRs from forks or Dependabot
+    # get a read-only token that cannot upload code scanning results.
     - name: Upload SARIF file
+      if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
+      continue-on-error: true
       uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: Artifacts/CodeIssues.sarif
@@ -80,7 +84,8 @@ jobs:
         files: "Artifacts/PackageGuardReports/*.sarif"
 
     - name: Upload PackageGuard SARIF file
-      if: steps.check_packageguard_sarif.outputs.files_exists == 'true'
+      if: steps.check_packageguard_sarif.outputs.files_exists == 'true' && (github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'))
+      continue-on-error: true
       uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: Artifacts/PackageGuardReports
