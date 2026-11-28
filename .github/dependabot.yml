@@ -30,3 +30,9 @@ updates:
       # with a newer Verify.DiffPlex, and bump both together.
       - dependency-name: "Verify.DiffPlex"
         versions: [">3.1.2"]
+
+      # Microsoft.Build 18.x no longer restores for net9.0/net10.0 without falling back to .NET Framework
+      # assemblies (NU1701, an error here), and drags in Microsoft.IO.Redist (see PR #347). Stay on 17.x until a
+      # release restores cleanly for the target frameworks.
+      - dependency-name: "Microsoft.Build"
+        update-types: ["version-update:semver-major"]
