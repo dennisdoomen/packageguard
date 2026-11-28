@@ -27,7 +27,7 @@
     <ItemGroup>
       <PackageReference Include="CliWrap" Version="3.10.5" />
       <PackageReference Include="JetBrains.Annotations" Version="2026.2.0" />
-      <PackageReference Include="Microsoft.Build" Version="17.14.28" />
+      <PackageReference Include="Microsoft.Build" Version="18.12.2" />
       <PackageReference Include="Pathy" Version="1.10.0">
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

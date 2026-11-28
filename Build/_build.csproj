@@ -13,6 +13,7 @@
   <ItemGroup>
     <PackageReference Include="Fallout.Common" Version="10.5.0" />
     <PackageReference Include="Fallout.Components" Version="10.5.0" />
+    <PackageReference Include="Microsoft.Build" Version="18.12.2" />
     <PackageDownload Include="ReportGenerator" Version="[5.5.11]" />
     <PackageDownload Include="GitVersion.Tool" Version="[6.8.2]" />
     <PackageDownload Include="JetBrains.ReSharper.GlobalTools" Version="[2026.2.3.1]" />
